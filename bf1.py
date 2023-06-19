@@ -24,11 +24,14 @@ from pathlib import Path
 import time
 
 from .config import Config
-from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md
+from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
 from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API
 
 GAME = 'bf1'
 LANG = 'zh-tw'
+
+def get_bf1status():
+    return request_API(GAME,'status',{"platform":"pc"})
 
 def get_player_data(player_name:str)->dict:
     return request_API(GAME,'all',{'name':player_name,'lang':LANG})
@@ -49,6 +52,12 @@ alarm_mode = [0]*100
 alarm_session = [0]*100
 job_cnt = 0
 
+BF1_STATUS = on_command(f'{PREFIX}bf1 status', block=True, priority=1)
+
+BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
+
+BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
+
 BF_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=SUPERUSER)
 
 BF1_SERVER_ALARM = on_command(f'{PREFIX}打开预警', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
@@ -62,6 +71,52 @@ BF1_LS = on_command(f'{PREFIX}bf1 list', block=True, priority=1)
 BF1_SERVER = on_command(f'{PREFIX}bf1 server', block=True, priority=1)
 
 BF1F = on_command(f'{PREFIX}bf1', block=True, priority=1)
+
+@BF1_STATUS.handle()
+async def bf1_status(event:GroupMessageEvent, state:T_State):
+    try:
+        result = get_bf1status()
+        server_amount_all = result['regions']['ALL']['amounts']['serverAmount']
+        server_amount_dice = result['regions']['ALL']['amounts']['diceServerAmount']
+        amount_all = result['regions']['ALL']['amounts']['soldierAmount']
+        amount_all_dice = result['regions']['ALL']['amounts']['diceSoldierAmount']
+        amount_all_queue = result['regions']['ALL']['amounts']['queueAmount']
+        amount_all_spe = result['regions']['ALL']['amounts']['spectatorAmount']
+        amount_asia = result['regions']['Asia']['amounts']['soldierAmount']
+        amount_asia_dice = result['regions']['Asia']['amounts']['diceSoldierAmount']
+        amount_eu = result['regions']['EU']['amounts']['soldierAmount']
+        amount_eu_dice = result['regions']['EU']['amounts']['diceSoldierAmount']
+        await BF1_STATUS.send(f'开启服务器：{server_amount_all}({server_amount_dice})\n游戏中人数：{amount_all}({amount_all_dice})\n排队/观战中：{amount_all_queue}/{amount_all_spe}\n亚服：{amount_asia}({amount_asia_dice})\n欧服：{amount_eu}({amount_eu_dice})')
+    except: 
+        await BF1_STATUS.send('无法获取到服务器数据。')
+
+@BF1_MODE.handle()
+async def bf1_mode(event:GroupMessageEvent, state:T_State):
+    try:
+        result = get_bf1status()['regions']['ALL']['modePlayers']
+        AirAssault = result['AirAssault']
+        Breakthrough = result['Breakthrough']
+        BreakthroughLarge = result['BreakthroughLarge']
+        Conquest = result['Conquest']
+        Domination = result['Domination']
+        Possession = result['Possession']
+        Rush = result['Rush']
+        TeamDeathMatch = result['TeamDeathMatch']
+        TugOfWar = result['TugOfWar']
+        ZoneControl = result['ZoneControl']
+        await BF1_MODE.send(f'模式人数统计：\n征服：{Conquest}\n行动：{BreakthroughLarge}\n小模式：{TeamDeathMatch+AirAssault+Breakthrough+Domination+Possession+Rush+TugOfWar+ZoneControl}')
+    except: 
+        await BF1_MODE.send('无法获取到服务器数据。')
+
+@BF1_MAP.handle()
+async def bf1_map(event:GroupMessageEvent, state:T_State):
+    try:
+        result = get_bf1status()['regions']['ALL']['mapPlayers']
+        result = sorted(result.items(), key=lambda item:item[1], reverse=True)
+        print(result[0][1])
+        await BF1_MAP.send(f'地图游玩情况：\n{result[0][0]}：{result[0][1]}\n{result[1][0]}：{result[1][1]}\n{result[2][0]}：{result[2][1]}\n{result[3][0]}：{result[3][1]}\n{result[4][0]}：{result[4][1]}\n{result[5][0]}：{result[5][1]}\n{result[6][0]}：{result[6][1]}\n{result[7][0]}：{result[7][1]}')
+    except: 
+        await BF1_MAP.send('无法获取到服务器数据。')
 
 @BF_BIND.handle()
 async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
