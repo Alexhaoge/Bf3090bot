@@ -29,7 +29,7 @@ import datetime
 
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
-from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API
+from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert
 from .bf1rsp import upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer
 
 GAME = 'bf1'
@@ -47,6 +47,11 @@ def check_admin(session:int, user_id:int):
         return True
     else:
         return False
+    
+def check_session(session:int):
+    with open(BF1_SERVERS_DATA/f'{session}_session.txt','r') as f:
+        result = int(f.read())
+    return result
 
 def search_dicts_by_key_value(dict_list, key, value):
     for d in dict_list:
@@ -87,6 +92,9 @@ alarm_mode = [0]*100
 alarm_session = [0]*100
 job_cnt = 0
 
+#bf1 help
+BF1_HELP = on_command(f"{PREFIX}help", block=True, priority=1)
+
 #bf1rsp
 BF1_ADDADMIN = on_command(f'{PREFIX}addadmin', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 BF1_INITMAP = on_command(f'{PREFIX}initmap', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
@@ -99,14 +107,15 @@ BF1_VIP = on_command(f'{PREFIX}vip', block=True, priority=1)
 BF1_UNVIP = on_command(f'{PREFIX}unvip', block=True, priority=1)
 
 #bf1status
+BF_STATUS = on_command(f'{PREFIX}bf status', block=True, priority=1)
 BF1_STATUS = on_command(f'{PREFIX}bf1 status', block=True, priority=1)
 BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
 BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
 
 #bf1 server alarm
 BF_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
-BF1_SERVER_ALARM = on_command(f'{PREFIX}打开预警', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
-BF1_SERVER_ALARMOFF = on_command(f'{PREFIX}关闭预警', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
+BF1_SERVER_ALARM = on_command(f'{PREFIX}打开预警', block=True, priority=1)
+BF1_SERVER_ALARMOFF = on_command(f'{PREFIX}关闭预警', block=True, priority=1)
 
 #original bf1 chat
 BF1_BIND = on_command(f'{PREFIX}bf1 bind', block=True, priority=1)
@@ -114,10 +123,23 @@ BF1_LS = on_command(f'{PREFIX}bf1 list', block=True, priority=1)
 BF1_SERVER = on_command(f'{PREFIX}bf1 server', block=True, priority=1)
 BF1F = on_command(f'{PREFIX}bf1', block=True, priority=1)
 
+@BF1_HELP.handle()
+async def bf_help(event:MessageEvent, state:T_State):
+    with open(CODE_FOLDER/'Readme.md',encoding='utf-8') as f:
+        md_help = f.read()
+    
+    md_help = md_help.format(p=PREFIX)
+
+    pic = await md_to_pic(md_help, css_path=CODE_FOLDER/"github-markdown-dark.css",width=900)
+
+    await BF1_HELP.send(MessageSegment.image(pic))
+
+
 @BF1_ADDADMIN.handle()
 async def bf1_admin(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     session = event.group_id
+    session = check_session(session)
     arg = message.extract_plain_text().split(' ')
     with open(BF1_SERVERS_DATA/f'{session}_admin.txt','r') as f:
         admin = f.read()
@@ -134,6 +156,7 @@ async def bf1_initmap(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     with open(BF1_SERVERS_DATA/f'{session}'/f'{session}_{int(arg[0])}.json','r') as f:
         server = f.read()
     try:
@@ -157,6 +180,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
     
     if(check_admin(session, user_id)):
@@ -170,12 +194,13 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
         except:
             await BF1_CHOOSELEVEL.send('请输入正确的地图名称')
             return
-
-        await BF1_CHOOSELEVEL.send(f'如果更新图池请先输入<{PREFIX}bf1 initmap 服务器序号>再切图，否则可以忽略此消息。')
-        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-            serverGT = json.load(f)
-            persistedGameId = serverGT['serverId']
-            rotation = serverGT['rotation']
+        
+        with open(BF1_SERVERS_DATA/f'{session}'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            servername = f.read()
+        
+        serverGT = get_detailedServer_data(servername)
+        persistedGameId = serverGT['serverId']
+        rotation = serverGT['rotation']
     
         try:
             levelIndex = 0
@@ -204,12 +229,13 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
         server_id = int(arg[0])
         name = arg[1]
-        reason = zhconv.convert(arg[2], 'zh-tw')
+        reason = zhconvert(arg[2])
 
         with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
             serverGT = json.load(f)
@@ -230,6 +256,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
@@ -255,6 +282,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
@@ -281,6 +309,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
@@ -324,6 +353,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
@@ -377,6 +407,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(' ')
     session = event.group_id
+    session = check_session(session)
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
@@ -408,6 +439,34 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
             await BF1_VIP.send(f'已移除玩家{personaName}的vip')
     else:
         await BF1_CHOOSELEVEL.send('你不是本群组的管理员')
+
+@BF_STATUS.handle()
+async def bf_status(event:GroupMessageEvent, state:T_State):
+    try:
+        bf1942_json = request_API('bf1942','status')
+        bf1942 = bf1942_json['regions'][0]['soldierAmount']
+        bf1942_s = bf1942_json['regions'][0]['serverAmount']
+        bf2_json = request_API('bf2','status',{'service':'all'})
+        bf2 = bf2_json['regions'][0]['soldierAmount']
+        bf2_s = bf2_json['regions'][0]['serverAmount']
+        bf3_json = request_API('bf3','status')
+        bf3 = bf3_json['regions']['ALL']['amounts']['soldierAmount']
+        bf3_s = bf3_json['regions']['ALL']['amounts']['serverAmount']
+        bf4_json = request_API('bf4','status',{"platform":"pc"})
+        bf4 = bf4_json['regions']['ALL']['amounts']['soldierAmount']
+        bf4_s = bf4_json['regions']['ALL']['amounts']['serverAmount'] 
+        bf1_json = request_API(GAME,'status',{"platform":"pc"})       
+        bf1 = bf1_json['regions']['ALL']['amounts']['soldierAmount']
+        bf1_s = bf1_json['regions']['ALL']['amounts']['serverAmount']
+        bf5_json = request_API('bfv','status',{"platform":"pc"})
+        bf5 = bf5_json['regions']['ALL']['amounts']['soldierAmount']
+        bf5_s = bf5_json['regions']['ALL']['amounts']['serverAmount']
+        bf2042_json = request_API('bf4','status')
+        bf2042 = bf2042_json['regions']['ALL']['amounts']['soldierAmount']
+        bf2042_s = bf2042_json['regions']['ALL']['amounts']['serverAmount']
+        await BF_STATUS.send(f'战地pc游戏人数统计：\n格式：<服数> | <人数>\nbf1942：{bf1942_s} | {bf1942}\nbf2：{bf2_s} | {bf2}\nbf3：{bf3_s} | {bf3}\nbf4：{bf4_s} | {bf4}\nbf1：{bf1_s} | {bf1}\nbfv：{bf5_s} | {bf5}\nbf2042：{bf2042_s} | {bf2042}')
+    except: 
+        await BF_STATUS.send('无法获取到服务器数据。')
 
 @BF1_STATUS.handle()
 async def bf1_status(event:GroupMessageEvent, state:T_State):
@@ -498,48 +557,63 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
 @BF1_SERVER_ALARM.handle()
 async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
+    try:
+        arg = message.extract_plain_text().split(' ')
+        session = int(arg[0])
+    except:
+        session = event.group_id
+    user_id = event.user_id
 
-    global job_cnt
-    global alarm_session
-    global alarm_mode
+    if(check_admin(session, user_id)):
+        global job_cnt
+        global alarm_session
+        global alarm_mode
 
-    job_cnt = job_cnt + 1
-    job_num = alarm_session.count(event.group_id)
+        job_cnt = job_cnt + 1
+        job_num = alarm_session.count(session)
 
-    if job_num == 0:
-        job_id = alarm_mode.index(0)
-        if job_id != job_cnt - 1:
-            job_cnt = job_cnt - 1
-        alarm_session[job_id] = event.group_id
-        alarm_mode[job_id] = 1
+        if job_num == 0:
+            job_id = alarm_mode.index(0)
+            if job_id != job_cnt - 1:
+                job_cnt = job_cnt - 1
+            alarm_session[job_id] = session
+            alarm_mode[job_id] = 1
 
-        print(job_cnt)
-        print(alarm_session)
-        print(alarm_mode)
-        await BF1_SERVER_ALARM.send(f'已打开预警，请注意接收消息')
-    else:await BF1_SERVER_ALARM.send(f'请不要重复打开')
+            print(job_cnt)
+            print(alarm_session)
+            print(alarm_mode)
+            await BF1_SERVER_ALARM.send(f'已打开预警，请注意接收消息')
+        else:await BF1_SERVER_ALARM.send(f'请不要重复打开')
+    else:
+        await BF1_CHOOSELEVEL.send('你不是本群组的管理员')
 
 @BF1_SERVER_ALARMOFF.handle()
 async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    global job_cnt
-    global alarm_session
-    global alarm_mode   
+    session = event.group_id
+    user_id = event.user_id
+    
+    if(check_admin(session, user_id)):
+        global job_cnt
+        global alarm_session
+        global alarm_mode   
 
-    job_num = alarm_session.count(event.group_id)
-    if job_num == 0:
-        await BF1_SERVER_ALARM.send(f'预警未打开')
+        job_num = alarm_session.count(event.group_id)
+        if job_num == 0:
+            await BF1_SERVER_ALARM.send(f'预警未打开')
+        else:
+            job_id = alarm_session.index(event.group_id)
+            alarm_session[job_id] = 0
+            alarm_mode[job_id] = 0
+            if job_id == job_cnt - 1 and job_cnt != 1:
+                job_cnt = job_cnt - 1
+            await BF1_SERVER_ALARM.send(f'已关闭预警')
+
+            print(job_cnt)
+            print(alarm_session)
+            print(alarm_mode)
     else:
-        job_id = alarm_session.index(event.group_id)
-        alarm_session[job_id] = 0
-        alarm_mode[job_id] = 0
-        if job_id == job_cnt - 1 and job_cnt != 1:
-            job_cnt = job_cnt - 1
-        await BF1_SERVER_ALARM.send(f'已关闭预警')
-
-        print(job_cnt)
-        print(alarm_session)
-        print(alarm_mode)
+        await BF1_CHOOSELEVEL.send('你不是本群组的管理员')
 
 
 @BF1_BIND.handle()

@@ -331,9 +331,6 @@ personaId = '1004144681001'
 res = upd_kickPlayer(remid, sid, sessionID, GameId, personaId, '1')
 print(res)
 """
-current_date = '700633068_2_nh4bara_shl_2023-06-24'.split('_')
-current_date = current_date[len(current_date)-1]
-current_date = datetime.datetime.strptime(current_date, "%Y-%m-%d")
-nextday = current_date + timedelta(days=1)
-print(current_date)
-print(nextday)
+
+
+
