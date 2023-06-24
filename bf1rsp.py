@@ -316,6 +316,74 @@ def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
     )
     return res.json()
 
+#通过玩家数字Id获取玩家相关信息
+def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
+    res = requests.post(
+        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        json = {
+	        "jsonrpc": "2.0",
+	        "method": "RSP.getPersonasByIds",
+	        "params": {
+		    "game": "tunguska",
+            "personaIds": personaIds
+	        },
+            "id": str(uuid.uuid4())
+        },
+        headers= {
+            'Cookie': f'remid={remid};sid={sid}',
+            'X-GatewaySession': sessionID
+        },
+    )
+    return res.json()
+
+def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
+    res = requests.post(
+        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        json = {
+	        "jsonrpc": "2.0",
+	        "method": "Stats.detailedStatsByPersonaId",
+	        "params": {
+		    "game": "tunguska",
+            "personaId": f"{personaId}"
+	        },
+            "id": str(uuid.uuid4())
+        },
+        headers= {
+            'Cookie': f'remid={remid};sid={sid}',
+            'X-GatewaySession': sessionID
+        },
+    )
+    return res.json()
+
+def upd_servers(remid, sid, sessionID, serverName):
+    res = requests.post(
+        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        json = {
+	        "jsonrpc": "2.0",
+	        "method": "GameServer.searchServers",
+	        "params": {
+		    "filterJson": "{\"version\":6,\"name\":\"" + serverName + "\"}",
+            "game": "tunguska",
+            "limit": 30,
+            "protocolVersion": "3779779"
+	        },
+            "id": str(uuid.uuid4())
+        },
+        headers= {
+            'Cookie': f'remid={remid};sid={sid}',
+            'X-GatewaySession': sessionID
+        },
+    )
+    return res.json()
+
+
+def upd_Stats(personaIds):
+    res = requests.post(
+        url="https://api.gametools.network/bf1/multiple?raw=false&format_values=true",
+        data= json.dumps(personaIds)
+    )
+    return res.json()
+
 """
 remid = 'TUU6RlRZNlA1eks3Z1NOZWp0NkhibU1wa1J0d3h0bmNVNzFJOGRDQUhUQTowNjIwMjc3MDM.5ieHbWMi2OLcyhAec523QUcawAmBXsk6tEXl6IBV'
 sid = 'UzZWbmd6TUF1MW0yRmxzNTIwaGdRNGVXcHdmSURhWDNDY3hHZDY0bDZDNHJkQmdpamZkNnpnVU5oN1BPbw.NQqScjl_ZYOnF6OeHK56QjUNHqdp8sBFXbbSARa1AtA'
@@ -330,7 +398,22 @@ print(GameId)
 personaId = '1004144681001'
 res = upd_kickPlayer(remid, sid, sessionID, GameId, personaId, '1')
 print(res)
+personaIds = [
+    "1056491032",
+    "1004144681001"
+]
+
+personaIdss = [
+    1056491032,
+    1004144681001
+]
+
+#res = upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+#res = upd_StatsByPersonaId(remid, sid, sessionID, '1056491032')
+res = upd_Stats(personaIdss)
+print(res)
+outfile = open('C:/Users/pengx/Desktop/1/1.json','w',encoding='UTF-8')
+
+json.dump(res,outfile,indent=4, ensure_ascii=False)
 """
-
-
 
