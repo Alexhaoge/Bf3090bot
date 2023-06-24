@@ -9,13 +9,13 @@ from .utils import BF1_SERVERS_DATA
 
 async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     # 打开图片文件
-    img = Image.open('C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/Caches/DLC1.jpg')
+    img = Image.open(BF1_SERVERS_DATA/'Caches/DLC1.jpg')
     img = img.resize((753,978))
     img = img.crop((0,0,753,190*server_id))
     # 将原始图片模糊化
     img = img.filter(ImageFilter.GaussianBlur(radius=15))
     for id in range(server_id):
-        with open(f'C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/{session}_jsonGT/{session}_{id+1}.json','r', encoding='utf-8') as f:
+        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{id+1}.json','r', encoding='utf-8') as f:
             serverGT = json.load(f)
             gameId = serverGT['gameId']
             
@@ -30,7 +30,7 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
         serverstar = res['result']['serverInfo']['serverBookmarkCount']
         serverinfo = '简介：' + res['result']['serverInfo']['description']
         serverimg = res['result']['serverInfo']['mapImageUrl'].split('/')[5]
-        serverimg = f'C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/Caches/Maps/{serverimg}'
+        serverimg = BF1_SERVERS_DATA/f'Caches/Maps/{serverimg}'
 
         status1 = servermode + '-' +servermap
         status2 = f'{serveramount}/{servermaxamount}[{serverque}({serverspect})]'
@@ -82,12 +82,12 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
         background = Image.open(serverimg).resize((240,150))
         img.paste(background, position)
 
-    img.save(f'C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/Caches/{session}.jpg')
+    img.save(BF1_SERVERS_DATA/f'Caches/{session}.jpg')
     return 1
 
 async def draw_server(remid, sid, sessionID, serverName):
-    img = Image.open('C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/Caches/DLC1.jpg')
-    img = img.resize((753,978))
+    img = Image.open(BF1_SERVERS_DATA/f'Caches/DLC1.jpg')
+    img = img.resize((753,950))
     img = img.filter(ImageFilter.GaussianBlur(radius=15))
     res = upd_servers(remid, sid, sessionID, serverName)['result']['gameservers']
     if (len(res)) <5:
@@ -103,7 +103,7 @@ async def draw_server(remid, sid, sessionID, serverName):
         #serverstar = res[i]['serverBookmarkCount']
         serverinfo = '简介：' + res[ij]['description']
         serverimg = res[ij]['mapImageUrl'].split('/')[5]
-        serverimg = f'C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/Caches/Maps/{serverimg}'
+        serverimg = BF1_SERVERS_DATA/f'Caches/Maps/{serverimg}'
         gameId = res[ij]['gameId']
         res_0 =  upd_detailedServer(remid, sid, sessionID, gameId)
         serverstar = res_0['result']['serverInfo']['serverBookmarkCount']
@@ -121,7 +121,7 @@ async def draw_server(remid, sid, sessionID, serverName):
         draw = ImageDraw.Draw(textbox)
         font_1 = ImageFont.truetype(font='comic.ttf', size=22, encoding='UTF-8')
         font_2 = ImageFont.truetype(font='msyhbd.ttc', size=22, encoding='UTF-8')
-        font_3 = ImageFont.truetype(font='msyhbd.ttc', size=14, encoding='UTF-8')
+        font_3 = ImageFont.truetype(font='msyh.ttc', size=14, encoding='UTF-8')
         font_4 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
         draw0.text(xy=(40,4), text=servername, fill=(255, 255, 255, 255),font=font_1)
         draw.text(xy=(280,5), text=status1, fill=(255, 255, 0, 200),font=font_2)
@@ -161,7 +161,7 @@ async def draw_server(remid, sid, sessionID, serverName):
         if ij == 4:
             break
 
-    img.save(f'C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/Caches/{serverName}.jpg')
+    img.save(BF1_SERVERS_DATA/f'Caches/{serverName}.jpg')
     return 1
 
 #draw_f(4,248966716,remid, sid, sessionID)
