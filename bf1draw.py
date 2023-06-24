@@ -37,7 +37,7 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
         status3 = f'★{serverstar}'
 
         # 创建一个矩形图形
-        textbox0 = Image.new("RGBA", (693,40), (0, 0, 0, 200))
+        textbox0 = Image.new("RGBA", (693,40), (255, 50, 0, 255))
         textbox = Image.new("RGBA", (693,150), (0, 0, 0, 200))
 
         # 在矩形图形上添加文字
@@ -45,14 +45,16 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
         draw = ImageDraw.Draw(textbox)
         font_1 = ImageFont.truetype(font='comic.ttf', size=22, encoding='UTF-8')
         font_2 = ImageFont.truetype(font='msyhbd.ttc', size=22, encoding='UTF-8')
-        font_3 = ImageFont.truetype(font='msyhbd.ttc', size=14, encoding='UTF-8')
+        font_3 = ImageFont.truetype(font='msyh.ttc', size=14, encoding='UTF-8')
         font_4 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
         draw0.text(xy=(40,4), text=servername, fill=(255, 255, 255, 255),font=font_1)
         draw.text(xy=(280,5), text=status1, fill=(255, 255, 0, 200),font=font_2)
         draw.text(xy=(580,5), text=status3, fill=(0, 255, 255, 200),font=font_2)
         draw.text(xy=(250,20), text='------------------------------------------------------', fill=(0, 255, 0, 100),font=font_1)
-        draw.text(xy=(480,65), text=status2, fill=(0, 255, 0, 255),font=font_4)
-
+        if int(servermaxamount) - int(serveramount) < 10:
+            draw.text(xy=(480,65), text=status2, fill=(0, 255, 0, 255),font=font_4)
+        else:
+            draw.text(xy=(480,65), text=status2, fill=(255, 150, 0, 255),font=font_4)
         pattern = re.compile(r"([\u4e00-\u9fa5]|[a-zA-Z]|[≤≥。，、；：“”‘’！？【】（）{}\[\]&nbsp;&mdash;…《》〈〉·—～,.?+\'\"\/;_\(\)]\ |[0-9])")
         count = 0
         result = ''
@@ -113,7 +115,7 @@ async def draw_server(remid, sid, sessionID, serverName):
         status3 = f'★{serverstar}'
 
         # 创建一个矩形图形
-        textbox0 = Image.new("RGBA", (693,40), (0, 0, 0, 200))
+        textbox0 = Image.new("RGBA", (693,40), (255, 50, 0, 255))
         textbox = Image.new("RGBA", (693,150), (0, 0, 0, 200))
 
         # 在矩形图形上添加文字
@@ -127,8 +129,10 @@ async def draw_server(remid, sid, sessionID, serverName):
         draw.text(xy=(280,5), text=status1, fill=(255, 255, 0, 200),font=font_2)
         draw.text(xy=(580,5), text=status3, fill=(0, 255, 255, 200),font=font_2)
         draw.text(xy=(250,20), text='------------------------------------------------------', fill=(0, 255, 0, 100),font=font_1)
-        draw.text(xy=(480,65), text=status2, fill=(0, 255, 0, 255),font=font_4)
-
+        if int(servermaxamount) - int(serveramount) < 10:
+            draw.text(xy=(480,65), text=status2, fill=(0, 255, 0, 255),font=font_4)
+        else:
+            draw.text(xy=(480,65), text=status2, fill=(255, 150, 0, 255),font=font_4)
         pattern = re.compile(r"([\u4e00-\u9fa5]|[a-zA-Z]|[≤≥。，、；：“”‘’！？【】（）{}\[\]&nbsp;&mdash;…《》〈〉·—～,.?+\'\"\/;_\(\)]\ |[0-9])")
         count = 0
         result = ''
