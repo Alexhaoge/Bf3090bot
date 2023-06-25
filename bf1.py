@@ -15,15 +15,14 @@ import json
 import os
 import numpy
 import zhconv
+import asyncio
 
 from nonebot_plugin_apscheduler import scheduler
-
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from pathlib import Path
 
 import time
-
 from datetime import datetime, timedelta
 import datetime
 
@@ -31,14 +30,19 @@ from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
 from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert
 from .bf1rsp import upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer
+from .bf1draw import draw_f, draw_server
 
 GAME = 'bf1'
 LANG = 'zh-tw'
 
-remid = 'TUU6RlRZNlA1eks3Z1NOZWp0NkhibU1wa1J0d3h0bmNVNzFJOGRDQUhUQTowNjIwMjc3MDM.5ieHbWMi2OLcyhAec523QUcawAmBXsk6tEXl6IBV'
-sid = 'UzZWbmd6TUF1MW0yRmxzNTIwaGdRNGVXcHdmSURhWDNDY3hHZDY0bDZDNHJkQmdpamZkNnpnVU5oN1BPbw.NQqScjl_ZYOnF6OeHK56QjUNHqdp8sBFXbbSARa1AtA'
+with open(BF1_SERVERS_DATA/'Caches'/'id.txt','r' ,encoding='UTF-8') as f:
+    id_list = f.read().split(',')
+    remid = id_list[0]
+    sid = id_list[1]
 sessionID = upd_sessionId(remid, sid)
-#sessionID = '9e5c0267-1a96-4d5d-8d97-dc30ce498914'
+with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
+    f.write(f'{remid},{sid}')
+
 
 def check_admin(session:int, user_id:int):
     with open(BF1_SERVERS_DATA/f'{session}_admin.txt','r') as f:
@@ -111,6 +115,7 @@ BF_STATUS = on_command(f'{PREFIX}bf status', block=True, priority=1)
 BF1_STATUS = on_command(f'{PREFIX}bf1 status', block=True, priority=1)
 BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
 BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
+BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
 
 #bf1 server alarm
 BF_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
@@ -519,6 +524,35 @@ async def bf1_map(event:GroupMessageEvent, state:T_State):
     except: 
         await BF1_MAP.send('无法获取到服务器数据。')
 
+@BF1_F.handle()
+async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    print(message.extract_plain_text())
+    mode = 0
+    if message.extract_plain_text().startswith(f'{PREFIX}'):
+        mode = 2
+    else:
+        arg = message.extract_plain_text().split(' ')
+        serverName = arg[0]
+        mode = 1
+
+    print(f'mode={mode}')
+
+    if mode == 1:
+        await draw_server(remid, sid, sessionID, serverName)
+        await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{serverName}.jpg'))
+
+    if mode == 2:
+        session = event.group_id
+        session = check_session(session)
+        server_id = get_server_num(session)
+        try:
+            await draw_f(server_id,session,remid, sid, sessionID)
+        except:
+            await BF1_F.send('服务器异常')
+
+        await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{session}.jpg'))
+    
 @BF_BIND.handle()
 async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
