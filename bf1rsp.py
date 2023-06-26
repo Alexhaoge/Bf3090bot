@@ -5,6 +5,7 @@ from pathlib import Path
 import zhconv
 import datetime
 from datetime import timedelta
+from .utils import BF1_SERVERS_DATA
 
 def upd_remid_sid(res: requests.Response, remid, sid):
     res_cookies = requests.utils.dict_from_cookiejar(res.cookies)
@@ -34,6 +35,9 @@ def upd_sessionId(remid, sid):
     access_token = res_access_token.json()['access_token']
     remid, sid = upd_remid_sid(res_access_token, remid, sid)
 
+    with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
+        f.write(f'{remid},{sid}')
+        
     res_authcode = requests.get(
         url="https://accounts.ea.com/connect/auth",
         params= {
@@ -384,36 +388,23 @@ def upd_Stats(personaIds):
     )
     return res.json()
 
-"""
-remid = 'TUU6RlRZNlA1eks3Z1NOZWp0NkhibU1wa1J0d3h0bmNVNzFJOGRDQUhUQTowNjIwMjc3MDM.5ieHbWMi2OLcyhAec523QUcawAmBXsk6tEXl6IBV'
-sid = 'UzZWbmd6TUF1MW0yRmxzNTIwaGdRNGVXcHdmSURhWDNDY3hHZDY0bDZDNHJkQmdpamZkNnpnVU5oN1BPbw.NQqScjl_ZYOnF6OeHK56QjUNHqdp8sBFXbbSARa1AtA'
-sessionID = '9e5c0267-1a96-4d5d-8d97-dc30ce498914'
-#res = upd_chooseLevel(remid, sid, sessionID, "83394ee8-31d4-443b-b65e-854e42bde833", 1)
+def upd_Emblem(remid, sid, sessionID, personaId):
+    res = requests.post(
+        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        json = {
+	        "jsonrpc": "2.0",
+	        "method": "Emblems.getEquippedEmblem",
+	        "params":{
+		    "platform": "pc",
+            "personaId": f"{personaId}"
+	        },
+            "id": str(uuid.uuid4())
+        },
+        headers= {
+            'Cookie': f'remid={remid};sid={sid}',
+            'X-GatewaySession': sessionID
+        },
+    )
+    return res.json()
 
-session = 609250652
-with open(f'C:/Users/pengx/Desktop/1/bf1/bfchat_data/bf1_servers/{session}_jsonGT/{session}_2.json','r', encoding='utf-8') as f:
-    serverGT = json.load(f)
-    GameId = serverGT['gameId']
-print(GameId)
-personaId = '1004144681001'
-res = upd_kickPlayer(remid, sid, sessionID, GameId, personaId, '1')
-print(res)
-personaIds = [
-    "1056491032",
-    "1004144681001"
-]
-
-personaIdss = [
-    1056491032,
-    1004144681001
-]
-
-#res = upd_getPersonasByIds(remid, sid, sessionID, personaIds)
-#res = upd_StatsByPersonaId(remid, sid, sessionID, '1056491032')
-res = upd_Stats(personaIdss)
-print(res)
-outfile = open('C:/Users/pengx/Desktop/1/1.json','w',encoding='UTF-8')
-
-json.dump(res,outfile,indent=4, ensure_ascii=False)
-"""
 

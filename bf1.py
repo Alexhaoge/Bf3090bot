@@ -30,7 +30,7 @@ from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
 from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert
 from .bf1rsp import upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer
-from .bf1draw import draw_f, draw_server
+from .bf1draw import draw_f, draw_server, draw_stat
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -40,9 +40,6 @@ with open(BF1_SERVERS_DATA/'Caches'/'id.txt','r' ,encoding='UTF-8') as f:
     remid = id_list[0]
     sid = id_list[1]
 sessionID = upd_sessionId(remid, sid)
-with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
-    f.write(f'{remid},{sid}')
-
 
 def check_admin(session:int, user_id:int):
     with open(BF1_SERVERS_DATA/f'{session}_admin.txt','r') as f:
@@ -116,6 +113,8 @@ BF1_STATUS = on_command(f'{PREFIX}bf1 status', block=True, priority=1)
 BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
 BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
 BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
+BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩'}, block=True, priority=1)
+BF1_BIND_MAG = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)
 
 #bf1 server alarm
 BF_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
@@ -532,8 +531,7 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
     if message.extract_plain_text().startswith(f'{PREFIX}'):
         mode = 2
     else:
-        arg = message.extract_plain_text().split(' ')
-        serverName = arg[0]
+        serverName = message.extract_plain_text()
         mode = 1
 
     print(f'mode={mode}')
@@ -552,7 +550,62 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
             await BF1_F.send('服务器异常')
 
         await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{session}.jpg'))
+
+@BF1_S.handle()
+async def bf1_statimage(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    print(message.extract_plain_text())
+    usercard = event.sender.card
+    user_id = event.user_id
+
+    mode = 0
+    if message.extract_plain_text().startswith(f'{PREFIX}'):
+        mode = 2
+    else:
+        playerName = message.extract_plain_text()
+        mode = 1
     
+    print(f'mode={mode}')
+
+    if mode == 1:
+        res = get_player_data(playerName)
+        await draw_stat(remid, sid, sessionID, res, playerName)
+        await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+
+    if mode == 2:
+        if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
+            with open(BF1_PLAYERS_DATA/f'{user_id}.txt','r') as f:
+                playerName = str(f.read())
+                res = get_player_data(playerName)
+            await draw_stat(remid, sid, sessionID, res, playerName)
+            await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+        else:
+            await BF1_S.send(f'您还未绑定，将尝试绑定: {usercard}')
+            try:
+                playerName = usercard
+                res = get_player_data(playerName)
+            except:
+                await BF1_S.send('绑定失败')
+            else:
+                await draw_stat(remid, sid, sessionID, res, playerName)
+                await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+                with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
+                    f.write(playerName)
+@BF1_BIND_MAG.handle()
+async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    playerName = message.extract_plain_text()
+    user_id = event.user_id
+
+    try:
+        res = get_player_data(playerName)
+    except:
+        await BF1_BIND_MAG.send('绑定失败，无效id或http error')
+    else:
+        with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
+            f.write(playerName)
+        await BF1_BIND_MAG.send('绑定成功')
+
 @BF_BIND.handle()
 async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
