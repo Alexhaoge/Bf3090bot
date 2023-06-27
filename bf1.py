@@ -29,7 +29,7 @@ import datetime
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
 from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert, get_wp_info
-from .bf1rsp import upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer
+from .bf1rsp import upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer, upd_servers
 from .bf1draw import draw_f, draw_server, draw_stat, draw_wp
 
 GAME = 'bf1'
@@ -540,12 +540,12 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
 
     if mode == 1:
         try:
-            res = get_server_data(serverName)
+            res = upd_servers(remid, sid, sessionID, serverName)
             if len(res['result']['gameservers']) == 0:
                 1/0
             else:
                 try:
-                    await asyncio.wait_for(draw_server(serverName,res), timeout=15)
+                    await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
                     await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{serverName}.jpg'))
                 except:
                     await BF1F.send('连接超时')
@@ -557,7 +557,7 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         server_id = get_server_num(session)
         try:
             await asyncio.wait_for(draw_f(server_id,session,remid, sid, sessionID), timeout=15)
-            await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{serverName}.jpg'))
+            await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{session}.jpg'))
         except:
             await BF1F.send('连接超时')
 

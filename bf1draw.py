@@ -91,7 +91,7 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     img.save(BF1_SERVERS_DATA/f'Caches/{session}.jpg')
     return 1
 
-async def draw_server(serverName, res):
+async def draw_server(remid, sid, sessionID, serverName, res):
     img = Image.open(BF1_SERVERS_DATA/f'Caches/DLC1.jpg')
     img = img.resize((1506,2020))
     img = img.filter(ImageFilter.GaussianBlur(radius=15))
