@@ -41,5 +41,89 @@ def zhconvert(str:str):
     str1 = ''
     for i in str:
         j = STR_SIMP.find(i)
-        str1 = str1 + STR_TRAD[j]
+        if j == -1:
+            str1 = str1 + i
+        else:
+            str1 = str1 + STR_TRAD[j]
+
     return str1
+def get_wp_info(message:str,user_id:int):
+    wpmode = 0
+    match message:
+                case '精英兵':
+                    wpmode = 1
+                    mode = 2
+                    playerName = user_id
+                case '配备':
+                    wpmode = 2
+                    mode = 2
+                    playerName = user_id
+                case '半自动':
+                    wpmode = 3
+                    mode = 2
+                    playerName = user_id
+                case '佩枪':
+                    wpmode = 5
+                    mode = 2
+                    playerName = user_id
+                case '手枪':
+                    wpmode = 5
+                    mode = 2
+                    playerName = user_id
+                case '机枪':
+                    wpmode = 6
+                    mode = 2
+                    playerName = user_id
+                case '轻机枪':
+                    wpmode = 6
+                    mode = 2
+                    playerName = user_id
+                case '近战':
+                    wpmode = 7
+                    mode = 2
+                    playerName = user_id
+                case '刀':
+                    wpmode = 7
+                    mode = 2
+                    playerName = user_id
+                case '霰弹枪':
+                    wpmode = 4
+                    mode = 2
+                    playerName = user_id
+                case '霰弹':
+                    wpmode = 4
+                    mode = 2
+                    playerName = user_id
+                case '步枪':
+                    wpmode = 8
+                    mode = 2
+                    playerName = user_id
+                case '狙击枪':
+                    wpmode = 8
+                    mode = 2
+                    playerName = user_id
+                case '手榴弹':
+                    wpmode = 10
+                    mode = 2
+                    playerName = user_id
+                case '驾驶员':
+                    wpmode = 9
+                    mode = 2
+                    playerName = user_id
+                case '制式步枪':
+                    wpmode = 11
+                    mode = 2
+                    playerName = user_id
+                case '冲锋枪':
+                    wpmode = 12
+                    mode = 2
+                    playerName = user_id
+                case '载具':
+                    wpmode = 13
+                    mode = 2
+                    playerName = user_id
+                case _:
+                    wpmode = 0
+                    mode = 1
+                    playerName = message
+    return [playerName,wpmode,mode]

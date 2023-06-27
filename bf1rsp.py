@@ -7,6 +7,19 @@ import datetime
 from datetime import timedelta
 from .utils import BF1_SERVERS_DATA
 
+error_code_dict = {
+    -32501: "Session无效",
+    -32600: "请求格式错误",
+    -32601: "请求参数错误",
+    -32602: "请求参数错误/不存在",
+    -32603: "所用账号没有进行该操作的权限",
+    -32855: "Sid不存在",
+    -32856: "玩家不存在,请检查玩家名字",
+    -32850: "服务器栏位已满/玩家已在栏位",
+    -32857: "所用账号没有进行该操作的权限",
+    # -32858: "服务器未开启!"
+}
+
 def upd_remid_sid(res: requests.Response, remid, sid):
     res_cookies = requests.utils.dict_from_cookiejar(res.cookies)
     if 'sid' in res_cookies:

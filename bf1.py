@@ -28,9 +28,9 @@ import datetime
 
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
-from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert
+from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert, get_wp_info
 from .bf1rsp import upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer
-from .bf1draw import draw_f, draw_server, draw_stat
+from .bf1draw import draw_f, draw_server, draw_stat, draw_wp
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -109,11 +109,13 @@ BF1_UNVIP = on_command(f'{PREFIX}unvip', block=True, priority=1)
 
 #bf1status
 BF_STATUS = on_command(f'{PREFIX}bf status', block=True, priority=1)
-BF1_STATUS = on_command(f'{PREFIX}bf1 status', block=True, priority=1)
+BF1_STATUS = on_command(f'{PREFIX}bf1 status', aliases={f'{PREFIX}战地1', f'{PREFIX}status'}, block=True, priority=1)
 BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
 BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
 BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
+BF1_WP= on_command(f'{PREFIX}武器', aliases={f'{PREFIX}w', f'{PREFIX}wp'}, block=True, priority=1)
 BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩'}, block=True, priority=1)
+
 BF1_BIND_MAG = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)
 
 #bf1 server alarm
@@ -537,19 +539,27 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
     print(f'mode={mode}')
 
     if mode == 1:
-        await draw_server(remid, sid, sessionID, serverName)
-        await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{serverName}.jpg'))
+        try:
+            res = get_server_data(serverName)
+            if len(res['result']['gameservers']) == 0:
+                1/0
+            else:
+                try:
+                    await asyncio.wait_for(draw_server(serverName,res), timeout=15)
+                    await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{serverName}.jpg'))
+                except:
+                    await BF1F.send('连接超时')
+        except: await BF1F.send('未查询到数据')
 
     if mode == 2:
         session = event.group_id
         session = check_session(session)
         server_id = get_server_num(session)
         try:
-            await draw_f(server_id,session,remid, sid, sessionID)
+            await asyncio.wait_for(draw_f(server_id,session,remid, sid, sessionID), timeout=15)
+            await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{serverName}.jpg'))
         except:
-            await BF1_F.send('服务器异常')
-
-        await BF1F.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{session}.jpg'))
+            await BF1F.send('连接超时')
 
 @BF1_S.handle()
 async def bf1_statimage(event:GroupMessageEvent, state:T_State):
@@ -568,17 +578,25 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
     print(f'mode={mode}')
 
     if mode == 1:
-        res = get_player_data(playerName)
-        await draw_stat(remid, sid, sessionID, res, playerName)
-        await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
-
+        try:
+            res = get_player_data(playerName)
+        except:
+            await BF1_S.send('无效id')
+        try:
+            await asyncio.wait_for(draw_stat(remid, sid, sessionID, res, playerName), timeout=15)
+            await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+        except asyncio.TimeoutError:
+            await BF1_S.send('连接超时')
     if mode == 2:
         if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
             with open(BF1_PLAYERS_DATA/f'{user_id}.txt','r') as f:
                 playerName = str(f.read())
                 res = get_player_data(playerName)
-            await draw_stat(remid, sid, sessionID, res, playerName)
-            await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+            try:
+                await asyncio.wait_for(draw_stat(remid, sid, sessionID, res, playerName), timeout=15)
+                await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+            except asyncio.TimeoutError:
+                await BF1_S.send('连接超时')
         else:
             await BF1_S.send(f'您还未绑定，将尝试绑定: {usercard}')
             try:
@@ -587,10 +605,74 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
             except:
                 await BF1_S.send('绑定失败')
             else:
-                await draw_stat(remid, sid, sessionID, res, playerName)
-                await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+                try:
+                    await asyncio.wait_for(draw_stat(remid, sid, sessionID, res, playerName), timeout=15)
+                    await BF1_S.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+                except asyncio.TimeoutError:
+                    await BF1_S.send('连接超时')
                 with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
                     f.write(playerName)
+
+@BF1_WP.handle()
+async def bf1_wp(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()   
+    message = message.extract_plain_text()
+    print(message)
+    usercard = event.sender.card
+    user_id = event.user_id
+
+    mode = 0
+    if message.startswith(f'{PREFIX}'):
+        wpmode = 0
+        mode = 2
+    else:
+        if len(message.split(' ')) == 1:
+            [playerName,wpmode,mode] = get_wp_info(message,user_id)
+        else:
+            playerName = message.split(' ')[0]
+            mode = 1
+            wpmode = get_wp_info(message.split(' ')[1],user_id)[1]
+    
+    print(f'mode={mode},wpmode={wpmode}')
+
+    if mode == 1:
+        try:
+            res = get_player_data(playerName)
+        except:
+            await BF1_WP.send('无效id')
+        try:
+            await asyncio.wait_for(draw_wp(remid, sid, sessionID, res, playerName, wpmode), timeout=15)
+            await BF1_WP.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}_wp.jpg'))
+        except asyncio.TimeoutError:
+            await BF1_WP.send('连接超时')
+    if mode == 2:
+        if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
+            with open(BF1_PLAYERS_DATA/f'{user_id}.txt','r') as f:
+                playerName = str(f.read())
+                res = get_player_data(playerName)
+            try:
+                await asyncio.wait_for(draw_wp(remid, sid, sessionID, res, playerName, wpmode), timeout=15)
+                await BF1_WP.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}_wp.jpg'))
+            except asyncio.TimeoutError:
+                await BF1_WP.send('连接超时')
+        else:
+            await BF1_WP.send(f'您还未绑定，将尝试绑定: {usercard}')
+            try:
+                playerName = usercard
+                res = get_player_data(playerName)
+            except:
+                await BF1_S.send('绑定失败')
+            else:
+                try:
+                    await asyncio.wait_for(draw_wp(remid, sid, sessionID, res, playerName, wpmode), timeout=15)
+                    await BF1_WP.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}_wp.jpg'))
+                except asyncio.TimeoutError:
+                    await BF1_WP.send('连接超时')
+                with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
+                    f.write(playerName)
+
+
+
 @BF1_BIND_MAG.handle()
 async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()

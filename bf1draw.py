@@ -91,15 +91,18 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     img.save(BF1_SERVERS_DATA/f'Caches/{session}.jpg')
     return 1
 
-async def draw_server(remid, sid, sessionID, serverName):
+async def draw_server(serverName, res):
     img = Image.open(BF1_SERVERS_DATA/f'Caches/DLC1.jpg')
     img = img.resize((1506,2020))
     img = img.filter(ImageFilter.GaussianBlur(radius=15))
 
-    res = upd_servers(remid, sid, sessionID, serverName)['result']['gameservers']
+    res = res['result']['gameservers']
     res = sorted(res, key=lambda x: x['slots']['Soldier']['current'],reverse=True)
     if (len(res)) <5:
-        img = img.crop((0,0,1506,400*len(res)+20))
+        if len(res) == 0:
+            return 0
+        else:
+            img = img.crop((0,0,1506,400*len(res)+20))
 
     for ij in range(len(res)):
         servername = res[ij]['name']
@@ -285,7 +288,10 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
     font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
-    draw.text(xy=(260,15), text=f'[{tag}]{name}', fill=(255, 255, 0, 255),font=font_1)
+    if tag == None:
+        draw.text(xy=(290,15), text=f'{name}', fill=(255, 255, 0, 255),font=font_1)
+    else:
+        draw.text(xy=(290,15), text=f'[{tag}]{name}', fill=(255, 255, 0, 255),font=font_1)
     draw.text(xy=(1000,15), text=f'Rank: {rank}', fill=(255, 255, 0, 255),font=font_1)
     draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(680,95), text=f'获胜率:{win}\n命中率:{acc}\n爆头率:{hs}', fill=(255, 255, 255, 255),font=font_2)
@@ -400,3 +406,258 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
     img.save(BF1_SERVERS_DATA/f'Caches/{playerName}.jpg')
     return 1
 #draw_f(4,248966716,remid, sid, sessionID)
+
+async def draw_wp(remid, sid, sessionID, res:dict, playerName:str, mode:int):
+    name = res['userName']
+    tag = res['activePlatoon']['tag']
+    pensonaId = res['id']
+    rank = res['rank']
+    kpm = res['killsPerMinute']
+    win = res['winPercent']
+    acc = res['accuracy']
+    hs = res['headshots']
+    secondsPlayed = res['secondsPlayed']
+    kd = res['killDeath']
+    k = res['kills']
+    d = res['deaths']
+
+    try:
+        emblem = upd_Emblem(remid, sid, sessionID, pensonaId)['result'].split('/')
+        try: 
+            sta1 = emblem[7]
+            sta2 = emblem[8]
+            sta3 = emblem[9]
+            sta4 = emblem[10].split('?')[1]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/ugc/'+sta1+'/'+sta2+'/'+sta3+'/256.png?'+sta4
+        except:
+            sta1 = emblem[6]
+            sta2 = emblem[len(emblem)-1].split('.')[0]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+    except:
+        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+    img_emb = Image.open(requests.get(emblem, stream=True).raw)
+    
+    print(emblem)
+ 
+    img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+    img = img.resize((1300,1950))
+    img = img.filter(ImageFilter.GaussianBlur(radius=15))
+
+    textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
+    draw = ImageDraw.Draw(textbox)
+    font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_5 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
+    if tag == None:
+        draw.text(xy=(290,15), text=f'{name}', fill=(255, 255, 0, 255),font=font_1)
+    else:
+        draw.text(xy=(290,15), text=f'[{tag}]{name}', fill=(255, 255, 0, 255),font=font_1)
+    draw.text(xy=(1000,15), text=f'Rank: {rank}', fill=(255, 255, 0, 255),font=font_1)
+    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,95), text=f'获胜率:{win}\n命中率:{acc}\n爆头率:{hs}', fill=(255, 255, 255, 255),font=font_2)
+    try:
+        draw.text(xy=(1070,95), text=f'K/D:{kd}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
+    except:
+        draw.text(xy=(1070,95), text=f'K/D:{kd}\nKPM:{kpm}\nDPM:0.00)', fill=(255, 255, 255, 255),font=font_2)
+    position = (0, 0)
+    img.paste(textbox, position, textbox)
+
+    if mode < 13:
+        mode_1 = []
+        mode_2 = []
+        mode_3 = []
+        mode_4 = []
+        mode_5 = []
+        mode_6 = []
+        mode_7 = []
+        mode_8 = []
+        mode_9 = []
+        mode_10 = []
+        mode_11 = []
+        mode_12 = []
+
+        for i in res['weapons']:
+            match i['type']:
+                case '戰場裝備':
+                    mode_1.append(i)
+                case '配備':
+                    mode_2.append(i)
+                case '半自動步槍':
+                    mode_3.append(i)
+                case '霰彈槍':
+                    mode_4.append(i)
+                case '佩槍':
+                    mode_5.append(i)
+                case '輕機槍':
+                    mode_6.append(i)
+                case '近戰武器':
+                    mode_7.append(i)
+                case '步槍':
+                    mode_8.append(i)
+                case '坦克/駕駛員':
+                    mode_9.append(i)
+                case '手榴彈':
+                    mode_10.append(i)
+                case '制式步槍':
+                    mode_11.append(i)
+                case '衝鋒槍':
+                    mode_12.append(i)
+
+        for i in range(len(mode_3)):
+            if mode_3[i]['weaponName'] == 'M1917 卡賓槍（巡邏）':
+                m1917 = i
+            elif mode_3[i]['weaponName'] == '卡爾卡諾 M91 卡賓槍（巡邏）':
+                m91 = i
+
+        mode_12.append(mode_3[m1917])
+        mode_8.append(mode_3[m91])
+        del mode_3[m91]
+        del mode_3[m1917]
+
+        for i in range(len(mode_5)):
+            if mode_5[i]['weaponName'] == '三八式步槍（巡邏）':
+                m38 = i
+                break  
+        mode_8.append(mode_5[m38])
+        del mode_5[m38]
+
+        match mode:
+            case 0:
+                weapons = res['weapons']
+            case 1:
+                weapons = mode_1   
+            case 2:
+                weapons = mode_2
+            case 3:
+                weapons = mode_3
+            case 4:
+                weapons = mode_4
+            case 5:
+                weapons = mode_5
+            case 6:
+                weapons = mode_6
+            case 7:
+                weapons = mode_7
+            case 8:
+                weapons = mode_8
+            case 9:
+                weapons = mode_9
+            case 10:
+                weapons = mode_10
+            case 11:
+                weapons = mode_11
+            case 12:
+                weapons = mode_12
+        weapons = sorted(weapons, key=lambda x: x['kills'],reverse=True)
+
+    else:
+        mode_13 = []
+        mode_14 = []
+        mode_15 = []
+
+        vehicles = res['vehicles']
+        for i in range(len(vehicles)-1,-1,-1):
+            match vehicles[i]['type']:
+                case '攻擊機':
+                    mode_13.append(vehicles[i])
+                    del vehicles[i]
+                case '轟炸機':
+                    mode_14.append(vehicles[i])
+                    del vehicles[i]
+                case '戰鬥機':
+                    mode_15.append(vehicles[i])
+                    del vehicles[i]
+        
+        attack = {
+            "vehicleName": "攻击机",
+            "type": "攻擊機",
+            "image": "https://eaassets-a.akamaihd.net/battlelog/battlebinary/gamedata/Tunguska/63/53/GERHalberstadtCLII-c1cb8257.png",
+            "kills": mode_13[0]['kills']+mode_13[1]['kills']+mode_13[2]['kills']+mode_13[3]['kills'],
+            "killsPerMinute": 1.19,
+            "destroyed": mode_13[0]['destroyed']+mode_13[1]['destroyed']+mode_13[2]['destroyed']+mode_13[3]['destroyed'],
+            "timeIn": mode_13[0]['timeIn']+mode_13[1]['timeIn']+mode_13[2]['timeIn']+mode_13[3]['timeIn']
+        }
+        try:
+            kpm = ((attack["kills"]*6000) // attack["timeIn"])/100
+            attack.update({"killsPerMinute": kpm})
+        except:
+            attack.update({"killsPerMinute": 0})
+
+        bomber = {
+            "vehicleName": "轰炸机",
+            "type": "轟炸機",
+            "image": "https://eaassets-a.akamaihd.net/battlelog/battlebinary/gamedata/Tunguska/84/65/GERGothaGIV-54bfb0bf.png",
+            "kills": mode_14[0]['kills']+mode_14[1]['kills']+mode_14[2]['kills']+mode_14[3]['kills'],
+            "killsPerMinute": 1.19,
+            "destroyed": mode_14[0]['destroyed']+mode_14[1]['destroyed']+mode_14[2]['destroyed']+mode_14[3]['destroyed'],
+            "timeIn": mode_14[0]['timeIn']+mode_14[1]['timeIn']+mode_14[2]['timeIn']+mode_14[3]['timeIn']
+        }
+        try:
+            kpm = ((bomber["kills"]*6000) // bomber["timeIn"])/100
+            bomber.update({"killsPerMinute": kpm})
+        except:
+            bomber.update({"killsPerMinute": 0})
+
+        fight = {
+            "vehicleName": "战斗机",
+            "type": "戰鬥機",
+            "image": "https://eaassets-a.akamaihd.net/battlelog/battlebinary/gamedata/Tunguska/113/96/FRA_SPAD_X_XIII-8f60a194.png",
+            "kills": mode_15[0]['kills']+mode_15[1]['kills']+mode_15[2]['kills']+mode_15[3]['kills'],
+            "killsPerMinute": 1.19,
+            "destroyed": mode_15[0]['destroyed']+mode_15[1]['destroyed']+mode_15[2]['destroyed']+mode_15[3]['destroyed'],
+            "timeIn": mode_15[0]['timeIn']+mode_15[1]['timeIn']+mode_15[2]['timeIn']+mode_15[3]['timeIn']
+        }
+        try:
+            kpm = ((fight["kills"]*6000) // fight["timeIn"])/100
+            fight.update({"killsPerMinute": kpm})
+        except:
+            fight.update({"killsPerMinute": 0})
+
+        vehicles.append(attack)
+        vehicles.append(bomber)
+        vehicles.append(fight)
+        
+        weapons = sorted(vehicles, key=lambda x: x['kills'],reverse=True)
+
+    for i in range(min(10,len(weapons)-1)):
+        textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 150))
+        draw = ImageDraw.Draw(textbox3)
+
+        kill1 = weapons[i]['kills']
+        star = kill1 // 100 #★{serverstar
+        if star < 50:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+        elif star < 100:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+        else:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+
+        try:
+            acc = (weapons[i]["shotsHit"]*100)// weapons[i]["shotsFired"]
+        except:
+            acc = 'infinity'
+        
+        if mode == 13:
+            draw.text(xy=(80,150), text=f'{zhconv.convert(weapons[i]["vehicleName"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(10,177), text=f'-----------------------------------', fill=(255, 255, 255, 150),font=font_5)
+            draw.text(xy=(80,225), text=f'击杀:{kill1}', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(80,270), text=f'KPM:{weapons[i]["killsPerMinute"]}', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(380,225), text=f'摧毁:{weapons[i]["destroyed"]}', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(380,270), text=f'时间:{weapons[i]["timeIn"]//3600}h', fill=(255, 255, 255, 255),font=font_5)
+        else:
+            draw.text(xy=(80,150), text=f'{zhconv.convert(weapons[i]["weaponName"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(10,177), text=f'-----------------------------------', fill=(255, 255, 255, 150),font=font_5)
+            draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{weapons[i]["killsPerMinute"]}\n命中:{str(acc)}%', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(380,210), text=f'效率:{weapons[i]["hitVKills"]}\n爆头:{weapons[i]["headshots"]}\n时间:{weapons[i]["timeEquipped"]//3600}h', fill=(255, 255, 255, 255),font=font_5)
+
+        position3 = (655*(i%2), 260+(i//2)*340)
+        img.paste(textbox3, position3, textbox3)
+
+        wp_img = weapons[i]["image"].split('/')
+        wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["image"].split("/")[len(wp_img)-1]}'
+        img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
+        img.paste(paste_img(img_wp), (130+650*(i%2), 340*(i//2)+300), img_wp)
+
+    img.paste(img_emb.resize((250,250)), (0, 0))
+    img.save(BF1_SERVERS_DATA/f'Caches/{playerName}_wp.jpg')
+    return 1
