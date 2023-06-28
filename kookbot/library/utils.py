@@ -1,6 +1,7 @@
 import json
 import requests
 import bs4
+import re
 import sqlite3
 from typing import Union
 
@@ -37,18 +38,29 @@ def bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, str]:
 
         me = soup.select_one('.player.active')
         game_stat = {s.select_one('.name').text:s.select_one('.value').text for s in me.select('.quick-stats .stat')}
-        
+        game_stat['Kills'] = int(game_stat['Kills'])
+        game_stat['Deaths'] = int(game_stat['Deaths'])
+        game_stat['kd'] = round(game_stat['Kills'] / game_stat['Deaths'] if game_stat['Deaths'] else game_stat['Kills'], 2)
+        duration = re.findall('[0-9]+m|[0-9]s', me.select_one('.player-subline').text)
+        if len(duration):
+            duration_in_min = sum([int(d[0:-1]) if d[-1] == 'm' else int(d[0:-1]) / 60 for d in duration])
+            game_stat['kpm'] = round(game_stat['Kills'] / duration_in_min, 2)
+            game_stat['duration'] = ''.join(duration)
+        else:
+            game_stat['duration'] = game_stat['kpm'] = 'N/A'
+
         team = me.findParents(class_="team")[0].select_one('.card-heading .card-title').contents[0]
         if team == 'No Team':
             game_stat['result'] = '未结算'
         else:
-            team_win = soup.select('.card.match-attributes .stat .name')[1].find_previous_sibling(class_='value').contents[0]
+            team_win = soup.select('.card.match-attributes .stat .value')[1].contents[0]
             game_stat['result'] = '胜利' if team == team_win else '落败'
-        
+
         map_info = soup.select_one('.match-header .activity-details')
         game_stat['map'] = map_info.select_one('.map-name').contents[0]
         game_stat['mode'] = map_info.select_one('.type').contents[0]
         game_stat['server'] = map_info.select_one('.map-name small').contents[0]
+        game_stat['matchDate'] = map_info.select_one('.date').contents[0]
 
         games_dat.append(game_stat)
     
