@@ -6,6 +6,24 @@ import zhconv
 import datetime
 from datetime import timedelta
 from .utils import BF1_SERVERS_DATA
+import httpx
+
+async def post_data(url,json,headers):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url=url,json=json,headers=headers)
+        return response.text
+    
+async def async_get_server_data(serverName):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            url="https://api.gametools.network/bf1/servers",
+            params={'name':serverName,
+                    'lang':'zh-tw',
+                    "platform":"pc",
+                    "limit":20}
+                    )
+        return response.text
+
 
 error_code_dict = {
     -32501: "Session无效",
@@ -84,27 +102,28 @@ def upd_sessionId(remid, sid):
     return sessionID
 
 #获取欢迎信息
-def upd_welcome(remid, sid, sessionID):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-            'jsonrpc': '2.0',
-            'method': 'Onboarding.welcomeMessage',
-            'params': {
-                'game' : "tunguska",
-                'minutesToUTC' : "-480"
-            },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_welcome(remid, sid, sessionID):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url = "https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+                'jsonrpc': '2.0',
+                'method': 'Onboarding.welcomeMessage',
+                'params': {
+                    'game' : "tunguska",
+                    'minutesToUTC' : "-480"
+                },
+                "id": str(uuid.uuid4())
+            },            
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+                },
+        )
+    return response.text
 
 #获取行动
-def upd_campaign(remid, sid, sessionID):
+async def upd_campaign(remid, sid, sessionID):
     res = requests.post(
         url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
         json = {
@@ -419,5 +438,3 @@ def upd_Emblem(remid, sid, sessionID, personaId):
         },
     )
     return res.json()
-
-
