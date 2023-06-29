@@ -103,7 +103,7 @@ async def process_top_n(i,games,headers):
     game_stat['server'] = map_info.select_one('.map-name small').contents[0]
     game_stat['matchDate'] = map_info.select_one('.date').contents[0]
 
-    return(game_stat)    
+    return game_stat    
 
 async def async_bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, str]:
     headers = {
