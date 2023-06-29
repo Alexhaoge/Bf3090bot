@@ -8,8 +8,8 @@ import zhconv
 import datetime
 import asyncio
 import httpx
-
-from .bf1rsp import upd_detailedServer, upd_servers, upd_Emblem, upd_getPersonasByIds
+from io import BytesIO
+from .bf1rsp import upd_detailedServer, upd_servers, upd_Emblem, upd_getPersonasByIds, async_bftracker_recent
 from .utils import BF1_SERVERS_DATA, BF1_PLAYERS_DATA, request_API
 
 GAME = 'bf1'
@@ -27,7 +27,7 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
             serverGT = json.load(f)
             gameId = serverGT['gameId']
             
-        res =  upd_detailedServer(remid, sid, sessionID, gameId)
+        res =  await upd_detailedServer(remid, sid, sessionID, gameId)
         servername = res['result']['serverInfo']['name']
         servermap = res['result']['serverInfo']['mapNamePretty']
         serveramount = res['result']['serverInfo']['slots']['Soldier']['current']
@@ -125,7 +125,7 @@ async def draw_server(remid, sid, sessionID, serverName, res):
         serverimg = res[ij]['mapImageUrl'].split('/')[5]
         serverimg = BF1_SERVERS_DATA/f'Caches/Maps/{serverimg}'
         gameId = res[ij]['gameId']
-        res_0 =  upd_detailedServer(remid, sid, sessionID, gameId)
+        res_0 =  await upd_detailedServer(remid, sid, sessionID, gameId)
         serverstar = res_0['result']['serverInfo']['serverBookmarkCount']
 
         status1 = servermode + '-' +servermap
@@ -244,8 +244,13 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
             continue
         else:
             gamemodes.append(i)
+
+    emblem = await upd_Emblem(remid, sid, sessionID, personaId)
     try:
-        emblem = upd_Emblem(remid, sid, sessionID, personaId)['result'].split('/')
+        emblem = emblem['result'].split('/')
+    except:
+        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+    else:
         try: 
             sta1 = emblem[7]
             sta2 = emblem[8]
@@ -256,8 +261,6 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
             sta1 = emblem[6]
             sta2 = emblem[len(emblem)-1].split('.')[0]
             emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
-    except:
-        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
 
     print(emblem)
 
@@ -292,14 +295,19 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
         'tanker': '坦克'
     }
 
-    img_emb = Image.open(requests.get(emblem, stream=True).raw)
+    try:
+        img_emb = Image.open(requests.get(emblem, stream=True,timeout=20).raw)
+    except:
+        img_emb = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
 
     try:
         img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
     except:    
         img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
     img = img.resize((1500,1500))
-    img = img.filter(ImageFilter.GaussianBlur(radius=15))
+
+    textbox = Image.new("RGBA", (1500,1500), (0, 0, 0, 120))
+    img.paste(textbox, (0, 0), textbox)
 
     textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox)
@@ -399,8 +407,13 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
         else:
             draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
 
+        try:
+            acc = (weapons[i]["shotsHit"]*100)// weapons[i]["shotsFired"]
+        except:
+            acc = 'infinity'
+
         draw.text(xy=(10,177), text=f'----------------------------------', fill=(255, 255, 255, 150),font=font_5)
-        draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{weapons[i]["killsPerMinute"]}\n命中:{weapons[i]["accuracy"]}', fill=(255, 255, 255, 255),font=font_5)
+        draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{weapons[i]["killsPerMinute"]}\n命中:{acc}%', fill=(255, 255, 255, 255),font=font_5)
         draw.text(xy=(380,210), text=f'效率:{weapons[i]["hitVKills"]}\n爆头:{weapons[i]["headshots"]}\n时间:{weapons[i]["timeEquipped"]//3600}h', fill=(255, 255, 255, 255),font=font_5)
 
         position3 = (760, 380+i*345)
@@ -444,8 +457,12 @@ async def draw_wp(remid, sid, sessionID, res:dict, playerName:str, mode:int):
     k = res['kills']
     d = res['deaths']
 
+    emblem = await upd_Emblem(remid, sid, sessionID, personaId)
     try:
-        emblem = upd_Emblem(remid, sid, sessionID, personaId)['result'].split('/')
+        emblem = emblem['result'].split('/')
+    except:
+        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+    else:
         try: 
             sta1 = emblem[7]
             sta2 = emblem[8]
@@ -456,15 +473,23 @@ async def draw_wp(remid, sid, sessionID, res:dict, playerName:str, mode:int):
             sta1 = emblem[6]
             sta2 = emblem[len(emblem)-1].split('.')[0]
             emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+
+    try:
+        img_emb = Image.open(requests.get(emblem, stream=True,timeout=20).raw)
     except:
-        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
-    img_emb = Image.open(requests.get(emblem, stream=True).raw)
-    
+        img_emb = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
     print(emblem)
- 
-    img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
-    img = img.resize((1300,2000))
-    img = img.filter(ImageFilter.GaussianBlur(radius=15))
+    
+    try:
+        img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
+    except:    
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+
+    img = img.resize((2000,2000))
+    img = img.crop((350,0,1650,2000))
+    
+    textbox = Image.new("RGBA", (1300,2000), (0, 0, 0, 120))
+    img.paste(textbox, (0, 0), textbox)
 
     textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox)
@@ -707,7 +732,7 @@ async def async_get_stat(playerid,platoon,latency):
     
 async def draw_pl(session,pl,gameId,remid, sid, sessionID):
 
-    detailedServer = upd_detailedServer(remid, sid, sessionID, gameId)
+    detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
     vipList = detailedServer['result']["rspInfo"]['vipList']
     adminList = detailedServer['result']["rspInfo"]['adminList']
 
@@ -724,7 +749,8 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
             if filename.endswith('txt'):
                 id = filename.rstrip('.txt')
                 personaIds.append(id.split('_')[1])
-        member_json = upd_getPersonasByIds(remid, sid, sessionID,personaIds)['result']
+        member_json = await upd_getPersonasByIds(remid, sid, sessionID,personaIds)
+        member_json = member_json['result']
         memberList = [value['displayName'] for value in member_json.values()]
     except:
         print('memberList not found')
@@ -768,8 +794,8 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
     textbox0 = Image.new("RGBA", (1920,1220), (0, 0, 0, 150))
     img.paste(textbox0, (0, 0), textbox0)
 
-    textbox = Image.new("RGBA", (850,1200), (0, 0, 0, 0))
-    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_2}.png').resize((80,80))
+    textbox = Image.new("RGBA", (900,1200), (0, 0, 0, 0))
+    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_1}.png').resize((80,80))
     textbox.paste(teamimg,(0,0),teamimg)
     draw = ImageDraw.Draw(textbox)
 
@@ -796,9 +822,9 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
         avlevel = avkd = avkp = 0
     
     draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(295,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(450,27.5), text=f'       KD   KP     爆头     胜率     时长' ,fill=(255, 255, 255, 255),font=font_2)
-    
+    draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(455,27.5), text=f'             KD    KP    爆头      胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
+
     for i in range(len(stat1)):
         draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
         
@@ -809,12 +835,12 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
         
         text_width, _ = font_3.getsize(str(stat1[i]['rank']))
         x = 120 - text_width / 2
-        y = 93 + +30*i
+        y = 93 + 30*i
         draw.text((x, y), str(stat1[i]['rank']), fill=(255, 255, 255, 255), font=font_3)
         
         result1 = [item for item in adminList if item['displayName'] == stat1[i]["userName"]]
-        result2 = [item for item in vipList if item['displayName'] == stat1[i]["userName"]]
-        result3 = [item for item in whiteList if item == stat1[i]["userName"]]
+        result2 = [item for item in whiteList if item == stat1[i]["userName"]]        
+        result3 = [item for item in vipList if item['displayName'] == stat1[i]["userName"]]
         result4 = [item for item in memberList if item == stat1[i]["userName"]]
         
         if result1 == []:
@@ -846,39 +872,39 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
             else:
                 draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
         if stat1[i]['killDeath'] > 2.5:
-            draw.text(xy=(490,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat1[i]['killDeath'] > 1:
-            draw.text(xy=(490,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(490,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if stat1[i]['killsPerMinute'] > 2.5:
-            draw.text(xy=(549,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat1[i]['killsPerMinute'] > 1:
-            draw.text(xy=(549,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(549,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat1[i]['headshots'].strip('%')) / 100  > 0.2:
-            draw.text(xy=(612,90+30*i), text=f'{stat1[i]["headshots"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headshots"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat1[i]['headshots'].strip('%')) / 100 > 0.05:
-            draw.text(xy=(612,90+30*i), text=f'{stat1[i]["headshots"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headshots"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(612,90+30*i), text=f'{stat1[i]["headshots"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headshots"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat1[i]['winPercent'].strip('%')) / 100 > 0.7:
-            draw.text(xy=(700,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat1[i]['winPercent'].strip('%')) / 100 > 0.4:
-            draw.text(xy=(700,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(700,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
-        draw.text(xy=(787,90+30*i), text=f'{stat1[i]["secondsPlayed"]//3600}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(837,90+30*i), text=f'{stat1[i]["secondsPlayed"]//3600}' ,fill=(255, 255, 255, 255),font=font_2)
         
-    position = (0, 110)
+    position = (60, 110)
     img.paste(textbox, position, textbox)
 
-    textbox1 = Image.new("RGBA", (850,1200), (0, 0, 0, 0))
+    textbox1 = Image.new("RGBA", (900,1200), (0, 0, 0, 0))
     teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_2}.png').resize((80,80))
     textbox1.paste(teamimg,(0,0),teamimg)
     draw = ImageDraw.Draw(textbox1)
@@ -899,10 +925,10 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
         avkp = ((kpall*100) // len(stat2)) / 100
     except:
         avlevel = avkd = avkp = 0
-
+    
     draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(295,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(450,27.5), text=f'       KD   KP     爆头     胜率     时长' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(455,27.5), text=f'             KD    KP    爆头      胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
     
     for i in range(len(stat2)):
         draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
@@ -914,12 +940,12 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
         
         text_width, _ = font_3.getsize(str(stat2[i]['rank']))
         x = 120 - text_width / 2
-        y = 93 + +30*i
+        y = 93 + 30*i
         draw.text((x, y), str(stat2[i]['rank']), fill=(255, 255, 255, 255), font=font_3)
         
         result1 = [item for item in adminList if item['displayName'] == stat2[i]["userName"]]
-        result2 = [item for item in vipList if item['displayName'] == stat2[i]["userName"]]
-        result3 = [item for item in whiteList if item == stat2[i]["userName"]]
+        result2 = [item for item in whiteList if item == stat2[i]["userName"]]        
+        result3 = [item for item in vipList if item['displayName'] == stat2[i]["userName"]]
         result4 = [item for item in memberList if item == stat2[i]["userName"]]
         
         if result1 == []:
@@ -950,50 +976,38 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
                 draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
             else:
                 draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
-        
         if stat2[i]['killDeath'] > 2.5:
-            draw.text(xy=(490,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat2[i]['killDeath'] > 1:
-            draw.text(xy=(490,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(490,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if stat2[i]['killsPerMinute'] > 2.5:
-            draw.text(xy=(549,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat2[i]['killsPerMinute'] > 1:
-            draw.text(xy=(549,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(549,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat2[i]['headshots'].strip('%')) / 100  > 0.2:
-            draw.text(xy=(612,90+30*i), text=f'{stat2[i]["headshots"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headshots"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat2[i]['headshots'].strip('%')) / 100 > 0.05:
-            draw.text(xy=(612,90+30*i), text=f'{stat2[i]["headshots"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headshots"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(612,90+30*i), text=f'{stat2[i]["headshots"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headshots"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat2[i]['winPercent'].strip('%')) / 100 > 0.7:
-            draw.text(xy=(700,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat2[i]['winPercent'].strip('%')) / 100 > 0.4:
-            draw.text(xy=(700,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(700,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
-        draw.text(xy=(787,90+30*i), text=f'{stat2[i]["secondsPlayed"]//3600}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(837,90+30*i), text=f'{stat2[i]["secondsPlayed"]//3600}' ,fill=(255, 255, 255, 255),font=font_2)
         
-    position = (850, 110)
+    position = (960, 110)
     img.paste(textbox1, position, textbox1)
-
-    textbox2 = Image.new("RGBA", (220,1200), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(textbox2) 
-    draw.text(xy=(72.5,27.5), text=f'加载中' ,fill=(255, 255, 255, 255),font=font_2)
-
-    for i in pl["loading"]:
-        draw.text(xy=(145,90+30*i), text=f'{i["name"]}', fill=(255, 255, 255, 255),font=font_2)
-        if i == 31:
-            break
-    position = (1700, 110)
-    img.paste(textbox2, position, textbox2)
 
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
@@ -1007,11 +1021,182 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
     draw.text(xy=(x+262.5,1180), text='白名单' ,fill=(0, 255, 0, 255),font=font_0)
     draw.text(xy=(x+362.5,1180), text='管理' ,fill=(255, 255, 0, 255),font=font_0)
 
-    draw.line((0, 190, 1920, 190), fill=(128, 128, 128, 120), width=4)
-    draw.line((0, 1165, 1920, 1165), fill=(128, 128, 128, 120), width=4)
-    draw.line((850, 190, 850, 1165), fill=(128, 128, 128, 120), width=4)
-    draw.line((85, 190, 85, 1165), fill=(128, 128, 128, 120), width=4)
-    draw.line((935, 190, 935, 1165), fill=(128, 128, 128, 120), width=4)
-    draw.line((1700, 190, 1700, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((60, 190, 1860, 190), fill=(128, 128, 128, 120), width=4)
+    draw.line((60, 1165, 1860, 1165), fill=(128, 128, 128, 120), width=4)
+
+    draw.line((60, 190, 60, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((145, 190, 145, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((960, 190, 960, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((1045, 190, 1045, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
     img.save(BF1_SERVERS_DATA/f'Caches/{gameId}_pl.jpg')
+    return 1
+
+async def draw_r(playerName, res, remid, sid, sessionID):
+    name = res['userName']
+    tag = res['activePlatoon']['tag']
+    personaId = res['id']
+    rank = res['rank']
+    kpm = res['killsPerMinute']
+    win = res['winPercent']
+    acc = res['accuracy']
+    hs = res['headshots']
+    secondsPlayed = res['secondsPlayed']
+    kd = res['killDeath']
+    k = res['kills']
+    d = res['deaths']
+    print(datetime.datetime.now())
+    emblem = await upd_Emblem(remid, sid, sessionID, personaId)
+    try:
+        emblem = emblem['result'].split('/')
+    except:
+        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+    else:
+        try: 
+            sta1 = emblem[7]
+            sta2 = emblem[8]
+            sta3 = emblem[9]
+            sta4 = emblem[10].split('?')[1]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/ugc/'+sta1+'/'+sta2+'/'+sta3+'/256.png?'+sta4
+        except:
+            sta1 = emblem[6]
+            sta2 = emblem[len(emblem)-1].split('.')[0]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+
+    try:
+        img_emb = Image.open(requests.get(emblem, stream=True,timeout=20).raw)
+    except:
+        img_emb = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+
+    print(datetime.datetime.now())
+    async_result = await async_bftracker_recent(playerName, 10)
+    recent = []
+    count = 0
+    print(datetime.datetime.now())
+    if 'player not found' in async_result:
+        return 0
+    else:
+        for i in range(10):
+            data = async_result[i]
+            if data['Kills'] > 5 or data['Deaths'] > 5:
+                recent.append(data)
+                count += 1
+                if count == 3:
+                    break
+
+    try:
+        img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
+    except:    
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+    
+    img = img.resize((1800,1800))
+    img = img.crop((250,0,1550,(410*len(recent)+410)))
+    img = img.filter(ImageFilter.GaussianBlur(radius=15))
+
+    textbox = Image.new("RGBA", (1300,250), (254, 238, 218, 180))
+    draw = ImageDraw.Draw(textbox)
+    font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_3 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
+    font_4 = ImageFont.truetype(font='Dengb.ttf', size=50, encoding='UTF-8')
+    font_5 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    if tag == None:
+        draw.text(xy=(290,15), text=f'{name}', fill=(55, 1, 27, 255),font=font_1)
+    else:
+        draw.text(xy=(290,15), text=f'[{tag}]{name}', fill=(55, 1, 27, 255),font=font_1)
+    draw.text(xy=(1000,15), text=f'Rank: {rank}', fill=(55, 1, 27, 255),font=font_1)
+    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,95), text=f'获胜率:{win}\n命中率:{acc}\n爆头率:{hs}', fill=(66, 112, 244, 255),font=font_2)
+    try:
+        draw.text(xy=(1070,95), text=f'K/D:{kd}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
+    except:
+        draw.text(xy=(1070,95), text=f'K/D:{kd}\nKPM:{kpm}\nDPM:0.00)', fill=(66, 112, 244, 255),font=font_2)
+    
+    position = (0, 0)
+    img.paste(textbox, position, textbox)
+    img.paste(img_emb.resize((250,250)), (0, 0))
+
+    timeall = 0
+    killall = 0
+    deathall = 0
+    Scoreall = 0
+
+    with open(BF1_SERVERS_DATA/'zh-cn.json', 'r',encoding='UTF-8') as f:
+        dict = json.load(f)
+    for i in range(len(recent)):
+        textbox0 = Image.new("RGBA", (1300,60), (0, 0, 0, 255))
+        textbox1 = Image.new("RGBA", (1300,410), (254, 238, 218, 180))
+        mapimg = Image.open(BF1_SERVERS_DATA/'Caches'/'Maps1'/f'{dict[recent[i]["map"]]}.jpg').resize((551,350))
+        textbox1.paste(mapimg,(0,60))
+        draw = ImageDraw.Draw(textbox1)
+        text=f'{recent[i]["server"]}'
+
+        match = re.search(r'(\d+)m(\d+)s', recent[i]['duration'])
+        if match:
+                minute = match.group(1)
+                second = match.group(2)
+                result = f"{minute}分{second}秒"
+        elif re.search(r'(\d+)s', recent[i]['duration']):
+                minute = 0
+                second = recent[i]['duration'][0:-1]
+                result = f"{minute}分{second}秒"
+        else:
+            minute = 0
+            second = 0
+            result = f"{minute}分{second}秒"
+        mapandmode = dict[recent[i]["map"]] + '-' +dict[recent[i]["mode"]]
+        draw.text(xy=(0,4), text=text[0:30], fill=(55, 1, 27, 255),font=font_3)
+        draw.text(xy=((1100-font_2.getsize(mapandmode)[0]),10), text=mapandmode, fill=(55, 1, 27, 255),font=font_2)
+        if recent[i]["result"] == '胜利':
+            draw.text(xy=((1200-font_2.getsize(recent[i]["result"])[0]/2),10), text=recent[i]["result"], fill=(100, 255, 50, 255),font=font_2)
+        elif recent[i]["result"] == '落败':
+            draw.text(xy=((1200-font_2.getsize(recent[i]["result"])[0]/2),10), text=recent[i]["result"], fill=(255, 105, 93, 255),font=font_2)
+        elif recent[i]["result"] == '未结算':
+            draw.text(xy=((1200-font_2.getsize(recent[i]["result"])[0]/2),10), text=recent[i]["result"], fill=(55, 1, 27, 255),font=font_2)
+
+        draw.text(xy=(600,105), text=f'时长: {result}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(960,105), text=f'得分: {recent[i]["Score"]}', fill=(66, 112, 244, 255),font=font_4)
+        
+        draw.text(xy=(600,165), text=f'击杀: {recent[i]["Kills"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(960,165), text=f'死亡: {recent[i]["Deaths"]}', fill=(66, 112, 244, 255),font=font_4)
+
+        draw.text(xy=(600,225), text=f'KDA: {recent[i]["kd"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(960,225), text=f'KPM: {recent[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
+        
+        draw.text(xy=(600,285), text=f'K/D: {recent[i]["K/D"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(960,285), text=f'SPM: {(100*int(recent[i]["Score"].replace(",", "")))//(60*int(minute)+int(second))}', fill=(66, 112, 244, 255),font=font_4)
+
+        date_str = recent[i]["matchDate"]
+        dt = datetime.datetime.strptime(date_str, '%m/%d/%Y %I:%M:%S %p')
+        offset = datetime.timedelta(hours=13)
+        dt = dt + offset
+        formatted_dt = '数据记录时间: ' + dt.strftime('%Y/%m/%d %H:%M:%S')
+ 
+        draw.text(xy=((925-font_5.getsize(formatted_dt)[0]/2),360), text=formatted_dt, fill=(34,139,34, 255),font=font_5)
+        position = (0, 360+410*i)
+        img.paste(textbox0,position,textbox0)
+        img.paste(textbox1,position,textbox1)
+
+        timeall += 60*int(minute) + int(second)
+        killall += recent[i]["Kills"]
+        deathall += recent[i]["Deaths"]
+    
+    textbox = Image.new("RGBA", (1300,50), (254, 238, 218, 180))
+    img.paste(textbox,(0,410*len(recent)+360),textbox)
+
+    textbox = Image.new("RGBA", (1300,110), (254, 238, 218, 180))
+    draw = ImageDraw.Draw(textbox)
+    text = f'时长: {timeall//3600}时{(timeall%3600)//60}分{timeall%60}秒  击杀: {killall}  死亡: {deathall}  KD: {((killall*100)//deathall)/100 if deathall !=0 else killall}  KP: {(killall*6000 // timeall)/100 if timeall !=0 else killall}'
+    draw.text(xy=(650-font_2.getsize(text)[0]/2,35), text=text ,fill=(34,139,34,255),font=font_2)
+    img.paste(textbox,(0,250),textbox)
+
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
+    text = f'Powered by Mag1Catz and special thanks to Openblas.QQ Group: 94103090. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+    draw.text(xy=(img.width-font_0.getsize(text)[0],410*len(recent)+365), text=text ,fill=(34,139,34, 255),font=font_0)
+    draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
+    print(datetime.datetime.now())
+    img.save(BF1_SERVERS_DATA/f'Caches/{playerName}_r.jpg')
+
+    return 1

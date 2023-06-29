@@ -3,15 +3,88 @@ import requests
 import uuid
 from pathlib import Path
 import zhconv
-import datetime
 from datetime import timedelta
 from .utils import BF1_SERVERS_DATA
 import httpx
+import asyncio
+import bs4
+import re
+from typing import Union
 
+async def fetch_data(url,headers):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url=url,headers=headers,timeout=20)
+        return response
+    
 async def post_data(url,json,headers):
     async with httpx.AsyncClient() as client:
-        response = await client.post(url=url,json=json,headers=headers)
+        response = await client.post(url=url,json=json,headers=headers,timeout=20)
         return response.text
+    
+async def process_top_n(i,games,headers):
+    next_url = f"https://battlefieldtracker.com/{games[i]['href']}"
+    while True:
+        try:
+            game_req = await fetch_data(next_url,headers)
+            soup = bs4.BeautifulSoup(game_req.text, 'html.parser')
+
+            me = soup.select_one('.player.active')
+            game_stat = {s.select_one('.name').text:s.select_one('.value').text for s in me.select('.quick-stats .stat')}
+            break
+        except AttributeError:
+            continue
+        except httpx.TimeoutException:
+            continue
+        except httpx.ConnectError:
+            return 'player not found'
+
+    game_stat['Kills'] = int(game_stat['Kills'])
+    game_stat['Deaths'] = int(game_stat['Deaths'])
+    game_stat['kd'] = round(game_stat['Kills'] / game_stat['Deaths'] if game_stat['Deaths'] else game_stat['Kills'], 2)
+    duration = re.findall('[0-9]+m|[0-9]s', me.select_one('.player-subline').text)
+    if len(duration):
+        duration_in_min = sum([int(d[0:-1]) if d[-1] == 'm' else int(d[0:-1]) / 60 for d in duration])
+        game_stat['kpm'] = round(game_stat['Kills'] / duration_in_min if duration_in_min else game_stat['Kills'], 2)
+        game_stat['duration'] = ''.join(duration)
+    else:
+        game_stat['duration'] = game_stat['kpm'] = 'N/A'
+
+    team = me.findParents(class_="team")[0].select_one('.card-heading .card-title').contents[0]
+    if team == 'No Team':
+        game_stat['result'] = '未结算'
+    else:
+        team_win = soup.select('.card.match-attributes .stat .value')[1].contents[0]
+        game_stat['result'] = '胜利' if team == team_win else '落败'
+
+    map_info = soup.select_one('.match-header .activity-details')
+    game_stat['map'] = map_info.select_one('.map-name').contents[0][0:-1]
+    game_stat['mode'] = map_info.select_one('.type').contents[0]
+    game_stat['server'] = map_info.select_one('.map-name small').contents[0]
+    game_stat['matchDate'] = map_info.select_one('.date').contents[0]
+
+    return game_stat    
+
+async def async_bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, str]:
+    headers = {
+        "Connection": "keep-alive",
+        "User-Agent": "ProtoHttp 1.3/DS 15.1.2.1.0 (Windows)",
+    }
+    url=f'https://battlefieldtracker.com/bf1/profile/pc/{origin_id}/matches'
+
+    games_req = await fetch_data(url,headers)
+  
+    soup = bs4.BeautifulSoup(games_req.text, 'html.parser')
+    if soup.select('.alert.alert-danger.alert-dismissable'):
+        return 'player not found'
+    games = soup.select('.bf1-profile .profile-main .content .matches a')[:top_n]
+    tasks = []
+    for i in range(top_n):
+        tasks.append(asyncio.create_task(process_top_n(i,games,headers)))
+    
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    return results
+
+
     
 async def async_get_server_data(serverName):
     async with httpx.AsyncClient() as client:
@@ -120,321 +193,343 @@ async def upd_welcome(remid, sid, sessionID):
                 'X-GatewaySession': sessionID
                 },
         )
-    return response.text
+    return response.json()
 
 #获取行动
 async def upd_campaign(remid, sid, sessionID):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "CampaignOperations.getPlayerCampaignStatus",
-	        "params": {
-		    "game": "tunguska"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "CampaignOperations.getPlayerCampaignStatus",
+	            "params": {
+		        "game": "tunguska"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },            
+        )
+        return response.json()
+
 
 #获取交换
-def upd_exchange(remid, sid, sessionID):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "ScrapExchange.getOffers",
-	        "params": {
-		    "game": "tunguska"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_exchange(remid, sid, sessionID):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "ScrapExchange.getOffers",
+	            "params": {
+		        "game": "tunguska"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+
+    return response.json()
 
 #获取服务器详细信息
-def upd_detailedServer(remid, sid, sessionID, gameId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "GameServer.getFullServerDetails",
-	        "params": {
-		    "game": "tunguska",
-            "gameId": f"{gameId}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_detailedServer(remid, sid, sessionID, gameId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "GameServer.getFullServerDetails",
+	            "params": {
+		        "game": "tunguska",
+                "gameId": f"{gameId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+
+    return response.json()
 
 #离开服务器
-def upd_leaveServer(remid, sid, sessionID, gameId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "Game.leaveGame",
-	        "params": {
-		    "game": "tunguska",
-            "gameId": f"{gameId}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_leaveServer(remid, sid, sessionID, gameId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Game.leaveGame",
+	            "params": {
+		        "game": "tunguska",
+                "gameId": f"{gameId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
 
+    return response.json()
 
 #换边
-def upd_movePlayer(remid, sid, sessionID, gameId, personaId, teamId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.movePlayer",
-	        "params": {
-		    "game": "tunguska",
-            "gameId": f"{gameId}",
-            "personaId": f"{personaId}",
-            "teamId": f"{teamId}",
-            "forceKill": "true",
-            "moveParty": "false"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_movePlayer(remid, sid, sessionID, gameId, personaId, teamId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.movePlayer",
+	            "params": {
+		        "game": "tunguska",
+                "gameId": f"{gameId}",
+                "personaId": f"{personaId}",
+                "teamId": f"{teamId}",
+                "forceKill": "true",
+                "moveParty": "false"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },        
+        )
+
+    return response.json()
 
 #解ban
-def upd_unbanPlayer(remid, sid, sessionID, serverId, personaId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.removeServerBan",
-	        "params": {
-		    "game": "tunguska",
-            "serverId": f"{serverId}",
-            "personaId": f"{personaId}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_unbanPlayer(remid, sid, sessionID, serverId, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.removeServerBan",
+	            "params": {
+		        "game": "tunguska",
+                "serverId": f"{serverId}",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+
+    return response.json()
 
 #加ban
-def upd_banPlayer(remid, sid, sessionID, serverId, personaName):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.addServerBan",
-	        "params": {
-		    "game": "tunguska",
-            "serverId": f"{serverId}",
-            "personaName": f"{personaName}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_banPlayer(remid, sid, sessionID, serverId, personaName):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.addServerBan",
+	            "params": {
+		        "game": "tunguska",
+                "serverId": f"{serverId}",
+                "personaName": f"{personaName}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+
+    return response.json()
 
 #切图
-def upd_chooseLevel(remid, sid, sessionID, persistedGameId, levelIndex):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.chooseLevel",
-	        "params": {
-		    "game": "tunguska",
-            "persistedGameId": f"{persistedGameId}",
-            "levelIndex": f"{levelIndex}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_chooseLevel(remid, sid, sessionID, persistedGameId, levelIndex):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.chooseLevel",
+	            "params": {
+		        "game": "tunguska",
+                "persistedGameId": f"{persistedGameId}",
+                "levelIndex": f"{levelIndex}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
 #踢人
-def upd_kickPlayer(remid, sid, sessionID, GameId, personaId, reason):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.kickPlayer",
-	        "params": {
-		    "game": "tunguska",
-            "gameId": f"{GameId}",
-            "personaId": f"{personaId}",
-            "reason": f"{reason}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_kickPlayer(remid, sid, sessionID, GameId, personaId, reason):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.kickPlayer",
+	            "params": {
+		        "game": "tunguska",
+                "gameId": f"{GameId}",
+                "personaId": f"{personaId}",
+                "reason": f"{reason}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
 #加v
-def upd_vipPlayer(remid, sid, sessionID, serverId, personaName):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.addServerVip",
-	        "params": {
-		    "game": "tunguska",
-            "serverId": f"{serverId}",
-            "personaName": f"{personaName}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_vipPlayer(remid, sid, sessionID, serverId, personaName):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.addServerVip",
+	            "params": {
+		        "game": "tunguska",
+                "serverId": f"{serverId}",
+                "personaName": f"{personaName}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
 #下v
-def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.removeServerVip",
-	        "params": {
-		    "game": "tunguska",
-            "serverId": f"{serverId}",
-            "personaId": f"{personaId}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.removeServerVip",
+	            "params": {
+		        "game": "tunguska",
+                "serverId": f"{serverId}",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
 #通过玩家数字Id获取玩家相关信息
-def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "RSP.getPersonasByIds",
-	        "params": {
-		    "game": "tunguska",
-            "personaIds": personaIds
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "RSP.getPersonasByIds",
+	            "params": {
+		        "game": "tunguska",
+                "personaIds": personaIds
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
-def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "Stats.detailedStatsByPersonaId",
-	        "params": {
-		    "game": "tunguska",
-            "personaId": f"{personaId}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Stats.detailedStatsByPersonaId",
+	            "params": {
+		        "game": "tunguska",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
-def upd_servers(remid, sid, sessionID, serverName):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "GameServer.searchServers",
-	        "params": {
-		    "filterJson": "{\"version\":6,\"name\":\"" + serverName + "\"}",
-            "game": "tunguska",
-            "limit": 30,
-            "protocolVersion": "3779779"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_servers(remid, sid, sessionID, serverName):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "GameServer.searchServers",
+	            "params": {
+		        "filterJson": "{\"version\":6,\"name\":\"" + serverName + "\"}",
+                "game": "tunguska",
+                "limit": 30,
+                "protocolVersion": "3779779"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
 
-def upd_Stats(personaIds):
-    res = requests.post(
-        url="https://api.gametools.network/bf1/multiple?raw=false&format_values=true",
-        data= json.dumps(personaIds)
-    )
-    return res.json()
+async def upd_Stats(personaIds):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://api.gametools.network/bf1/multiple?raw=false&format_values=true",
+            data= json.dumps(personaIds)
+        )
+    return response.json()
 
-def upd_Emblem(remid, sid, sessionID, personaId):
-    res = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "Emblems.getEquippedEmblem",
-	        "params":{
-		    "platform": "pc",
-            "personaId": f"{personaId}"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-    )
-    return res.json()
+async def upd_Emblem(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Emblems.getEquippedEmblem",
+	            "params":{
+		        "platform": "pc",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
