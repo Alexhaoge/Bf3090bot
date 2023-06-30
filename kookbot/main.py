@@ -7,7 +7,9 @@ from khl import Bot, Message, MessageTypes, User
 from secret import token, super_admin
 from random import choice
 
-from library.utils import request_API, bftracker_recent, db_op, verify_originid
+from library.utils import (
+    request_API, async_bftracker_recent, db_op, verify_originid
+)
 from library.cardTemplate import (
     render_stat_card, render_find_server_card, render_recent_card
 )
@@ -65,7 +67,7 @@ async def bf1_recent(msg: Message, origin_id: str = None):
         else:
             await msg.reply(f'未绑定账号')
             return
-    result = bftracker_recent(origin_id)
+    result = await async_bftracker_recent(origin_id)
     if isinstance(result, str):
         logging.warning(result)
         await msg.reply(result)
