@@ -21,9 +21,9 @@ async def post_data(url,json,headers):
         response = await client.post(url=url,json=json,headers=headers,timeout=20)
         return response.text
     
-async def process_top_n(i,games,headers):
-    next_url = f"https://battlefieldtracker.com/{games[i]['href']}"
-    while True:
+async def process_top_n(game: str, headers: dict, retry: int = 3):
+    next_url = f"https://battlefieldtracker.com/{game}"
+    for i in range(retry):
         try:
             game_req = await fetch_data(next_url,headers)
             soup = bs4.BeautifulSoup(game_req.text, 'html.parser')
@@ -35,19 +35,33 @@ async def process_top_n(i,games,headers):
             continue
         except httpx.TimeoutException:
             continue
-        except httpx.ConnectError:
+        except:
             return 'player not found'
 
     game_stat['Kills'] = int(game_stat['Kills'])
     game_stat['Deaths'] = int(game_stat['Deaths'])
     game_stat['kd'] = round(game_stat['Kills'] / game_stat['Deaths'] if game_stat['Deaths'] else game_stat['Kills'], 2)
     duration = re.findall('[0-9]+m|[0-9]s', me.select_one('.player-subline').text)
+    
     if len(duration):
         duration_in_min = sum([int(d[0:-1]) if d[-1] == 'm' else int(d[0:-1]) / 60 for d in duration])
         game_stat['kpm'] = round(game_stat['Kills'] / duration_in_min if duration_in_min else game_stat['Kills'], 2)
         game_stat['duration'] = ''.join(duration)
     else:
-        game_stat['duration'] = game_stat['kpm'] = 'N/A'
+        game_stat['duration'] = game_stat['kpm'] = 0
+
+    detail_general_card = me.findChild(name='h4', string='General').parent.parent
+    game_stat['headshot'] = 0
+
+    headshot_name_tag = detail_general_card.find_all(class_='name', string='Headshots')
+    if len(headshot_name_tag):
+        if len(headshot_name_tag) == 1:
+            game_stat['headshot'] = int(headshot_name_tag[0].find_previous_sibling(class_='value').contents[0])
+        else:
+            game_stat['headshot'] = max(int(headshot_name_tag[0].find_previous_sibling(class_='value').contents[0]),int(headshot_name_tag[1].find_previous_sibling(class_='value').contents[0]))
+    
+    acc_name_tag = detail_general_card.findChild(class_='name', string='Accuracy')
+    game_stat['acc'] = acc_name_tag.find_previous_sibling(class_='value').contents[0]
 
     team = me.findParents(class_="team")[0].select_one('.card-heading .card-title').contents[0]
     if team == 'No Team':
@@ -64,6 +78,7 @@ async def process_top_n(i,games,headers):
 
     return game_stat    
 
+
 async def async_bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, str]:
     headers = {
         "Connection": "keep-alive",
@@ -79,11 +94,10 @@ async def async_bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, 
     games = soup.select('.bf1-profile .profile-main .content .matches a')[:top_n]
     tasks = []
     for i in range(top_n):
-        tasks.append(asyncio.create_task(process_top_n(i,games,headers)))
+        tasks.append(asyncio.create_task(process_top_n(games[i]['href'], headers)))
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
     return results
-
 
     
 async def async_get_server_data(serverName):
@@ -443,9 +457,8 @@ async def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
     return response.json()
 
 #通过玩家数字Id获取玩家相关信息
-async def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
+def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
+        response = requests.post(
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
             json = {
 	            "jsonrpc": "2.0",
@@ -461,7 +474,7 @@ async def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
                 'X-GatewaySession': sessionID
             },
         )
-    return response.json()
+        return response.json()
 
 async def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
     async with httpx.AsyncClient() as client:

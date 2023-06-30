@@ -14,9 +14,10 @@ from typing import Annotated
 import asyncio
 import time
 import os
+import pathlib
 from .bf1 import get_player_data,remid,sid,sessionID
 from .bf1draw import draw_stat
-from .utils import BF1_PLAYERS_DATA
+from .utils import BF1_PLAYERS_DATA, BF1_SERVERS_DATA
 
 #message_id = 0
 
@@ -58,8 +59,9 @@ async def user_bye(event: GroupDecreaseNoticeEvent):
 @add_user.handle()
 async def user_add(event: GroupRequestEvent):
     playerName = event.comment.split('：')[2]
+    res = await get_player_data(playerName)
     try:
-        res = await get_player_data(playerName)
+        personaId = res['id']
     except:
         await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(无效id)')#\n回复y同意进群，回复n拒绝进群，回复其他消息以回复的消息拒绝。
     else:
@@ -67,7 +69,8 @@ async def user_add(event: GroupRequestEvent):
         await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: ')#\n回复y同意进群，回复n拒绝进群，回复其他消息以回复的消息拒绝
         with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','w') as f:
             f.write(playerName)
-        await add_user.send(MessageSegment.image(f'file:///C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\Caches\\{playerName}.jpg'))
+        file_dir = pathlib.Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{playerName}.jpg'
+        await add_user.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
 
 @get_user.handle()
