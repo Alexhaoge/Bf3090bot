@@ -434,8 +434,10 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
     img_vehicles = Image.open(vehicles_img).resize((400,100)).convert("RGBA")
     img.paste(paste_img(img_vehicles), (220, 1100), img_vehicles)
     
-    img.paste(img_emb, (100, 100),img_emb)
-
+    try:
+        img.paste(img_emb, (100, 100),img_emb)
+    except:
+        img.paste(img_emb, (100, 100))
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas.QQ Group: 94103090. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
@@ -708,7 +710,10 @@ async def draw_wp(remid, sid, sessionID, res:dict, playerName:str, mode:int):
         img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
         img.paste(paste_img(img_wp), (130+650*(i%2), 340*(i//2)+300), img_wp)
 
-    img.paste(img_emb, (0, 0), img_emb)
+    try:
+        img.paste(img_emb, (0, 0), img_emb)
+    except:
+        img.paste(img_emb, (0, 0))
 
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
@@ -732,14 +737,14 @@ async def async_get_stat(playerid,platoon,latency):
         res = response.text[0:-1]+f', "platoon": "{platoon}", "latency": {latency}'+'}'
         return res
     
-async def draw_pl(session,pl,gameId,remid, sid, sessionID):
+async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
 
     detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
     vipList = detailedServer['result']["rspInfo"]['vipList']
     adminList = detailedServer['result']["rspInfo"]['adminList']
 
     try:
-        with open(BF1_PLAYERS_DATA/'whitelist'/f'{session}.txt') as f:
+        with open(BF1_PLAYERS_DATA/'whitelist'/f'{session}_{server_id}.txt') as f:
             whiteList = f.read().split(',')
     except:
         whiteList = []
@@ -778,15 +783,22 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
     
     results = await asyncio.gather(*tasks)
 
+    print(datetime.datetime.now())
     stat1 = []
     stat2 = []
     for i in range(len(pl_1)):
-        stat1.append(json.loads(results[i]))
+        try:
+            stat1.append(json.loads(results[i]))
+        except:
+            continue
     stat1 = sorted(stat1, key=lambda x: x['rank'],reverse=True)
 
 
     for j in range(len(pl_1),len(pl_1)+len(pl_2)):
-        stat2.append(json.loads(results[j])) 
+        try:
+            stat2.append(json.loads(results[j]))
+        except:
+            continue   
     stat2 = sorted(stat2, key=lambda x: x['rank'],reverse=True)
 
     img = Image.open(serverimg)
@@ -826,6 +838,9 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
     draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(455,27.5), text=f'             KD    KP    爆头      胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
 
+    (BF1_SERVERS_DATA/f'{session}_pl').mkdir(exist_ok=True)
+    f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
+    f.write('{\n"pl": [\n')
     for i in range(len(stat1)):
         draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
         
@@ -902,6 +917,7 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
 
         draw.text(xy=(837,90+30*i), text=f'{stat1[i]["secondsPlayed"]//3600}' ,fill=(255, 255, 255, 255),font=font_2)
         
+        f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %d\n},\n'%(i+1,stat1[i]['rank'],stat1[i]['killDeath'],stat1[i]['killsPerMinute'],stat1[i]['id']))
     position = (60, 110)
     img.paste(textbox, position, textbox)
 
@@ -1006,7 +1022,12 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
             draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         draw.text(xy=(837,90+30*i), text=f'{stat2[i]["secondsPlayed"]//3600}' ,fill=(255, 255, 255, 255),font=font_2)
-        
+        f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %d\n},\n'%(i+33,stat2[i]['rank'],stat2[i]['killDeath'],stat2[i]['killsPerMinute'],stat2[i]['id']))
+
+    f.write('{\n"slot": 100,\n"rank": 0,\n"kd": 0,\n"kp": 0,\n"id": 0\n}')
+    f.write(f'],\n"id": {server_id}\n')
+    f.write('}')
+    f.close()    
     position = (960, 110)
     img.paste(textbox1, position, textbox1)
 
@@ -1031,6 +1052,7 @@ async def draw_pl(session,pl,gameId,remid, sid, sessionID):
     draw.line((1045, 190, 1045, 1165), fill=(128, 128, 128, 120), width=4)
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
+    print(datetime.datetime.now())
     img.save(BF1_SERVERS_DATA/f'Caches/{gameId}_pl.jpg')
     return 1
 
@@ -1117,8 +1139,12 @@ async def draw_r(playerName, res, remid, sid, sessionID):
     
     position = (0, 0)
     img.paste(textbox, position, textbox)
-    img.paste(img_emb, (0, 0),img_emb)
-
+    
+    try:
+        img.paste(img_emb, (0, 0),img_emb)
+    except:
+        img.paste(img_emb, (0, 0))
+    
     timeall = 0
     killall = 0
     deathall = 0
@@ -1142,6 +1168,10 @@ async def draw_r(playerName, res, remid, sid, sessionID):
         elif re.search(r'(\d+)s', recent[i]['duration']):
                 minute = 0
                 second = recent[i]['duration'][0:-1]
+                result = f"{minute}分{second}秒"
+        elif re.search(r'(\d+)m', recent[i]['duration']):
+                minute = recent[i]['duration'][0:-1]
+                second = 0
                 result = f"{minute}分{second}秒"
         else:
             minute = 0
@@ -1171,7 +1201,7 @@ async def draw_r(playerName, res, remid, sid, sessionID):
         draw.text(xy=(640,192), text=f'KDA:', fill=(255,100,0,255),font=font_4)
         draw.text(xy=(750,192), text=f'{recent[i]["kd"]}', fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(960,192), text=f'KPM:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1070,192), text=f'{recent[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1070,192), text=f'{((6000*int(recent[i]["Kills"]))//(60*int(minute)+int(second)))/100}', fill=(66, 112, 244, 255),font=font_4)
         
         draw.text(xy=(640,243), text=f'K/D:', fill=(255,100,0,255),font=font_4)
         draw.text(xy=(750,243), text=f'{recent[i]["K/D"]}', fill=(66, 112, 244, 255),font=font_4)

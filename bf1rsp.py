@@ -41,15 +41,7 @@ async def process_top_n(game: str, headers: dict, retry: int = 3):
     game_stat['Kills'] = int(game_stat['Kills'])
     game_stat['Deaths'] = int(game_stat['Deaths'])
     game_stat['kd'] = round(game_stat['Kills'] / game_stat['Deaths'] if game_stat['Deaths'] else game_stat['Kills'], 2)
-    duration = re.findall('[0-9]+m|[0-9]s', me.select_one('.player-subline').text)
     
-    if len(duration):
-        duration_in_min = sum([int(d[0:-1]) if d[-1] == 'm' else int(d[0:-1]) / 60 for d in duration])
-        game_stat['kpm'] = round(game_stat['Kills'] / duration_in_min if duration_in_min else game_stat['Kills'], 2)
-        game_stat['duration'] = ''.join(duration)
-    else:
-        game_stat['duration'] = game_stat['kpm'] = 0
-
     detail_general_card = me.findChild(name='h4', string='General').parent.parent
     game_stat['headshot'] = 0
 
@@ -63,6 +55,15 @@ async def process_top_n(game: str, headers: dict, retry: int = 3):
     acc_name_tag = detail_general_card.findChild(class_='name', string='Accuracy')
     game_stat['acc'] = acc_name_tag.find_previous_sibling(class_='value').contents[0]
 
+    duration_name_tag = detail_general_card.findChild(class_='name', string='Time Played')
+    try:
+        if duration_name_tag == None:
+            game_stat['duration'] = '0s'
+        else:
+            game_stat['duration'] = duration_name_tag.find_previous_sibling(class_='value').contents[0].replace(' ','')
+    except:
+        game_stat['duration'] = '0s'
+    
     team = me.findParents(class_="team")[0].select_one('.card-heading .card-title').contents[0]
     if team == 'No Team':
         game_stat['result'] = '未结算'
@@ -77,7 +78,6 @@ async def process_top_n(game: str, headers: dict, retry: int = 3):
     game_stat['matchDate'] = map_info.select_one('.date').contents[0]
 
     return game_stat    
-
 
 async def async_bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, str]:
     headers = {
