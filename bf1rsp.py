@@ -1,5 +1,6 @@
 import json
 import requests
+import aiohttp
 import uuid
 from pathlib import Path
 import zhconv
@@ -186,7 +187,7 @@ def upd_sessionId(remid, sid):
     )
     sessionID = res_session.json()['result']['sessionId']
     print(res_session.json())
-    return sessionID
+    return remid,sid,sessionID
 
 #获取欢迎信息
 async def upd_welcome(remid, sid, sessionID):
@@ -271,6 +272,29 @@ async def upd_detailedServer(remid, sid, sessionID, gameId):
             },
         )
 
+    return response.json()
+
+async def upd_reserveSlot(remid, sid, sessionID, gameId) -> dict:
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json={
+                "jsonrpc": "2.0",
+                "method": "Game.reserveSlot",
+                "params": {
+                    "game": "tunguska",
+                    "gameId": f"{gameId}",
+                    "gameProtocolVersion": "3779779",
+                    "currentGame": "tunguska",
+                    "settings": {"role": "spectator"}
+                },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
     return response.json()
 
 #离开服务器
@@ -546,3 +570,78 @@ async def upd_Emblem(remid, sid, sessionID, personaId):
             },
         )
     return response.json()
+
+async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union[str, dict]:
+    """
+    :param server_gameid: 服务器gameid
+    :return: 成功返回字典,失败返回信息
+    """
+    header = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
+        'ContentType': 'json',
+    }
+    api_url = "https://delivery.easb.cc/games/get_server_status"
+    if type(server_gameid) != list:
+        data = {
+            "gameIds": [
+                server_gameid
+            ]
+        }
+    else:
+        data = {
+            "gameIds": server_gameid
+        }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(api_url, headers=header, data=json.dumps(data), timeout=5)
+        response = eval(response.text)
+    except:
+        return "网络超时!"
+    if type(server_gameid) != list:
+        if str(server_gameid) in response["data"]:
+            return response["data"][str(server_gameid)] if response["data"][
+                                                               str(server_gameid)] != '' else "服务器信息为空!"
+        else:
+            return f"获取服务器信息失败:{response}"
+    else:
+        return response["data"]
+    
+async def bfeac_checkBan(player_name: str) -> dict:
+    """
+    检查玩家bfeac信息
+    :param player_name: 玩家名称
+    :return: {"stat": "状态", "url": "案件链接"}
+    """
+    check_eacInfo_url = f"https://api.bfeac.com/case/EAID/{player_name}"
+    header = {
+        "Connection": "keep-alive"
+    }
+    eac_stat_dict = {
+        0: "未处理",
+        1: "已封禁",
+        2: "证据不足",
+        3: "自证通过",
+        4: "自证中",
+        5: "刷枪",
+    }
+    result = {
+        "stat": "无",
+        "url": "无"
+    }
+    try:
+        async with aiohttp.ClientSession(headers=header) as session:
+            async with session.get(check_eacInfo_url) as response:
+                response = await response.json()
+        if response.get("data"):
+            data = response["data"][0]
+            eac_status = eac_stat_dict[data["current_status"]]
+            if data.get("case_id"):
+                case_id = data["case_id"]
+                case_url = f"https://bfeac.com/#/case/{case_id}"
+                result["url"] = case_url
+            result["stat"] = eac_status
+        return result
+    except Exception as e:
+        print(f"bfeac_checkBan: {e}")
+        return result

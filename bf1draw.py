@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import requests
 import json
-import uuid
+import random
 import re
 import os
 import zhconv
@@ -9,15 +9,32 @@ import datetime
 import asyncio
 import httpx
 from io import BytesIO
-from .bf1rsp import upd_detailedServer, upd_servers, upd_Emblem, upd_getPersonasByIds, async_bftracker_recent
-from .utils import BF1_SERVERS_DATA, BF1_PLAYERS_DATA, request_API
+from .bf1rsp import upd_detailedServer, upd_servers, upd_Emblem, upd_getPersonasByIds, async_bftracker_recent,upd_exchange,bfeac_checkBan
+from .utils import BF1_SERVERS_DATA, BF1_PLAYERS_DATA, request_API,search_all
 
 GAME = 'bf1'
 LANG = 'zh-tw'
 
+async def paste_image(url,img,position):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        image_data = response.content
+        image = Image.open(BytesIO(image_data))
+        img.paste(image,position,image)
+
+async def paste_emb(url,img,position):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        image_data = response.content
+        image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
+        try:
+            img.paste(image,position,image)
+        except:
+            img.paste(image,position)
+
 async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     # 打开图片文件
-    img = Image.open(BF1_SERVERS_DATA/'Caches/DLC1.jpg')
+    img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(1, 6)}.jpg')
     img = img.resize((1506,2100))
     img = img.crop((0,0,1506,400*server_id+100))
     # 将原始图片模糊化
@@ -100,8 +117,8 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     return 1
 
 async def draw_server(remid, sid, sessionID, serverName, res):
-    img = Image.open(BF1_SERVERS_DATA/f'Caches/DLC1.jpg')
-    img = img.resize((1506,2020))
+    img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(1, 6)}.jpg')
+    img = img.resize((1506,2100))
     img = img.filter(ImageFilter.GaussianBlur(radius=15))
 
     res = res['result']['gameservers']
@@ -237,6 +254,9 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
     killAssists = res["killAssists"]
     classes = res["classes"]
 
+    owner,ban,admin,vip = search_all(personaId)
+    bfeac = await bfeac_checkBan(name)
+
     gamemode = sorted(res['gamemodes'], key=lambda x: x['score'],reverse=True)
     gamemodes = []
     for i in gamemode:
@@ -292,18 +312,13 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
         'Scout': '侦察兵',
         'Cavalry': '骑兵',
         'Pilot': '飞行员',
-        'tanker': '坦克'
+        'Tanker': '坦克'
     }
-
-    try:
-        img_emb = Image.open(requests.get(emblem, stream=True,timeout=20).raw).resize((250,250)).convert("RGBA")
-    except:
-        img_emb = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
 
     try:
         img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
     except:    
-        img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
 
     
     img = img.resize((1500,1500))
@@ -329,51 +344,51 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
     position = (100, 100)
     img.paste(textbox, position, textbox)
 
-    textbox1 = Image.new("RGBA", (640,350), (0, 0, 0, 150))
+    textbox1 = Image.new("RGBA", (640,675), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox1)
     font_3 = ImageFont.truetype(font='Dengb.ttf', size=45, encoding='UTF-8')
     font_4 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     draw.text(xy=(120,30), text=f'最佳兵种:    {json_class[bestClass]}', fill=(255, 255, 255, 255),font=font_3)
 
     draw.text(xy=(35,95), text=f'最远爆头:{longhs}m', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,140), text=f'最高连杀:{ks}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,185), text=f'协助击杀:{int(killAssists)}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,230), text=f'复仇击杀:{avenge}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,275), text=f'救星击杀:{save}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,139), text=f'最高连杀:{ks}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,183), text=f'协助击杀:{int(killAssists)}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,227), text=f'复仇击杀:{avenge}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,271), text=f'救星击杀:{save}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,315), text=f'拥有服务器:{owner}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,359), text=f'管理服务器:{admin}', fill=(255, 255, 255, 255),font=font_4)
 
     draw.text(xy=(360,95), text=f'技巧值:{skill}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,140), text=f'狗牌数:{dogtags}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,185), text=f'救援数:{int(rev)}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,230), text=f'治疗数:{int(heals)}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,275), text=f'修理数:{int(repairs)}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,139), text=f'狗牌数:{dogtags}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,183), text=f'救援数:{int(rev)}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,227), text=f'治疗数:{int(heals)}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,271), text=f'修理数:{int(repairs)}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,315), text=f'vip数量:{vip}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,359), text=f'ban数量:{ban}', fill=(255, 255, 255, 255),font=font_4)
 
-    position1 = (100, 380)
-    img.paste(textbox1, position1, textbox1)
-
-    textbox2 = Image.new("RGBA", (640,280), (0, 0, 0, 150))
-    draw = ImageDraw.Draw(textbox2)
-    
     smallmode = gamemodes[2]["wins"]+gamemodes[2]["losses"]+gamemodes[3]["wins"]+gamemodes[3]["losses"]+gamemodes[4]["wins"]+gamemodes[4]["losses"]+gamemodes[5]["wins"]+gamemodes[5]["losses"]+gamemodes[6]["wins"]+gamemodes[6]["losses"]
     
     try:
         smwp = ((gamemodes[2]["wins"]+gamemodes[3]["wins"]+gamemodes[4]["wins"]+gamemodes[5]["wins"]+gamemodes[6]["wins"])*100) / smallmode
-        draw.text(xy=(360,120), text=f'其他胜率:{smwp:.2f}%', fill=(255, 255, 255, 255),font=font_4)
+        draw.text(xy=(360,491), text=f'其他胜率:{smwp:.2f}%', fill=(255, 255, 255, 255),font=font_4)
     except:
         smwp = 0
-        draw.text(xy=(360,120), text=f'其他胜率:{smwp:.1f}%', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,30), text=f'{gamemodes[0]["gamemodeName"][0:2]}场次:{gamemodes[0]["wins"]+gamemodes[0]["losses"]}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,75), text=f'{gamemodes[1]["gamemodeName"][0:2]}场次:{gamemodes[1]["wins"]+gamemodes[1]["losses"]}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,120), text=f'其他场次:{smallmode}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,165), text=f'步兵击杀:{infantrykill}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,210), text=f'载具击杀:{carkill}', fill=(255, 255, 255, 255),font=font_4)
+        draw.text(xy=(360,491), text=f'其他胜率:{smwp:.1f}%', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,403), text=f'{gamemodes[0]["gamemodeName"][0:2]}场次:{gamemodes[0]["wins"]+gamemodes[0]["losses"]}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,447), text=f'{gamemodes[1]["gamemodeName"][0:2]}场次:{gamemodes[1]["wins"]+gamemodes[1]["losses"]}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,491), text=f'其他场次:{smallmode}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,536), text=f'步兵击杀:{infantrykill}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,580), text=f'载具击杀:{carkill}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,624), text=f'BFEAC状态:{bfeac["stat"]}', fill=(255, 255, 255, 255),font=font_4)
 
-    draw.text(xy=(360,30), text=f'{gamemodes[0]["gamemodeName"][0:2]}胜率:{gamemodes[0]["winPercent"]}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,75), text=f'{gamemodes[1]["gamemodeName"][0:2]}胜率:{gamemodes[1]["winPercent"]}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,165), text=f'步兵KPM:{infantrykp}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,210), text=f'载具KPM:{carkp}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,403), text=f'{gamemodes[0]["gamemodeName"][0:2]}胜率:{gamemodes[0]["winPercent"]}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,447), text=f'{gamemodes[1]["gamemodeName"][0:2]}胜率:{gamemodes[1]["winPercent"]}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,536), text=f'步兵KPM:{infantrykp}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,580), text=f'载具KPM:{carkp}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,624), text=f'SPM:{spm}', fill=(255, 255, 255, 255),font=font_4)
 
-    position2 = (100, 760)
-    img.paste(textbox2, position2, textbox2)
+    position1 = (100, 380)
+    img.paste(textbox1, position1, textbox1)
 
     textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox3)
@@ -434,10 +449,8 @@ async def draw_stat(remid, sid, sessionID,res:dict,playerName:str):
     img_vehicles = Image.open(vehicles_img).resize((400,100)).convert("RGBA")
     img.paste(paste_img(img_vehicles), (220, 1100), img_vehicles)
     
-    try:
-        img.paste(img_emb, (100, 100),img_emb)
-    except:
-        img.paste(img_emb, (100, 100))
+    await paste_emb(emblem,img,(100,100))
+
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas.QQ Group: 94103090. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
@@ -478,22 +491,15 @@ async def draw_wp(remid, sid, sessionID, res:dict, playerName:str, mode:int):
             sta2 = emblem[len(emblem)-1].split('.')[0]
             emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
 
-    try:
-        img_emb = Image.open(requests.get(emblem, stream=True,timeout=20).raw).resize((250,250)).convert("RGBA")
-    except:
-        img_emb = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
     print(emblem)
     
     try:
         img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
     except:    
-        img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
 
     img = img.resize((2000,2000))
     img = img.crop((350,0,1650,2000))
-    
-    textbox = Image.new("RGBA", (1300,2000), (0, 0, 0, 50))
-    img.paste(textbox, (0, 0), textbox)
 
     textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox)
@@ -710,10 +716,7 @@ async def draw_wp(remid, sid, sessionID, res:dict, playerName:str, mode:int):
         img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
         img.paste(paste_img(img_wp), (130+650*(i%2), 340*(i//2)+300), img_wp)
 
-    try:
-        img.paste(img_emb, (0, 0), img_emb)
-    except:
-        img.paste(img_emb, (0, 0))
+    await paste_emb(emblem,img,(0,0))
 
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
@@ -782,7 +785,6 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
         tasks.append(asyncio.create_task(async_get_stat(personaId,platoon,latency)))
     
     results = await asyncio.gather(*tasks)
-
     print(datetime.datetime.now())
     stat1 = []
     stat2 = []
@@ -791,6 +793,7 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
             stat1.append(json.loads(results[i]))
         except:
             continue
+    stat1 = filter(lambda x: 'rank' in x, stat1)
     stat1 = sorted(stat1, key=lambda x: x['rank'],reverse=True)
 
 
@@ -798,7 +801,8 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
         try:
             stat2.append(json.loads(results[j]))
         except:
-            continue   
+            continue 
+    stat2 = filter(lambda x: 'rank' in x, stat2)  
     stat2 = sorted(stat2, key=lambda x: x['rank'],reverse=True)
 
     img = Image.open(serverimg)
@@ -1087,10 +1091,6 @@ async def draw_r(playerName, res, remid, sid, sessionID):
             sta2 = emblem[len(emblem)-1].split('.')[0]
             emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
 
-    try:
-        img_emb = Image.open(requests.get(emblem, stream=True,timeout=20).raw).resize((250,250)).convert("RGBA")
-    except:
-        img_emb = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
     print(emblem)
     print(datetime.datetime.now())
     async_result = await async_bftracker_recent(playerName, 10)
@@ -1102,18 +1102,21 @@ async def draw_r(playerName, res, remid, sid, sessionID):
     else:
         for i in range(10):
             data = async_result[i]
-            if data['Kills'] > 5 or data['Deaths'] > 5:
-                recent.append(data)
-                count += 1
-                if count == 3:
-                    break
+            try:
+                if data['Kills'] > 5 or data['Deaths'] > 5:
+                    recent.append(data)
+                    count += 1
+                    if count == 3:
+                        break
+            except:
+                continue
 
     try:
         img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg') 
         img = img.resize((1800,1800))
         img = img.crop((250,0,1550,(410*len(recent)+410)))
     except:    
-        img = Image.open(BF1_SERVERS_DATA/'Caches'/'DLC1.jpg')
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
         img = img.resize((1300,1800))
         img = img.crop((0,0,1300,(410*len(recent)+410)))
         img = img.filter(ImageFilter.GaussianBlur(radius=15))
@@ -1140,10 +1143,7 @@ async def draw_r(playerName, res, remid, sid, sessionID):
     position = (0, 0)
     img.paste(textbox, position, textbox)
     
-    try:
-        img.paste(img_emb, (0, 0),img_emb)
-    except:
-        img.paste(img_emb, (0, 0))
+    await paste_emb(emblem,img,(0,0))
     
     timeall = 0
     killall = 0
@@ -1245,4 +1245,52 @@ async def draw_r(playerName, res, remid, sid, sessionID):
     print(datetime.datetime.now())
     img.save(BF1_SERVERS_DATA/f'Caches/{playerName}_r.jpg')
 
+    return 1
+
+async def draw_exchange(remid, sid, sessionID):
+    res = await upd_exchange(remid, sid, sessionID)
+    img = Image.new("RGBA", (1500,1100), (254, 238, 218, 180))
+    tasks = []
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
+    for i in range(len(res['result']['items'])):
+        url = 'https://eaassets-a.akamaihd.net/battlelog/battlebinary/'+res['result']['items'][i]['item']['images']['Png180xANY'][11:]
+        position = (50+200*(i%7),100+150*(i//7))
+
+        text = res['result']['items'][i]['item']["name"]
+        text1 = res['result']['items'][i]['item']["parentName"]
+        text2 = str(res['result']['items'][i]['price'])+'零件'
+
+        if res['result']['items'][i]['item']["rarenessLevel"]['value'] == 0:
+            draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text)[0],150+150*(i//7)), text=text ,fill=(34,139,34, 255),font=font_0)
+        elif res['result']['items'][i]['item']["rarenessLevel"]['value'] == 1:
+            draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text)[0],150+150*(i//7)), text=text ,fill=(66, 112, 244, 255),font=font_0)
+        elif res['result']['items'][i]['item']["rarenessLevel"]['value'] == 2:
+            if text1 == None:
+                draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text)[0],170+150*(i//7)), text=text ,fill=((255,100,0,255)),font=font_0)
+            else:
+                draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text)[0],150+150*(i//7)), text=text ,fill=((255,100,0,255)),font=font_0)
+    
+        if text1 != None:
+            draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text1)[0],170+150*(i//7)), text=text1 ,fill=(55, 1, 27, 255),font=font_0)
+
+        draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text2)[0],190+150*(i//7)), text=text2 ,fill=(0, 0, 100, 255),font=font_0)
+        tasks.append(asyncio.create_task(paste_image(url,img,position)))
+
+    await asyncio.gather(*tasks)
+    
+    font_1 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
+    text = f'Powered by Mag1Catz and special thanks to Openblas.QQ Group: 94103090. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+    draw.text(xy=(1500-font_1.getsize(text)[0],1065), text=text ,fill=(34,139,34, 255),font=font_1)
+
+    img.save(BF1_SERVERS_DATA/f'Caches/exchange.png')
+    return 1
+
+async def draw_a(num,name,personaId):
+    img = Image.new("RGBA", (900,30*num), (254, 238, 218, 180))
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    for i in range(num):
+         draw.text(xy=(10,30*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
+    img.save(BF1_SERVERS_DATA/f'Caches/{personaId}.png')
     return 1
