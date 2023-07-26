@@ -12,6 +12,37 @@ import bs4
 import re
 from typing import Union
 
+async def getPersonasByName(access_token, player_name) -> dict:
+        """
+        根据名字获取Personas
+        :param player_name:
+        :return:
+        """
+        url = f"https://gateway.ea.com/proxy/identity/personas?namespaceName=cem_ea_id&displayName={player_name}"
+        # 头部信息
+        head = {
+            "Host": "gateway.ea.com",
+            "Connection": "keep-alive",
+            "Accept": "application/json",
+            "X-Expand-Results": "true",
+            "Authorization": f"Bearer {access_token}",
+            "Accept-Encoding": "deflate"
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                response = await session.get(
+                    url=url,
+                    headers=head,
+                    timeout=10,
+                    ssl=False
+                )
+                res =  await response.json()
+                id = res['personas']['persona'][0]['personaId']
+                name = res['personas']['persona'][0]['displayName']
+                return id,name
+        except:
+            return "网络超时!"
+
 async def fetch_data(url,headers):
     async with httpx.AsyncClient() as client:
         response = await client.get(url=url,headers=headers,timeout=20)
@@ -126,67 +157,76 @@ error_code_dict = {
     # -32858: "服务器未开启!"
 }
 
-def upd_remid_sid(res: requests.Response, remid, sid):
-    res_cookies = requests.utils.dict_from_cookiejar(res.cookies)
+async def upd_remid_sid(res: httpx.Response, remid, sid):
+    res_cookies = httpx.Cookies.extract_cookies(res.cookies,res)
+    res_cookies = json.dumps(res_cookies)
     if 'sid' in res_cookies:
         sid = res_cookies['sid']
     if 'remid' in res_cookies:
         remid = res_cookies['remid']
     return remid, sid
 
-def upd_sessionId(remid, sid):
-    res_access_token = requests.get(
-        url="https://accounts.ea.com/connect/auth",
-        params= {
-            'client_id': 'ORIGIN_JS_SDK',
-            'response_type': 'token',
-            'redirect_uri': 'nucleus:rest',
-            'prompt': 'none',
-            'release_type': 'prod'
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
-            'content-type': 'application/json'
-        }
-    )
+async def upd_token(remid, sid):
+    async with httpx.AsyncClient() as client:
+        res_access_token = await client.get(
+            url="https://accounts.ea.com/connect/auth",
+            params= {
+                'client_id': 'ORIGIN_JS_SDK',
+                'response_type': 'token',
+                'redirect_uri': 'nucleus:rest',
+                'prompt': 'none',
+                'release_type': 'prod'
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
+                'content-type': 'application/json'
+            }
+        )
 
     access_token = res_access_token.json()['access_token']
-    remid, sid = upd_remid_sid(res_access_token, remid, sid)
+    return res_access_token,access_token
 
-    with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
-        f.write(f'{remid},{sid}')
-        
-    res_authcode = requests.get(
-        url="https://accounts.ea.com/connect/auth",
-        params= {
-            'client_id': 'sparta-backend-as-user-pc',
-            'response_type': 'code',
-            'release_type': 'none'
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}'
-        },
-        allow_redirects=False
-    )
-    # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
-    authcode = str.split(res_authcode.next.path_url, "=")[1]
-    remid, sid = upd_remid_sid(res_authcode, remid, sid)
+async def upd_sessionId(res_access_token, remid, sid, num):
+    remid, sid = await upd_remid_sid(res_access_token, remid, sid)
 
-    res_session = requests.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-        json= {
-            'jsonrpc': '2.0',
-            'method': 'Authentication.getEnvIdViaAuthCode',
-            'params': {
-                'authCode': authcode,
-                "locale": "zh-tw",
+    async with httpx.AsyncClient() as client:
+        res_authcode = await client.get(       
+            url="https://accounts.ea.com/connect/auth",
+            params= {
+                'client_id': 'sparta-backend-as-user-pc',
+                'response_type': 'code',
+                'release_type': 'none'
             },
-            "id": str(uuid.uuid4())
-        }
-    )
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}'
+            },
+            follow_redirects=False
+        )
+    # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
+    authcode = str.split(res_authcode.headers.get("location"), "=")[1]
+    remid, sid = await upd_remid_sid(res_authcode, remid, sid)
+    
+    if num == 0:
+        with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
+            f.write(f'{remid},{sid}')
+    elif num == 1:
+        with open(BF1_SERVERS_DATA/'Caches'/'id1.txt','w' ,encoding='UTF-8') as f:
+            f.write(f'{remid},{sid}')
+    async with httpx.AsyncClient() as client:
+        res_session = await client.post( 
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json= {
+                'jsonrpc': '2.0',
+                'method': 'Authentication.getEnvIdViaAuthCode',
+                'params': {
+                    'authCode': authcode,
+                    "locale": "zh-tw",
+                },
+                "id": str(uuid.uuid4())
+            }
+        )
     sessionID = res_session.json()['result']['sessionId']
-    print(res_session.json())
     return remid,sid,sessionID
 
 #获取欢迎信息
@@ -481,8 +521,9 @@ async def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
     return response.json()
 
 #通过玩家数字Id获取玩家相关信息
-def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
-        response = requests.post(
+async def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
             json = {
 	            "jsonrpc": "2.0",
@@ -498,7 +539,67 @@ def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
                 'X-GatewaySession': sessionID
             },
         )
-        return response.json()
+    return response.json()
+
+async def upd_getActiveTagsByPersonaIds(remid, sid, sessionID, personaIds):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Platoons.getActiveTagsByPersonaIds",
+	            "params": {
+		        "game": "tunguska",
+                "personaIds": personaIds
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
+
+async def upd_WeaponsByPersonaId(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Progression.getWeaponsByPersonaId",
+	            "params": {
+		        "game": "tunguska",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
+
+async def upd_VehiclesByPersonaId(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Progression.getVehiclesByPersonaId",
+	            "params": {
+		        "game": "tunguska",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+        )
+    return response.json()
 
 async def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
     async with httpx.AsyncClient() as client:
@@ -530,7 +631,7 @@ async def upd_servers(remid, sid, sessionID, serverName):
 	            "params": {
 		        "filterJson": "{\"version\":6,\"name\":\"" + serverName + "\"}",
                 "game": "tunguska",
-                "limit": 30,
+                "limit": 7,
                 "protocolVersion": "3779779"
 	            },
                 "id": str(uuid.uuid4())

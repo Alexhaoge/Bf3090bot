@@ -1,5 +1,6 @@
 import json
 import requests
+import httpx
 from pathlib import Path
 
 from .config import Config
@@ -28,14 +29,13 @@ BF2042_PLAYERS_DATA.mkdir(exist_ok=True)
 
 API_SITE = "https://api.gametools.network/"
 
-def request_API(game, prop='stats', params={}):
+async def request_API(game, prop='stats', params={}):
     url = API_SITE+f'{game}/{prop}'
+    async with httpx.AsyncClient() as client:
+        res = await client.get(url,params=params,timeout=20)
+    return res.json()
 
-    res = requests.get(url,params=params)
-    if res.status_code == 200:
-        return json.loads(res.text)
-    else:
-        raise requests.HTTPError
+    
 def zhconvert(str:str):
     i = 0
     str1 = ''
@@ -127,3 +127,79 @@ def get_wp_info(message:str,user_id:int):
                     mode = 1
                     playerName = message
     return [playerName,wpmode,mode]
+
+def search_all(personaId):
+    owner = 0
+    ban = 0
+    admin = 0
+    vip = 0
+
+    with open('C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\vip.json','r',encoding='UTF-8') as f:
+        vip_dict = json.load(f)
+    with open('C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\ban.json','r',encoding='UTF-8') as f:
+        ban_dict = json.load(f)
+    with open('C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\admin.json','r',encoding='UTF-8') as f:
+        admin_dict = json.load(f)
+    with open('C:\\Users\\pengx\\Desktop\\1\\bf1\\bfchat_data\\bf1_servers\\owner.json','r',encoding='UTF-8') as f:
+        owner_dict = json.load(f)
+
+    for i in owner_dict.values():
+        for dict in i:
+            if int(dict["personaId"]) == personaId:
+                owner+=1
+    for i in ban_dict.values():
+        for dict in i:
+            if int(dict["personaId"]) == personaId:
+                ban+=1
+    for i in admin_dict.values():
+        for dict in i:
+            if int(dict["personaId"]) == personaId:
+                admin+=1
+    for i in vip_dict.values():
+        for dict in i:
+            if int(dict["personaId"]) == personaId:
+                vip+=1
+    return owner,ban,admin,vip
+
+def search_a(personaId,mode):
+    num = 0
+    serverIds = []
+    name = []
+
+    if mode == 'v':
+        with open(BF1_SERVERS_DATA/'vip.json','r',encoding='UTF-8') as f:
+            res = json.load(f)
+    elif mode == 'b':
+        with open(BF1_SERVERS_DATA/'ban.json','r',encoding='UTF-8') as f:
+            res = json.load(f)
+    elif mode == 'a':
+        with open(BF1_SERVERS_DATA/'admin.json','r',encoding='UTF-8') as f:
+            res = json.load(f)
+    elif mode == 'o':
+        with open(BF1_SERVERS_DATA/'owner.json','r',encoding='UTF-8') as f:
+            res = json.load(f)
+    else:
+        return 0
+    
+    with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
+        info = json.load(f)
+
+    for key,value in res.items():
+        for dict in value:
+            if int(dict["personaId"]) == personaId:
+                num+=1
+                serverIds.append(key)
+    
+    for serverId in serverIds:
+        name.append(info[f"{serverId}"]["server_name"])
+    return num,name
+
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1):
+    with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
+        arg0 = f.read().split(',')
+    with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
+        arg1 = f.read().split(',')
+    if gameId in arg1:
+        return remid1,sid1,sessionId1
+    elif gameId in arg0:
+        return remid,sid,sessionId
