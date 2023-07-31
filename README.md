@@ -2,8 +2,10 @@
 
 #### 介绍
 这里是bf3090bot，专门为战地1qq群设计的bot。
+
 通过爱发电赞助作者可以获得永久自定义战绩背景权限。爱发电地址：https://afdian.net/a/Mag1Catz
-![输入图片说明](NJYVLZMW(O4HHS%25W%7DL4B46T_tmb.PNG)
+
+![](https://gitee.com/mag1catz/bf3090bot/raw/master/NJYVLZMW(O4HHS%25W%7DL4B46T_tmb.PNG)
 
 #### 软件架构
 软件架构说明
