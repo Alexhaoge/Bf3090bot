@@ -238,42 +238,64 @@ async def upd_sessionId(res_access_token, remid, sid, num):
 
 async def upd_blazestats5(personaId):
     async with httpx.AsyncClient() as client:
-        response = await client.post(url=f'http://127.0.0.1:5000/stats/{personaId}',timeout=10)
+        response = await client.post(url=f'http://127.0.0.1:5000/stats/s5/{personaId}',timeout=10)
         try:
-            input_string = response.content.decode('utf-8')
-            pattern = r"STAT <String> {(.*?)}"
-            match = re.search(pattern, input_string, re.DOTALL)
-            if match:
-                extracted_content = match.group(1)
-                exlist = extracted_content.replace(' ','').replace('\t','').replace('\r','').replace('\n','').rstrip(',').split(',')
+            status = response.content.decode('utf-8')
+            status = status.replace('"No_Scope_Defined":','').replace('"KSSV":','').replace('\r','').replace('\n','').replace('\t','').replace(' ','').replace(',}','}').replace(',]',']').replace('}]}}','}}}}').replace('{"STAT":[','{"STAT":{').rstrip(',')
+            status = json.loads(status)
+            exlist = list(list(status.values())[0]["STAT"].values())[0]["STAT"]
+
             dictjson = {}
             for i in range(0,len(exlist),5):
                 L = []
                 for j in range(5):
                     L.append(float(exlist[i+j]))
-                dictjson[f'{int(i/5)+3}'] = L
+                dictjson[f'{int(int(i)/5+3)}'] = L
             return dictjson
         except:
             return 0
         
 async def get_blazepl(remid,sid,sessionID,gameId):
     async with httpx.AsyncClient() as client:
-        response = await client.post(url='http://127.0.0.1:5000/pl/{gamid}?gameid=%d' % int(gameId),timeout=10)
+        response = await client.post(url=f'http://127.0.0.1:5000/pl/{int(gameId)}',timeout=10)
         status = response.content.decode('utf-8')
+    
+    originstatus = '{' + status.replace('\r','').replace('\n','').replace('\t','').replace(' ','').replace(',}','}').replace(',]',']').rstrip(",").replace('"LGAM":[','"LGAM":{').replace('"PROS":[','"PROS": {').replace('"DNET":[','"DNET":{').replace('],"DRTO"','},"DRTO"').replace('"HNET":[','"HNET":{').replace('],"MCAP"','},"MCAP"').replace("}]}]", "}}}}}").replace('"soldier":','')
+    status = json.loads(originstatus)
+    PL = list(list(status['LGAM'].values())[0]["PROS"].values())
+    TIDX = []
+    IPS = []
+    PID = []
+    NAME = []
+    LOC = []
+    LAG = []
+    RANK = []
+    for player in PL:
+        TIDX.append(player["TIDX"])
+        PID.append(player["PID"])
+        NAME.append(player["NAME"])
+        LOC.append(player["LOC"])
 
-    #status = html
-    TIDX = re.findall(r'TIDX\s*=\s*(\w+)', status)
-    IP = re.findall(r'IP\s\s\s=\s(\w+)', status)
-    PID = re.findall(r"PID\s\s=\s*(\w+)", status)
-    NAME = re.findall(r"NAME\s*=\s*([a-zA-Z0-9_-]+)", status)
-    MAP = re.findall(r"level\s*=\s*(\w+)", status)
-    LOC = re.findall(r"LOC\s\s=\s*(\w+)", status)
+        try:
+            ip = player["PNET"]["VALU"]["EXIP"]["IP"]
+            ip = IPy.intToIp((ip),4)
+            ip = reader.city(ip).country.names['zh-CN']
+        except:
+            ip = '一'
+        IPS.append(ip[0])
 
-    pattern = re.compile(r'PATT\s*<String,String>\{([^}]*)\}', re.MULTILINE | re.DOTALL)
-    PATT = pattern.findall(status)
-    PAT = []
-    for i in PATT:
-        PAT.append(str(i).replace('\r','').replace('\n','').replace('latency','').replace('rank','').replace('=','').replace(' ','').replace('\t','').replace('premiumtrue',' ').replace('premiumfalse',' ').split(' '))
+        try:
+            LAG.append(player["PATT"]["latency"])
+        except:
+            LAG.append("0")
+        
+        try:
+            RANK.append(player["PATT"]["rank"])
+        except:
+            RANK.append("0")
+
+
+    MAP = list(status['LGAM'].values())[0]['GAME']["ATTR"]["level"]
 
     LOCS = []
     for i in LOC:
@@ -318,19 +340,8 @@ async def get_blazepl(remid,sid,sessionID,gameId):
         elif i.startswith('20536'):
             LOCS.append("中") 
         else:
-            LOCS.append("一")
-
-    IPS = []
-    for i in range(len(IP)):
-        if i < 4 or i % 2:
-            continue
-        ip = IPy.intToIp(int(IP[i]),4)
-        try:
-            ip = reader.city(ip).country.names['zh-CN']
-        except:
-            ip = 'Null'
-        IPS.append(ip[0])
-
+            LOCS.append("一") 
+    
     tasks = []
     for i in PID:
         tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid,sid,sessionID,i)))
@@ -338,6 +349,7 @@ async def get_blazepl(remid,sid,sessionID,gameId):
 
     STAT = await asyncio.gather(*tasks)
     TAG = list(TAG["result"].values())
+    print(MAP)
     stat1 = []
     stat2 = []
     for i in range(len(TIDX)):
@@ -352,47 +364,34 @@ async def get_blazepl(remid,sid,sessionID,gameId):
         except Exception as e:
             continue
         else:
-            if TIDX[i] == "0":
-                dic = {
-                    "id": PID[i],
-                    "platoon": TAG[i],
-                    "loc": LOCS[i],
-                    "lang": IPS[i],
-                    "userName": NAME[i],
-                    "rank": 0 if len(PAT[i]) == 1 else int(PAT[i][1]),
-                    "latency":int(PAT[i][0]),
-                    "killDeath": round(kd,2),
-                    "killsPerMinute": stt["basicStats"]["kpm"],
-                    "winPercent": f'{0 if win+loss == 0 else win*100/(win+loss):.2f}%',
-                    "secondsPlayed": stt["basicStats"]["timePlayed"],
-                    "headShot": f"{0 if k == 0 else hs/k*100:.2f}%"
+            dic = {
+                "id": PID[i],
+                "platoon": TAG[i],
+                "loc": LOCS[i],
+                "lang": IPS[i],
+                "userName": NAME[i],
+                "rank": int(RANK[i]),
+                "latency": LAG[i],
+                "killDeath": round(kd,2),
+                "killsPerMinute": stt["basicStats"]["kpm"],
+                "winPercent": f'{0 if win+loss == 0 else win*100/(win+loss):.2f}%',
+                "secondsPlayed": stt["basicStats"]["timePlayed"],
+                "headShot": f"{0 if k == 0 else hs/k*100:.2f}%"
                 }
+            if TIDX[i] == "0":
                 stat1.append(dic)
             if TIDX[i] == "1":
-                dic = {
-                    "id": PID[i],
-                    "platoon": TAG[i],
-                    "loc": LOCS[i],
-                    "lang": IPS[i],
-                    "userName": NAME[i],
-                    "rank": 0 if len(PAT[i]) == 1 else int(PAT[i][1]),
-                    "latency":int(PAT[i][0]),
-                    "killDeath": round(kd,2),
-                    "killsPerMinute": stt["basicStats"]["kpm"],
-                    "winPercent": f'{0 if win+loss == 0 else win*100/(win+loss):.2f}%',
-                    "secondsPlayed": stt["basicStats"]["timePlayed"],
-                    "headShot": f"{0 if k == 0 else hs/k*100:.2f}%"
-                }
                 stat2.append(dic)
     pljson = {
-        "map": MAP[0],
-        "team1": MapTeamDict[f"{MAP[0]}"]["Team1"],
-        "team2": MapTeamDict[f"{MAP[0]}"]["Team2"],
+        "map": MAP,
+        "team1": MapTeamDict[f"{MAP}"]["Team1"],
+        "team2": MapTeamDict[f"{MAP}"]["Team2"],
         '1': stat1,
         '2': stat2
     }
-    
-    return pljson  
+    with open("pl.json","w",encoding='utf-8') as q:
+        json.dump(pljson,q,ensure_ascii=False,indent=4)
+    return pljson
 #获取欢迎信息
 async def upd_welcome(remid, sid, sessionID):
     async with httpx.AsyncClient() as client:
@@ -915,9 +914,9 @@ async def bfeac_checkBan(player_name: str) -> dict:
         "url": "无"
     }
     try:
-        async with aiohttp.ClientSession(headers=header,timeout=10) as session:
-            async with session.get(check_eacInfo_url) as response:
-                response = await response.json()
+        async with httpx.AsyncClient() as client:
+            response = await client.get(check_eacInfo_url, timeout=5)
+            response = json.loads(response.text)
         if response.get("data"):
             data = response["data"][0]
             eac_status = eac_stat_dict[data["current_status"]]
