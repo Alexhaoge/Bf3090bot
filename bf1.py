@@ -33,6 +33,7 @@ from .template import apply_template, get_vehicles_data_md, get_weapons_data_md,
 from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert, get_wp_info,search_a,getsid,CURRENT_FOLDER
 from .bf1rsp import getPersonasByName, upd_token, upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer, upd_servers,async_get_server_data,upd_getPersonasByIds
 from .bf1draw import draw_f, draw_server, draw_stat, draw_wp, draw_pl,draw_pl1, draw_r, draw_exchange,draw_a
+from .bf1draw2 import draw_server_array_matplotlib
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -170,6 +171,7 @@ BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩', f'{
 BF1_R= on_command(f'{PREFIX}r', aliases={f'{PREFIX}最近', f'{PREFIX}对局'}, block=True, priority=1)
 BF1_BIND_MAG = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)
 BF1_EX= on_command(f'{PREFIX}交换', block=True, priority=1)
+BF1_DRAW= on_command(f'{PREFIX}draw', block=True, priority=1)
 
 #bf1 server alarm
 BF_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
@@ -1771,6 +1773,30 @@ async def bf1_server(event:MessageEvent, state:T_State):
     pic = await md_to_pic(md_result, css_path=CODE_FOLDER/"github-markdown-dark.css",width=700)
     await BF1F.send(MessageSegment.image(pic))
 
+@BF1_DRAW.handle()
+async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ')
+    session = event.group_id
+    session = check_session(session)
+    user_id = event.user_id
+
+    if(check_admin(session, user_id)):
+        server_id = arg[0]
+        try:
+            days = int(arg[1])
+        except:
+            days = 1
+        
+        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverGT = json.load(f)
+            GameId = serverGT['gameId']
+
+        server_array = await request_API(GAME,'serverarray', {'gameid': serverGT, 'days': days})
+       
+        await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(draw_server_array_matplotlib(server_array)))
+    else:
+        await BF1_DRAW.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 
 
