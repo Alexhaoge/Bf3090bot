@@ -9,8 +9,8 @@ import datetime
 import asyncio
 import httpx
 from io import BytesIO
-from .bf1rsp import upd_StatsByPersonaId,upd_getActiveTagsByPersonaIds,upd_WeaponsByPersonaId,upd_VehiclesByPersonaId,upd_detailedServer, upd_servers, upd_Emblem, upd_getPersonasByIds, async_bftracker_recent,upd_exchange,bfeac_checkBan
-from .utils import BF1_SERVERS_DATA, BF1_PLAYERS_DATA, request_API,search_all
+from .bf1rsp import *
+from .utils import BF1_SERVERS_DATA, BF1_PLAYERS_DATA, request_API,search_all,special_stat_to_dict
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -112,8 +112,8 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
                 break
 
         # 将矩形图形添加到原始图片的指定位置
-        position0 = (60, 60+400*id)
-        position = (60, 140+400*id)
+        position0 = (60, 60+400*(id-un))
+        position = (60, 140+400*(id-un))
         img.paste(textbox0, position0, textbox0)
         img.paste(textbox, position, textbox)
 
@@ -247,6 +247,7 @@ def search_dicts_by_key_value(dict_list, key, value):
 
 async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     tasks = []
+    tasks.append(asyncio.create_task(upd_blazestats5(personaId)))
     tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_WeaponsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_VehiclesByPersonaId(remid, sid, sessionID, personaId)))
@@ -256,7 +257,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
     tasks.append(asyncio.create_task(bfeac_checkBan(playerName)))
-    res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac = await asyncio.gather(*tasks)
+    special_stat,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac = await asyncio.gather(*tasks)
 
     name = playerName
     tag = res_tag['result'][f'{personaId}']
@@ -320,7 +321,14 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
                 weapons.append(j)
             except:
                 pass
-
+    try:
+        dict_AS,dict_PK,dict_BD1,dict_BD2 = special_stat_to_dict(special_stat)
+        weapons.append(dict_AS)
+        weapons.append(dict_PK)
+        weapons.append(dict_BD1)
+        weapons.append(dict_BD2)
+    except:
+        pass
     weapons = sorted(weapons, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
     carkill = 0
@@ -371,7 +379,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(255, 255, 0, 255),font=font_1)
 
     draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
     try:
         draw.text(xy=(1070,95), text=f'KDA:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
     except:
@@ -416,8 +424,8 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     draw.text(xy=(35,580), text=f'载具击杀:{carkill}', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(35,624), text=f'BFEAC状态:{bfeac["stat"]}', fill=(255, 255, 255, 255),font=font_4)
 
-    draw.text(xy=(360,403), text=f'{gamemodes[0]["prettyName"][0:2]}胜率:{(gamemodes[0]["winLossRatio"])/(1+gamemodes[0]["winLossRatio"]):.2f}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(360,447), text=f'{gamemodes[1]["prettyName"][0:2]}胜率:{(gamemodes[0]["winLossRatio"])/(1+gamemodes[0]["winLossRatio"]):.2f}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,403), text=f'{gamemodes[0]["prettyName"][0:2]}胜率:{(100*gamemodes[0]["winLossRatio"])/(1+gamemodes[0]["winLossRatio"]):.2f}%', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(360,447), text=f'{gamemodes[1]["prettyName"][0:2]}胜率:{(100*gamemodes[1]["winLossRatio"])/(1+gamemodes[1]["winLossRatio"]):.2f}%', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(360,536), text=f'步兵KPM:{infantrykp}', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(360,580), text=f'载具KPM:{carkp}', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(360,624), text=f'SPM:{spm}', fill=(255, 255, 255, 255),font=font_4)
@@ -445,8 +453,8 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     draw.text(xy=(10,177), text=f'----------------------------------', fill=(255, 255, 255, 150),font=font_5)
     draw.text(xy=(80,225), text=f'击杀:{kill1}', fill=(255, 255, 255, 255),font=font_5)
     draw.text(xy=(80,270), text=f"KPM:{vkp}", fill=(255, 255, 255, 255),font=font_5)
-    draw.text(xy=(380,225), text=f"摧毁:{vehicles[0]['stats']['values']['destroyed']}", fill=(255, 255, 255, 255),font=font_5)
-    draw.text(xy=(380,270), text=f"时间:{vehicles[0]['stats']['values']['seconds']//3600}h", fill=(255, 255, 255, 255),font=font_5)
+    draw.text(xy=(380,225), text=f"摧毁:{int(vehicles[0]['stats']['values']['destroyed'])}", fill=(255, 255, 255, 255),font=font_5)
+    draw.text(xy=(380,270), text=f"时间:{(int(vehicles[0]['stats']['values']['seconds'])/3600):.1f}h", fill=(255, 255, 255, 255),font=font_5)
     position3 = (100, 1070)
     img.paste(textbox3, position3, textbox3)
 
@@ -484,7 +492,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
             whs = 0.00
         draw.text(xy=(10,177), text=f'----------------------------------', fill=(255, 255, 255, 150),font=font_5)
         draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{wkp:.2f}\n命中:{acc:.2f}%', fill=(255, 255, 255, 255),font=font_5)
-        draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{(weapons[i]["stats"]["values"]["seconds"])//3600}h', fill=(255, 255, 255, 255),font=font_5)
+        draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{((int(weapons[i]["stats"]["values"]["seconds"]))/3600):.1f}h', fill=(255, 255, 255, 255),font=font_5)
 
         position3 = (760, 380+i*345)
         img.paste(textbox3, position3, textbox3)
@@ -504,7 +512,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
 
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
-    text = f'Powered by Mag1Catz and special thanks to Openblas.QQ Group: 94103090. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+    text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],1465), text=text ,fill=(255, 255, 0, 255),font=font_0)
  
  
@@ -514,6 +522,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
 
 async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     tasks = []
+    tasks.append(asyncio.create_task(upd_blazestats5(personaId)))
     tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_WeaponsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_VehiclesByPersonaId(remid, sid, sessionID, personaId)))
@@ -523,7 +532,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
 
-    res_stat,res_weapon,res_vehicle,emblem,res_tag = await asyncio.gather(*tasks)
+    special_stat,res_stat,res_weapon,res_vehicle,emblem,res_tag = await asyncio.gather(*tasks)
 
     name = playerName
     tag = res_tag['result'][f'{personaId}']
@@ -574,7 +583,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
         draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(255, 255, 0, 255),font=font_1)
 
     draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
     try:
         draw.text(xy=(1070,95), text=f'KDA:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
     except:
@@ -590,7 +599,14 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
                 weapons.append(j)
             except:
                 pass
-
+    try:
+        dict_AS,dict_PK,dict_BD1,dict_BD2 = special_stat_to_dict(special_stat)
+        weapons.append(dict_AS)
+        weapons.append(dict_PK)
+        weapons.append(dict_BD1)
+        weapons.append(dict_BD2)
+    except:
+        pass
     weapons = sorted(weapons, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
     vehicles = []
@@ -1100,6 +1116,302 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
     img.save(BF1_SERVERS_DATA/f'Caches/{gameId}_pl.jpg')
     return 1
 
+async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
+    
+    pljson = await get_blazepl(remid,sid,sessionID,gameId)
+    detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
+    vipList = detailedServer['result']["rspInfo"]['vipList']
+    adminList = detailedServer['result']["rspInfo"]['adminList']
+
+    try:
+        with open(BF1_PLAYERS_DATA/'whitelist'/f'{session}_{server_id}.txt') as f:
+            whiteList = f.read().split(',')
+    except:
+        whiteList = []
+        print('whitelist not found')
+
+    try:
+        personaIds = []
+        for filename in os.listdir(BF1_PLAYERS_DATA/f'{session}'):
+            if filename.endswith('txt'):
+                id = filename.rstrip('.txt')
+                personaIds.append(id.split('_')[1])
+        member_json = await upd_getPersonasByIds(remid, sid, sessionID,personaIds)
+        member_json = member_json['result']
+        memberList = [value['displayName'] for value in member_json.values()]
+    except:
+        memberList = []
+        print('memberList not found')
+    tasks = []
+    serverimg = detailedServer['result']['serverInfo']['mapImageUrl'].split('/')[5]
+    serverimg = BF1_SERVERS_DATA/f'Caches/Maps/{serverimg}'
+    serverName = detailedServer['result']['serverInfo']['name']
+
+    teamImage_1 = pljson['team1']
+    teamImage_2 = pljson['team2']
+
+    print(datetime.datetime.now())
+
+    stat1 = sorted(pljson['1'], key=lambda x: x['rank'],reverse=True)
+    stat2 = sorted(pljson['2'], key=lambda x: x['rank'],reverse=True)
+
+    img = Image.open(serverimg)
+    img = img.resize((1920,1220))
+    img = img.filter(ImageFilter.GaussianBlur(radius=10))
+    textbox0 = Image.new("RGBA", (1920,1220), (0, 0, 0, 150))
+    img.paste(textbox0, (0, 0), textbox0)
+
+    textbox = Image.new("RGBA", (900,1200), (0, 0, 0, 0))
+    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_1}.png').resize((80,80))
+    textbox.paste(teamimg,(0,0),teamimg)
+    draw = ImageDraw.Draw(textbox)
+
+    font_1 = ImageFont.truetype(font='comic.ttf', size=50, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    font_3 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
+
+
+    num_150 = 0
+    levelall = 0
+    kdall = 0
+    kpall = 0
+    for i in stat1:
+        if i['rank'] == 150:
+            num_150 +=1
+        levelall += i['rank']
+        kdall += i['killDeath']
+        kpall += i['killsPerMinute']
+    try:
+        avlevel = levelall // len(stat1)
+        avkd = ((kdall*100) // len(stat1)) / 100
+        avkp = ((kpall*100) // len(stat1)) / 100
+    except:
+        avlevel = avkd = avkp = 0
+    
+    draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率      IP' ,fill=(255, 255, 255, 255),font=font_2)
+
+    (BF1_SERVERS_DATA/f'{session}_pl').mkdir(exist_ok=True)
+    f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
+    f.write('{\n"pl": [\n')
+    for i in range(len(stat1)):
+        draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
+        
+        if stat1[i]['rank'] < 150:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], outline='white')
+        else:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 255, 0, 100))
+        
+        text_width, _ = font_3.getsize(str(stat1[i]['rank']))
+        x = 120 - text_width / 2
+        y = 93 + 30*i
+        draw.text((x, y), str(stat1[i]['rank']), fill=(255, 255, 255, 255), font=font_3)
+        
+        result1 = [item for item in adminList if item['displayName'] == stat1[i]["userName"]]
+        result2 = [item for item in whiteList if item == stat1[i]["userName"]]        
+        result3 = [item for item in vipList if item['displayName'] == stat1[i]["userName"]]
+        result4 = [item for item in memberList if item == stat1[i]["userName"]]
+        
+        if result1 == []:
+            if result2 == []:
+                if result3 == []:
+                    if result4 == []:
+                        if stat1[i]['platoon'] == "":
+                            draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                        else:
+                            draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                    else:
+                        if stat1[i]['platoon'] == "":
+                            draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                        else:
+                            draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                else:
+                    if stat1[i]['platoon'] == "":
+                        draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+                    else:
+                        draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+            else:
+                if stat1[i]['platoon'] == "":
+                    draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+                else:
+                    draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+        else:
+            if stat1[i]['platoon'] == "":
+                draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+            else:
+                draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+
+        if stat1[i]['killDeath'] > 2.5:
+            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif stat1[i]['killDeath'] > 1:
+            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        if stat1[i]['killsPerMinute'] > 2.5:
+            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif stat1[i]['killsPerMinute'] > 1:
+            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        if float(stat1[i]['headShot'].strip('%')) / 100  > 0.2:
+            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif float(stat1[i]['headShot'].strip('%')) / 100 > 0.05:
+            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        if float(stat1[i]['winPercent'].strip('%')) / 100 > 0.7:
+            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif float(stat1[i]['winPercent'].strip('%')) / 100 > 0.4:
+            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        draw.text(xy=(835,90+30*i), text=f'{stat1[i]["loc"]}/{stat1[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        
+        f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %s\n},\n'%(i+1,stat1[i]['rank'],stat1[i]['killDeath'],stat1[i]['killsPerMinute'],stat1[i]['id']))
+    position = (60, 110)
+    img.paste(textbox, position, textbox)
+
+    textbox1 = Image.new("RGBA", (900,1200), (0, 0, 0, 0))
+    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_2}.png').resize((80,80))
+    textbox1.paste(teamimg,(0,0),teamimg)
+    draw = ImageDraw.Draw(textbox1)
+
+    num_150 = 0
+    levelall = 0
+    kdall = 0
+    kpall = 0
+    for i in stat2:
+        if i['rank'] == 150:
+            num_150 +=1
+        levelall += i['rank']
+        kdall += i['killDeath']
+        kpall += i['killsPerMinute']
+    try:
+        avlevel = levelall // len(stat2)
+        avkd = ((kdall*100) // len(stat2)) / 100
+        avkp = ((kpall*100) // len(stat2)) / 100
+    except:
+        avlevel = avkd = avkp = 0
+    
+    draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率      IP' ,fill=(255, 255, 255, 255),font=font_2)
+    
+    for i in range(len(stat2)):
+        draw.text(xy=(35,90+30*i), text=f'{i+33}' , fill =(255, 255,255, 255),font=font_2)
+        
+        if stat2[i]['rank'] < 150:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], outline='white')
+        else:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 255, 0, 100))
+        
+        text_width, _ = font_3.getsize(str(stat2[i]['rank']))
+        x = 120 - text_width / 2
+        y = 93 + 30*i
+        draw.text((x, y), str(stat2[i]['rank']), fill=(255, 255, 255, 255), font=font_3)
+        
+        result1 = [item for item in adminList if item['displayName'] == stat2[i]["userName"]]
+        result2 = [item for item in whiteList if item == stat2[i]["userName"]]        
+        result3 = [item for item in vipList if item['displayName'] == stat2[i]["userName"]]
+        result4 = [item for item in memberList if item == stat2[i]["userName"]]
+        
+        if result1 == []:
+            if result2 == []:
+                if result3 == []:
+                    if result4 == []:
+                        if stat2[i]['platoon'] == "":
+                            draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                        else:
+                            draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                    else:
+                        if stat2[i]['platoon'] == "":
+                            draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                        else:
+                            draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                else:
+                    if stat2[i]['platoon'] == "":
+                        draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+                    else:
+                        draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+            else:
+                if stat2[i]['platoon'] == "":
+                    draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+                else:
+                    draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+        else:
+            if stat2[i]['platoon'] == "":
+                draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+            else:
+                draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+        
+        if stat2[i]['killDeath'] > 2.5:
+            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif stat2[i]['killDeath'] > 1:
+            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        if stat2[i]['killsPerMinute'] > 2.5:
+            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif stat2[i]['killsPerMinute'] > 1:
+            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        if float(stat2[i]['headShot'].strip('%')) / 100  > 0.2:
+            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif float(stat2[i]['headShot'].strip('%')) / 100 > 0.05:
+            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        if float(stat2[i]['winPercent'].strip('%')) / 100 > 0.7:
+            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
+        elif float(stat2[i]['winPercent'].strip('%')) / 100 > 0.4:
+            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        else:
+            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
+
+        draw.text(xy=(835,90+30*i), text=f'{stat2[i]["loc"]}/{stat2[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %s\n},\n'%(i+33,stat2[i]['rank'],stat2[i]['killDeath'],stat2[i]['killsPerMinute'],stat2[i]['id']))
+
+    f.write('{\n"slot": 100,\n"rank": 0,\n"kd": 0,\n"kp": 0,\n"id": 0\n}')
+    f.write(f'],\n"id": {server_id}\n')
+    f.write('}')
+    f.close()    
+    position = (960, 110)
+    img.paste(textbox1, position, textbox1)
+
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    text = f'普通玩家  群友  vip  白名单  管理'
+    x = (img.width-font_0.getsize(text)[0])/2
+
+    draw.text(xy=((img.width-font_1.getsize(serverName)[0])/2,30), text=serverName ,fill=(255, 255, 255, 255),font=font_1)
+    draw.text(xy=((img.width-font_0.getsize(text)[0])/2,1180), text='普通玩家' ,fill=(255, 255, 255, 255),font=font_0)
+    draw.text(xy=(x+125,1180), text='群友' ,fill=(0, 255, 255, 255),font=font_0)
+    draw.text(xy=(x+200,1180), text='vip' ,fill=(255, 125, 125, 255),font=font_0)
+    draw.text(xy=(x+262.5,1180), text='白名单' ,fill=(0, 255, 0, 255),font=font_0)
+    draw.text(xy=(x+362.5,1180), text='管理' ,fill=(255, 255, 0, 255),font=font_0)
+
+    draw.line((60, 190, 1860, 190), fill=(128, 128, 128, 120), width=4)
+    draw.line((60, 1165, 1860, 1165), fill=(128, 128, 128, 120), width=4)
+
+    draw.line((60, 190, 60, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((145, 190, 145, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((960, 190, 960, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((1045, 190, 1045, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
+    
+    print(datetime.datetime.now())
+    img.save(BF1_SERVERS_DATA/f'Caches/{gameId}_pl.jpg')
+    return 1
+
 async def draw_r(remid, sid, sessionID, personaId, playerName):
     print(datetime.datetime.now())
     tasks = []
@@ -1182,7 +1494,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
         draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
 
     draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
     try:
         draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
     except:

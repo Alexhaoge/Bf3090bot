@@ -5,12 +5,16 @@ import uuid
 from pathlib import Path
 import zhconv
 from datetime import timedelta
-from .utils import BF1_SERVERS_DATA
+from .utils import BF1_SERVERS_DATA,MapTeamDict,CURRENT_FOLDER
 import httpx
 import asyncio
 import bs4
 import re
+import IPy
+import geoip2.database
 from typing import Union
+
+reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
 
 async def getPersonasByName(access_token, player_name) -> dict:
         """
@@ -213,6 +217,9 @@ async def upd_sessionId(res_access_token, remid, sid, num):
     elif num == 1:
         with open(BF1_SERVERS_DATA/'Caches'/'id1.txt','w' ,encoding='UTF-8') as f:
             f.write(f'{remid},{sid}')
+    elif num == 2:
+        with open(BF1_SERVERS_DATA/'Caches'/'id2.txt','w' ,encoding='UTF-8') as f:
+            f.write(f'{remid},{sid}')
     async with httpx.AsyncClient() as client:
         res_session = await client.post( 
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
@@ -229,6 +236,162 @@ async def upd_sessionId(res_access_token, remid, sid, num):
     sessionID = res_session.json()['result']['sessionId']
     return remid,sid,sessionID
 
+async def upd_blazestats5(personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url=f'http://127.0.0.1:5000/stats/s5/{personaId}',timeout=10)
+        try:
+            status = response.content.decode('utf-8')
+            status = status.replace('"No_Scope_Defined":','').replace('"KSSV":','').replace('\r','').replace('\n','').replace('\t','').replace(' ','').replace(',}','}').replace(',]',']').replace('}]}}','}}}}').replace('{"STAT":[','{"STAT":{').rstrip(',')
+            status = json.loads(status)
+            exlist = list(list(status.values())[0]["STAT"].values())[0]["STAT"]
+
+            dictjson = {}
+            for i in range(0,len(exlist),5):
+                L = []
+                for j in range(5):
+                    L.append(float(exlist[i+j]))
+                dictjson[f'{int(int(i)/5+3)}'] = L
+            return dictjson
+        except:
+            return 0
+        
+async def get_blazepl(remid,sid,sessionID,gameId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url=f'http://127.0.0.1:5000/pl/{int(gameId)}',timeout=10)
+        status = response.content.decode('utf-8')
+    
+    originstatus = '{' + status.replace('\r','').replace('\n','').replace('\t','').replace(' ','').replace(',}','}').replace(',]',']').rstrip(",").replace('"LGAM":[','"LGAM":{').replace('"PROS":[','"PROS": {').replace('"DNET":[','"DNET":{').replace('],"DRTO"','},"DRTO"').replace('"HNET":[','"HNET":{').replace('],"MCAP"','},"MCAP"').replace("}]}]", "}}}}}").replace('"soldier":','')
+    status = json.loads(originstatus)
+    PL = list(list(status['LGAM'].values())[0]["PROS"].values())
+    TIDX = []
+    IPS = []
+    PID = []
+    NAME = []
+    LOC = []
+    LAG = []
+    RANK = []
+    for player in PL:
+        TIDX.append(player["TIDX"])
+        PID.append(player["PID"])
+        NAME.append(player["NAME"])
+        LOC.append(player["LOC"])
+
+        try:
+            ip = player["PNET"]["VALU"]["EXIP"]["IP"]
+            ip = IPy.intToIp((ip),4)
+            ip = reader.city(ip).country.names['zh-CN']
+        except:
+            ip = '一'
+        IPS.append(ip[0])
+
+        try:
+            LAG.append(player["PATT"]["latency"])
+        except:
+            LAG.append("0")
+        
+        try:
+            RANK.append(player["PATT"]["rank"])
+        except:
+            RANK.append("0")
+
+
+    MAP = list(status['LGAM'].values())[0]['GAME']["ATTR"]["level"]
+
+    LOCS = []
+    for i in LOC:
+        if i.startswith('16840'):
+            LOCS.append("丹")
+        elif i.startswith('16843'):
+            LOCS.append("德")
+        elif i.startswith('17020'):
+            LOCS.append("西")
+        elif i.startswith('17017'):
+            LOCS.append("英")
+        elif i.startswith('17181'):
+            LOCS.append("芬")
+        elif i.startswith('17187'):
+            LOCS.append("法")
+        elif i.startswith('17525'):
+            LOCS.append("匈")
+        elif i.startswith('17692'):
+            LOCS.append("意")
+        elif i.startswith('17847'):
+            LOCS.append("日")
+        elif i.startswith('18024'):
+            LOCS.append("韩")
+        elif i.startswith('18525'):
+            LOCS.append("荷")
+        elif i.startswith('18861'):
+            LOCS.append("波")
+        elif i.startswith('18866'):
+            LOCS.append("葡")
+        elif i.startswith('18861'):
+            LOCS.append("波")                        
+        elif i.startswith('19202'):
+            LOCS.append("俄") 
+        elif i.startswith('19371'):
+            LOCS.append("瑞") 
+        elif i.startswith('19529'):
+            LOCS.append("泰") 
+        elif i.startswith('19536'):
+            LOCS.append("土") 
+        elif i.startswith('19699'):
+            LOCS.append("乌") 
+        elif i.startswith('20536'):
+            LOCS.append("中") 
+        else:
+            LOCS.append("一") 
+    
+    tasks = []
+    for i in PID:
+        tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid,sid,sessionID,i)))
+    TAG = await upd_getActiveTagsByPersonaIds(remid,sid,sessionID,PID)
+
+    STAT = await asyncio.gather(*tasks)
+    TAG = list(TAG["result"].values())
+    print(MAP)
+    stat1 = []
+    stat2 = []
+    for i in range(len(TIDX)):
+        try:
+            stt = STAT[i]["result"]
+            win = stt['basicStats']['wins']
+            loss = stt['basicStats']['losses']
+            acc = stt['accuracyRatio']
+            hs = stt['headShots']
+            kd = stt['kdr']
+            k = stt['basicStats']['kills']
+        except Exception as e:
+            continue
+        else:
+            dic = {
+                "id": PID[i],
+                "platoon": TAG[i],
+                "loc": LOCS[i],
+                "lang": IPS[i],
+                "userName": NAME[i],
+                "rank": int(RANK[i]),
+                "latency": LAG[i],
+                "killDeath": round(kd,2),
+                "killsPerMinute": stt["basicStats"]["kpm"],
+                "winPercent": f'{0 if win+loss == 0 else win*100/(win+loss):.2f}%',
+                "secondsPlayed": stt["basicStats"]["timePlayed"],
+                "headShot": f"{0 if k == 0 else hs/k*100:.2f}%"
+                }
+            if TIDX[i] == "0":
+                stat1.append(dic)
+            if TIDX[i] == "1":
+                stat2.append(dic)
+    pljson = {
+        "map": MAP,
+        "team1": MapTeamDict[f"{MAP}"]["Team1"],
+        "team2": MapTeamDict[f"{MAP}"]["Team2"],
+        '1': stat1,
+        '2': stat2
+    }
+    with open("pl.json","w",encoding='utf-8') as q:
+        json.dump(pljson,q,ensure_ascii=False,indent=4)
+    return pljson
 #获取欢迎信息
 async def upd_welcome(remid, sid, sessionID):
     async with httpx.AsyncClient() as client:
@@ -247,6 +410,7 @@ async def upd_welcome(remid, sid, sessionID):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
                 },
+            timeout=10
         )
     return response.json()
 
@@ -266,7 +430,8 @@ async def upd_campaign(remid, sid, sessionID):
             headers= {
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
-            },            
+            },    
+            timeout=10       
         )
         return response.json()
 
@@ -288,6 +453,7 @@ async def upd_exchange(remid, sid, sessionID):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
 
     return response.json()
@@ -310,6 +476,7 @@ async def upd_detailedServer(remid, sid, sessionID, gameId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
 
     return response.json()
@@ -334,6 +501,7 @@ async def upd_reserveSlot(remid, sid, sessionID, gameId) -> dict:
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -355,6 +523,7 @@ async def upd_leaveServer(remid, sid, sessionID, gameId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
 
     return response.json()
@@ -380,7 +549,8 @@ async def upd_movePlayer(remid, sid, sessionID, gameId, personaId, teamId):
             headers= {
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
-            },        
+            },
+            timeout=10        
         )
 
     return response.json()
@@ -404,6 +574,7 @@ async def upd_unbanPlayer(remid, sid, sessionID, serverId, personaId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
 
     return response.json()
@@ -427,6 +598,7 @@ async def upd_banPlayer(remid, sid, sessionID, serverId, personaName):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
 
     return response.json()
@@ -450,6 +622,7 @@ async def upd_chooseLevel(remid, sid, sessionID, persistedGameId, levelIndex):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -473,6 +646,7 @@ async def upd_kickPlayer(remid, sid, sessionID, GameId, personaId, reason):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -495,6 +669,7 @@ async def upd_vipPlayer(remid, sid, sessionID, serverId, personaName):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -517,6 +692,7 @@ async def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -538,6 +714,7 @@ async def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -558,6 +735,7 @@ async def upd_getActiveTagsByPersonaIds(remid, sid, sessionID, personaIds):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -578,6 +756,7 @@ async def upd_WeaponsByPersonaId(remid, sid, sessionID, personaId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -598,6 +777,7 @@ async def upd_VehiclesByPersonaId(remid, sid, sessionID, personaId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -618,6 +798,7 @@ async def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -640,6 +821,7 @@ async def upd_servers(remid, sid, sessionID, serverName):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -669,6 +851,7 @@ async def upd_Emblem(remid, sid, sessionID, personaId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
+            timeout=10
         )
     return response.json()
 
@@ -731,9 +914,9 @@ async def bfeac_checkBan(player_name: str) -> dict:
         "url": "无"
     }
     try:
-        async with aiohttp.ClientSession(headers=header) as session:
-            async with session.get(check_eacInfo_url) as response:
-                response = await response.json()
+        async with httpx.AsyncClient() as client:
+            response = await client.get(check_eacInfo_url, timeout=5)
+            response = json.loads(response.text)
         if response.get("data"):
             data = response["data"][0]
             eac_status = eac_stat_dict[data["current_status"]]

@@ -2,10 +2,11 @@ import nonebot
 
 from nonebot import get_driver
 from nonebot import get_bot
-
 from nonebot import on_command
-from nonebot.params import CommandArg, Depends, _command_arg
-from nonebot.adapters.onebot.v11 import GROUP, Message, MessageEvent, MessageSegment, GroupMessageEvent
+
+from nonebot.log import logger
+from nonebot.params import CommandArg, Depends, _command_arg, Arg
+from nonebot.adapters.onebot.v11 import GROUP, Message, MessageEvent, MessageSegment, GroupMessageEvent, Bot
 from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
@@ -21,16 +22,17 @@ from nonebot_plugin_apscheduler import scheduler
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from pathlib import Path
-
+from io import BytesIO
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import time
 from datetime import datetime, timedelta
 import datetime
 
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, sort_list_of_dicts
-from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert, get_wp_info,search_a,getsid
+from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert, get_wp_info,search_a,getsid,CURRENT_FOLDER
 from .bf1rsp import getPersonasByName, upd_token, upd_sessionId, upd_detailedServer, upd_remid_sid, upd_chooseLevel, upd_kickPlayer, upd_banPlayer, upd_unbanPlayer, upd_movePlayer, upd_vipPlayer, upd_unvipPlayer, upd_servers,async_get_server_data,upd_getPersonasByIds
-from .bf1draw import draw_f, draw_server, draw_stat, draw_wp, draw_pl, draw_r, draw_exchange,draw_a
+from .bf1draw import draw_f, draw_server, draw_stat, draw_wp, draw_pl,draw_pl1, draw_r, draw_exchange,draw_a
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -45,6 +47,11 @@ with open(BF1_SERVERS_DATA/'Caches'/'id1.txt','r' ,encoding='UTF-8') as f:
     remid1 = id_list[0]
     sid1 = id_list[1]
 
+with open(BF1_SERVERS_DATA/'Caches'/'id2.txt','r' ,encoding='UTF-8') as f:
+    id_list = f.read().split(',')
+    remid2 = id_list[0]
+    sid2 = id_list[1]
+
 res_access_token,access_token = asyncio.run(upd_token(remid, sid))
 remid,sid,sessionID = asyncio.run(upd_sessionId(res_access_token, remid, sid, 0))
 print(sessionID)
@@ -52,6 +59,10 @@ print(sessionID)
 res_access_token1,access_token1 = asyncio.run(upd_token(remid1, sid1))
 remid1,sid1,sessionID1 = asyncio.run(upd_sessionId(res_access_token1, remid1, sid1, 1))
 print(sessionID1)
+
+res_access_token2,access_token2 = asyncio.run(upd_token(remid2, sid2))
+remid2,sid2,sessionID2 = asyncio.run(upd_sessionId(res_access_token2, remid2, sid2, 2))
+print(sessionID2)
 
 def reply_message_id(event: GroupMessageEvent) -> int:
     message_id = None
@@ -124,15 +135,21 @@ alarm_session = [0]*100
 job_cnt = 0
 
 #bf1 help
-BF1_HELP = on_command(f"{PREFIX}help", block=True, priority=1)
+BF1_INIT = on_command(f'{PREFIX}init', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
+BF1_HELP = on_command(f"{PREFIX}help",block=True, priority=1)
+BF1_BOT = on_command(f"{PREFIX}bot", aliases={f'{PREFIX}管服号'}, block=True, priority=1)
+BF1_CODE = on_command(f"{PREFIX}code", block=True, priority=1)
 
 #bf1rsp
 BF1_ADDADMIN = on_command(f'{PREFIX}addadmin', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
+BF1_DELADMIN = on_command(f'{PREFIX}deladmin', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 BF1_INITMAP = on_command(f'{PREFIX}initmap', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
 BF1_CHOOSELEVEL = on_command(f'{PREFIX}map', block=True, priority=1)
 BF1_KICK = on_command(f'{PREFIX}k', aliases={f'{PREFIX}kick', f'{PREFIX}踢出'}, block=True, priority=1)
 BF1_BAN = on_command(f'{PREFIX}ban', block=True, priority=1)
+BF1_BANALL = on_command(f'{PREFIX}bana',aliases={f'{PREFIX}banall', f'{PREFIX}ba'}, block=True, priority=1)
 BF1_UNBAN = on_command(f'{PREFIX}unban', block=True, priority=1)
+BF1_UNBANALL = on_command(f'{PREFIX}unbana',aliases={f'{PREFIX}unbanall', f'{PREFIX}uba'}, block=True, priority=1)
 BF1_MOVE = on_command(f'{PREFIX}move', block=True, priority=1)
 BF1_VIP = on_command(f'{PREFIX}vip', block=True, priority=1)
 BF1_VIPLIST = on_command(f'{PREFIX}viplist', block=True, priority=1)
@@ -146,6 +163,7 @@ BF1_STATUS = on_command(f'{PREFIX}bf1 status', aliases={f'{PREFIX}战地1', f'{P
 BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
 BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
 BF1_SA= on_command(f'{PREFIX}查', block=True, priority=1)
+BF1_INFO= on_command(f'{PREFIX}info', block=True, priority=1)
 BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
 BF1_WP= on_command(f'{PREFIX}武器', aliases={f'{PREFIX}w', f'{PREFIX}wp', f'{PREFIX}weapon'}, block=True, priority=1)
 BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩', f'{PREFIX}查询'}, block=True, priority=1)
@@ -164,6 +182,25 @@ BF1_LS = on_command(f'{PREFIX}bf1 list', block=True, priority=10)
 BF1_SERVER = on_command(f'{PREFIX}bf1 server', block=True, priority=10)
 BF1F = on_command(f'{PREFIX}bf1', block=True, priority=1)
 
+@BF1_INIT.handle()
+async def bf1_init(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    session = event.group_id
+    arg = message.extract_plain_text()
+
+    if arg.startswith(f'{PREFIX}'):
+        with open(BF1_SERVERS_DATA/f'{session}_session.txt','w') as f:
+            f.write(str(session))
+        with open(BF1_SERVERS_DATA/f'{session}_admin.txt','w') as f:
+            f.write('120681532')
+            await BF1_INIT.send(MessageSegment.reply(event.message_id) + f'初始化完成：{session}')
+    else:
+        with open(BF1_SERVERS_DATA/f'{session}_session.txt','w') as f:
+            f.write(arg)
+        with open(BF1_SERVERS_DATA/f'{session}_admin.txt','w') as f:
+            f.write('120681532')
+            await BF1_INIT.send(MessageSegment.reply(event.message_id) + f'初始化完成：{arg}')
+
 @BF1_HELP.handle()
 async def bf_help(event:MessageEvent, state:T_State):
     with open(CODE_FOLDER/'Readme.md',encoding='utf-8') as f:
@@ -173,7 +210,77 @@ async def bf_help(event:MessageEvent, state:T_State):
 
     pic = await md_to_pic(md_help, css_path=CODE_FOLDER/"github-markdown-dark.css",width=900)
 
-    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic))
+    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + '捐赠地址：https://afdian.net/a/Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。')
+
+@BF1_BOT.handle()
+async def bf1_init(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    
+    personaIds = [994371625,1005935009564,1006896769855]
+    res = await upd_getPersonasByIds(remid,sid,sessionID,personaIds)
+    names = []
+    nums = []
+    for i in res['result'].values():
+        names.append(i['displayName'])
+    for personaId in personaIds:
+        num1,_ = search_a(personaId,'a')
+        nums.append(num1)
+    
+    msg = ''
+    for j in range(len(nums)):
+        msg = msg + f'{j+1}. {names[j]}: {nums[j]}/20 \n'
+    msg.rstrip()
+    await BF1_BOT.send(MessageSegment.reply(event.message_id) + f'请选择未满的eaid添加服管：\n{msg}') 
+
+@BF1_CODE.handle()
+async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = CommandArg()):
+    message = _command_arg(state) or event.get_message()
+    user_id = event.user_id
+    code = message.extract_plain_text().split(' ')[0]
+
+    with open(CURRENT_FOLDER/'code.txt','r') as f:
+        codearg = f.read().split()
+    if code in codearg:
+        if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
+            with open(BF1_PLAYERS_DATA/f'{user_id}.txt','r') as f:
+                personaId= int(f.read())
+            if f'{code}.txt' in os.listdir(BF1_PLAYERS_DATA/'Code'):
+                with open(BF1_PLAYERS_DATA/'Code'/f'{code}.txt','r') as f:
+                    pid = f.read()
+                if int(pid) != int(personaId):
+                    personaIds = []
+                    personaIds.append(pid)
+                    res = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+                    userName = res['result'][f'{pid}']['displayName']
+                    await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}。')
+                else:
+                    state["personaId"] = personaId
+            else:
+                with open(BF1_PLAYERS_DATA/'Code'/f'{code}.txt','w') as f:
+                    f.write(str(personaId))
+                state["personaId"] = personaId
+        else:
+            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
+    else:
+        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请输入正确的code。')
+
+@BF1_CODE.got("Message_pic", prompt="请发送你的背景图片，最好为正方形jpg格式。如果发现发送一切违反相关法律规定的图片的行为，将永久停止你的bot使用权限！")
+async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message_pic")):
+    for segment in msgpic:
+        if segment.type == "image":
+            pic_url: str = segment.data["url"]  # 图片链接
+            logger.success(f"获取到图片: {pic_url}")
+            async with httpx.AsyncClient() as client:
+                response = await client.get(pic_url,timeout=20)
+                image_data = response.content
+                image = Image.open(BytesIO(image_data))
+            
+            image.save(BF1_PLAYERS_DATA/'Caches'/f'{state["personaId"]}.jpg')
+
+            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '绑定code完成。')
+
+        else:
+            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + "你发送的不是图片，请以“图片”形式发送！")
 
 @BF1_ADDADMIN.handle()
 async def bf1_admin(event:GroupMessageEvent, state:T_State):
@@ -190,6 +297,25 @@ async def bf1_admin(event:GroupMessageEvent, state:T_State):
         else:
             f.write(f',{arg[0]}')
             await BF1_ADDADMIN.send(MessageSegment.reply(event.message_id) + f'本群组已添加管理：{int(arg[0])}')
+
+@BF1_DELADMIN.handle()
+async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    session = event.group_id
+    session = check_session(session)
+    arg = message.extract_plain_text().split(' ')
+    with open(BF1_SERVERS_DATA/f'{session}_admin.txt','r') as f:
+        admin = f.read().split(',')
+    
+    adminnew = ''
+    for ad in admin:
+        if ad == arg[0] or ad == '': 
+            continue
+        else:
+            adminnew = adminnew + ad +','
+    with open(BF1_SERVERS_DATA/f'{session}_admin.txt','w') as f:
+            f.write(adminnew)
+    await BF1_DELADMIN.send(MessageSegment.reply(event.message_id) + f'本群组已删除管理：{int(arg[0])}')
 
 @BF1_INITMAP.handle()
 async def bf1_initmap(event:GroupMessageEvent, state:T_State):
@@ -239,21 +365,20 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
             serverGT = json.load(f)
         
         gameId = serverGT['gameId']
-        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
         persistedGameId = serverGT['serverId']
 
         serverBL = await upd_detailedServer(remid0, sid0, sessionID0, gameId)
-        rotation = serverBL['result']['rspInfo']["mapRotations"][0]['maps']
+        rotation = serverBL['result']['serverInfo']["rotation"]
         
         if mapName == '重开':
-            mapName = serverBL['result']['serverInfo']["mapName"]
-            mapmode = serverBL['result']['serverInfo']["mapMode"]
-            mapmode = zh_cn[f'{zh_cn[f"{mapmode}"]}']
-            mapName_cn = zh_cn[f'{mapName}']
+            mapName = serverBL['result']['serverInfo']["mapNamePretty"]
+            mapmode = serverBL['result']['serverInfo']["mapModePretty"]
+            mapName_cn = mapName
             
             levelIndex = 0
             for i in rotation:
-                if i['mapName'] == mapName and i['gameMode'] == mapmode:
+                if i['mapPrettyName'] == mapName and i['modePrettyName'] == mapmode:
                     break
                 else:
                     levelIndex += 1      
@@ -262,16 +387,19 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
 
             try:
                 mapmode = arg[2]
+                zh_cn[mapmode]
             except:
+                mapmode = rotation[0]['modePrettyName']
                 for i in rotation:
-                    if zh_cn[i['mapName']] == mapName_cn:
+                    if zhconv.convert(i['mapPrettyName'],'zh-cn') == mapName_cn:
                         break
                     else:
                         levelIndex += 1
             else:
                for i in rotation:
-                    if zh_cn[i['mapName']] == mapName_cn and i['gameMode'] == zh_cn[mapmode]:
-                        break
+                    if zhconv.convert(i['mapPrettyName'],'zh-cn') == mapName_cn:
+                        if i['modePrettyName'] == mapmode:
+                            break
                     else:
                         levelIndex += 1            
             if levelIndex == len(rotation):
@@ -284,7 +412,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
             elif res['error']['message'] == 'LevelIndexNotSetException':
                 await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + 'sessionID失效')
         else:
-            await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + f'地图已切换到：{mapName_cn}')
+            await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + f'地图已切换到：{zhconv.convert(mapmode,"zh-cn")}-{mapName_cn}')
 
     else:
         await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -311,7 +439,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 serverGT = json.load(f)
                 GameId = serverGT['gameId']
 
-            remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+            remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
 
             personaId,name = await getPersonasByName(access_token, name)
             print(sessionID0)
@@ -338,7 +466,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                     serverGT = json.load(f)
                     GameId = serverGT['gameId']
                 
-                remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+                remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
                 
                 if arg[0].startswith('rank>'):
                     reason = f'rank limit {arg[0].split(">")[1]}'
@@ -346,29 +474,29 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                         if i['rank'] > int(arg[0].split(">")[1]):
                             personaIds.append(i['id'])
                 elif arg[0].startswith('rank大于'):
-                    reason = f'rank l   imit {arg[0].split("大于")[1]}'
+                    reason = f'rank limit {arg[0].split("大于")[1]}'
                     for i in pl:
                         if i['rank'] > int(arg[0].split("大于")[1]):
                             personaIds.append(i['id'])
                 elif arg[0].startswith('kd>'):
                     reason = f'kd limit {arg[0].split(">")[1]}'
                     for i in pl:
-                        if i['kd'] > int(arg[0].split(">")[1]):
+                        if i['kd'] > float(arg[0].split(">")[1]):
                             personaIds.append(i['id'])
                 elif arg[0].startswith('kd大于'):
                     reason = f'kd limit {arg[0].split("大于")[1]}'
                     for i in pl:
-                        if i['kd'] > int(arg[0].split("大于")[1]):
+                        if i['kd'] > float(arg[0].split("大于")[1]):
                             personaIds.append(i['id'])
                 elif arg[0].startswith('kp大于'):
                     reason = f'kp limit {arg[0].split("大于")[1]}'
                     for i in pl:
-                        if i['kp'] > int(arg[0].split("大于")[1]):
+                        if i['kp'] > float(arg[0].split("大于")[1]):
                             personaIds.append(i['id'])
                 elif arg[0].startswith('kp>'):
                     reason = f'kp limit {arg[0].split(">")[1]}'
                     for i in pl:
-                        if i['kp'] > int(arg[0].split(">")[1]):
+                        if i['kp'] > float(arg[0].split(">")[1]):
                             personaIds.append(i['id'])
                 elif arg[0] == 'all':
                     mode = 1
@@ -427,7 +555,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             serverBL = json.load(f)
             serverId = serverBL['result']['rspInfo']['server']['serverId']
             GameId = serverBL['result']['serverInfo']['gameId']
-            remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+            remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
             personaId,personaName = await getPersonasByName(access_token, personaName)
 
         res = await upd_kickPlayer(remid0, sid0, sessionID0, GameId, personaId, reason)
@@ -439,6 +567,67 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
     else:
         await BF1_BAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+
+@BF1_BANALL.handle()
+async def bf1_banall(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ')
+    session = event.group_id
+    session = check_session(session)
+    user_id = event.user_id
+
+    if(check_admin(session, user_id)):
+        personaName = arg[0]
+        try:
+            reason = zhconv.convert(arg[1], 'zh-tw')
+        except:
+            reason = '违反规则'
+        num = get_server_num(session)
+        tasks = []
+        for i in range(num):
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{i+1}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                serverId = serverBL['result']['rspInfo']['server']['serverId']
+                GameId = serverBL['result']['serverInfo']['gameId']
+            try:    
+                remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
+                personaId,personaName = await getPersonasByName(access_token, personaName)
+                tasks.append(asyncio.create_task(upd_banPlayer(remid0, sid0, sessionID0, serverId, personaName)))
+            except:
+                continue
+        await asyncio.gather(*tasks)
+        await BF1_BANALL.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
+    else:
+        await BF1_BANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+
+@BF1_UNBANALL.handle()
+async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ')
+    session = event.group_id
+    session = check_session(session)
+    user_id = event.user_id
+
+    if(check_admin(session, user_id)):
+        personaName = arg[0]
+
+        num = get_server_num(session)
+        tasks = []
+        for i in range(num):
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{i+1}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                serverId = serverBL['result']['rspInfo']['server']['serverId']
+                GameId = serverBL['result']['serverInfo']['gameId']
+            try:                 
+                remid0,sid0,sessionID0 = getsid(GameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
+                personaId,personaName = await getPersonasByName(access_token, personaName)
+                tasks.append(asyncio.create_task(upd_unbanPlayer(remid0, sid0, sessionID0, serverId, personaId)))
+            except:
+                continue
+        await asyncio.gather(*tasks)
+        await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}')
+    else:
+        await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_UNBAN.handle()
 async def bf1_unban(event:GroupMessageEvent, state:T_State):
@@ -457,7 +646,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
             serverBL = json.load(f)
             serverId = serverBL['result']['rspInfo']['server']['serverId']
             gameId = serverBL['result']['serverInfo']['gameId']
-            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
             personaId,personaName = await getPersonasByName(access_token, personaName)
 
         res = await upd_unbanPlayer(remid0, sid0, sessionID0, serverId, personaId)
@@ -485,7 +674,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
             with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
                 serverGT = json.load(f)
                 gameId = serverGT['gameId']      
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
                 personaId,personaName = await getPersonasByName(access_token, personaName)
             #try:
                 pl = await get_pl(gameId)
@@ -548,7 +737,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
                     serverGT = json.load(f)
                     gameId = serverGT['gameId']
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
                 
                 for i in range(len(personaIds)):
                     res = await upd_movePlayer(remid0, sid0, sessionID0, gameId, personaIds[i], teamIds[i])
@@ -600,7 +789,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     serverBL = json.load(f)
                     serverId = serverBL['result']['rspInfo']['server']['serverId']
                     gameId = serverBL['result']['serverInfo']['gameId']
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
 
                 if serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge':
                     with open(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{nextday}_unabled','w', encoding='utf-8') as f:
@@ -663,7 +852,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         serverBL = json.load(f)
                         serverId = serverBL['result']['rspInfo']['server']['serverId']
                         gameId = serverBL['result']['serverInfo']['gameId']
-                        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+                        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
 
                     if serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge':
                         with open(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{nextday}_unabled','w', encoding='utf-8') as f:
@@ -737,7 +926,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
         serverBL = json.load(f)
         serverId = serverBL['result']['rspInfo']['server']['serverId']
         gameId = serverBL['result']['serverInfo']['gameId']
-        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
         for i in vipfile:
             with open(BF1_SERVERS_DATA/f'{session}_vip'/i,'r', encoding='utf-8') as f:
                 personaName = f.read()
@@ -796,7 +985,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
             serverBL = json.load(f)
             serverId = serverBL['result']['rspInfo']['server']['serverId']
             gameId = serverBL['result']['serverInfo']['gameId']
-            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1)
+            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2)
 
         res = await upd_unvipPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
@@ -821,17 +1010,8 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             serverGT = json.load(f)
             gameId = serverGT['gameId']
 
-        i = 0
-        while i<10: 
-            try:
-                pl = await get_pl(gameId)
-                info = pl['teams'][0]['players'][0]['rank']
-                break
-            except:
-                i +=1
         try:
-            print(info)
-            await asyncio.wait_for(draw_pl(session,server_id ,pl, gameId, remid, sid, sessionID), timeout=20)
+            await asyncio.wait_for(draw_pl1(session,server_id, gameId, remid, sid, sessionID), timeout=20)
             file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{gameId}_pl.jpg'
             reply = await BF1_PL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             os.rename(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt', BF1_SERVERS_DATA/f'{session}_pl'/f'{reply["message_id"]}.txt')
@@ -1064,6 +1244,48 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
                     with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                         f.write(userName)
 
+@BF1_INFO.handle()
+async def bf1_info(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    print(message.extract_plain_text())
+
+    serverName = message.extract_plain_text()
+    serverName = html.unescape(serverName)
+
+    try:
+        res = await upd_servers(remid1, sid1, sessionID1, serverName)
+        res = res['result']['gameservers']
+        gameId = res[0]['gameId']
+        servername = res[0]['name']
+        servermap = res[0]['mapNamePretty']
+        serveramount = res[0]['slots']['Soldier']['current']
+        serverspect = res[0]['slots']['Spectator']['current']
+        serverque = res[0]['slots']['Queue']['current']
+        servermaxamount = res[0]['slots']['Soldier']['max']
+        servermode = res[0]['mapModePretty']
+        serverinfo = res[0]['description']
+        res_0 = await upd_detailedServer(remid1, sid1, sessionID1, gameId)
+        serverstar = res_0['result']['serverInfo']['serverBookmarkCount']
+        guid = res_0['result']['serverInfo']['guid']
+        rspInfo = res_0['result']['rspInfo']
+        serverid = rspInfo['server']['serverId']
+        createdDate = rspInfo.get("server", {}).get("createdDate")
+        createdDate = datetime.datetime.fromtimestamp(int(createdDate) / 1000)
+        expirationDate = rspInfo.get("server", {}).get("expirationDate")
+        expirationDate = datetime.datetime.fromtimestamp(int(expirationDate) / 1000)
+        updatedDate = rspInfo.get("server", {}).get("updatedDate")
+        updatedDate = datetime.datetime.fromtimestamp(int(updatedDate) / 1000)
+    except: 
+        await BF1_INFO.send(MessageSegment.reply(event.message_id) + '未查询到数据')
+    else:
+        status1 = servermode + '-' +servermap
+        status1 = zhconv.convert(status1,'zh-cn')
+        status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
+        status3 = f'★{serverstar}'
+        msg = f'{servername}\n人数: {status2} {status3}\n地图: {status1}\nGameId: {gameId}\nGuid: {guid}\nServerId: {serverid}\n创建时间: {createdDate}\n续费时间: {updatedDate}\n到期时间: {expirationDate}'
+        await BF1_INFO.send(MessageSegment.reply(event.message_id) + msg)
+
+
 @BF1_F.handle()
 async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
@@ -1079,29 +1301,29 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
     print(f'mode={mode}')
 
     if mode == 1:
-        res = await upd_servers(remid, sid, sessionID, serverName)
+        res = await upd_servers(remid1, sid1, sessionID1, serverName)
         try:
             if len(res['result']['gameservers']) == 0:
                 1/0
             else:
                 try:
-                    await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
+                    await asyncio.wait_for(draw_server(remid1, sid1, sessionID1, serverName,res), timeout=15)
                     file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{serverName}.jpg'
-                    await BF1F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+                    await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except:
-                    await BF1F.send(MessageSegment.reply(event.message_id) + '连接超时')
-        except: await BF1F.send(MessageSegment.reply(event.message_id) + '未查询到数据')
+                    await BF1_F.send(MessageSegment.reply(event.message_id) + '连接超时')
+        except: await BF1_F.send(MessageSegment.reply(event.message_id) + '未查询到数据')
 
     if mode == 2:
         session = event.group_id
         session = check_session(session)
         server_id = get_server_num(session)
-        try:
-            await asyncio.wait_for(draw_f(server_id,session,remid, sid, sessionID), timeout=15)
-            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{session}.jpg'
-            await BF1F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
-        except:
-            await BF1F.send(MessageSegment.reply(event.message_id) + '连接超时')
+        #try:
+        await asyncio.wait_for(draw_f(server_id,session,remid1, sid1, sessionID1), timeout=15)
+        file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{session}.jpg'
+        await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        #except:
+        #    await BF1F.send(MessageSegment.reply(event.message_id) + '连接超时')
 
 @BF1_S.handle()
 async def bf1_statimage(event:GroupMessageEvent, state:T_State):
@@ -1127,12 +1349,12 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
             except:
                 await BF1_S.send(MessageSegment.reply(event.message_id) + '无效id')
             else:
-                try:
-                    await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, playerName), timeout=15)
+                #try:
+                    await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, playerName), timeout=15)
                     file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{playerName}.jpg'
                     await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
-                except asyncio.TimeoutError:
-                    await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
+                #except asyncio.TimeoutError:
+                   # await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
 
         if mode == 2:
             if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
@@ -1140,13 +1362,13 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                     personaId= int(f.read())
                     personaIds = []
                     personaIds.append(personaId)
-                    res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+                    res1 = await upd_getPersonasByIds(remid1, sid1, sessionID1, personaIds)
                     userName = res1['result'][f'{personaId}']['displayName']
                 (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
                 with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                     f.write(userName)                 
                 try:
-                    await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, userName), timeout=15)
+                    await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
                     file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}.jpg'
                     await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
@@ -1160,7 +1382,7 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                     await BF1_S.send(MessageSegment.reply(event.message_id) + '绑定失败')
                 else:
                     try:
-                        await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, userName), timeout=15)
+                        await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
                         file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}.jpg'
                         await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     except asyncio.TimeoutError:
@@ -1185,10 +1407,10 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                     personaIds.append(personaId)
                     break
     
-            res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+            res1 = await upd_getPersonasByIds(remid1, sid1, sessionID1, personaIds)
             userName = res1['result'][f'{personaId}']['displayName']
             try:
-                await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, userName), timeout=15)
+                await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
                 file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}.jpg'
                 await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except asyncio.TimeoutError:
@@ -1226,7 +1448,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + '无效id')
             else:
                 try:
-                    await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, playerName, wpmode), timeout=15)
+                    await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, playerName, wpmode), timeout=15)
                     file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{playerName}_wp.jpg'
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
@@ -1238,13 +1460,13 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                     personaId = int(f.read())
                     personaIds = []
                     personaIds.append(personaId)
-                    res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+                    res1 = await upd_getPersonasByIds(remid2, sid2, sessionID2, personaIds)
                     userName = res1['result'][f'{personaId}']['displayName']
                 (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
                 with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                     f.write(userName)                
                 try:
-                    await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, userName, wpmode), timeout=15)
+                    await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
                     file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}_wp.jpg'
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
@@ -1258,7 +1480,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '绑定失败')
                 else:
                     try:
-                        await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, userName, wpmode), timeout=15)
+                        await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
                         file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}_wp.jpg'
                         await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     except asyncio.TimeoutError:
@@ -1290,10 +1512,10 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                     personaIds.append(personaId)
                     break
     
-            res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+            res1 = await upd_getPersonasByIds(remid2, sid2, sessionID2, personaIds)
             userName = res1['result'][f'{personaId}']['displayName']
             try:
-                await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, userName, wpmode), timeout=15)
+                await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
                 file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}_wp.jpg'
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except asyncio.TimeoutError:
@@ -1322,7 +1544,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
             await BF1_R.send(MessageSegment.reply(event.message_id) + '无效id')
         else:
             try:
-                await asyncio.wait_for(draw_r(remid, sid, sessionID, personaId, playerName), timeout=35)
+                await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, playerName), timeout=35)
                 file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{playerName}_r.jpg'
                 await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except: 
@@ -1334,13 +1556,13 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
                 personaId = int(f.read())
                 personaIds = []
                 personaIds.append(personaId)
-                res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+                res1 = await upd_getPersonasByIds(remid2, sid2, sessionID2, personaIds)
                 userName = res1['result'][f'{personaId}']['displayName']
             (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
             with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                 f.write(userName)  
             try:
-                await asyncio.wait_for(draw_r(remid, sid, sessionID, personaId, userName), timeout=35)
+                await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
                 file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}_r.jpg'
                 await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except: 
@@ -1355,7 +1577,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
                 await BF1_R.send(MessageSegment.reply(event.message_id) + '绑定失败')
             else:
                 try:
-                    await asyncio.wait_for(draw_r(remid, sid, sessionID, personaId, userName), timeout=35)
+                    await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
                     file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'{userName}_r.jpg'
                     await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except: 
@@ -1393,7 +1615,7 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
 @BF1_EX.handle()
 async def bf1_ex(event:GroupMessageEvent, state:T_State):
     #try:
-        await asyncio.wait_for(draw_exchange(remid, sid, sessionID), timeout=35)
+        await asyncio.wait_for(draw_exchange(remid2, sid2, sessionID2), timeout=35)
         file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/'exchange.png'
         await BF1_EX.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     #except: 
@@ -1409,11 +1631,11 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
     session = event.group_id
     print(str(server))
     try:
-        result = await upd_servers(remid, sid, sessionID, server)
+        result = await upd_servers(remid2, sid2, sessionID2, server)
         server_name = result['result']['gameservers'][0]['name']
         gameId = result['result']['gameservers'][0]['gameId']
         detailedresult = await get_detailedServer_databyid(gameId)
-        detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
+        detailedServer = await upd_detailedServer(remid2, sid2, sessionID2, gameId)
     except: 
         await BF1_BIND.finish('无法获取到服务器数据。')
     
@@ -1622,12 +1844,13 @@ async def get_server_status(session:int,num:int,X,i,bot):
         serverGT = json.load(f)
         gameId = serverGT['gameId']
     try:
-        async_result = await upd_detailedServer(remid, sid, sessionID, gameId)
+        async_result = await upd_detailedServer(remid2, sid2, sessionID2, gameId)
         status = async_result['result']['serverInfo']['slots']['Soldier']
         playerAmount = status['current']
         maxPlayers = status['max']
         map = async_result['result']['serverInfo']['mapNamePretty']
-        if max(maxPlayers/3,maxPlayers-34) < playerAmount < maxPlayers - 10:
+        #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
+        if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
             await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{i+1}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
             alarm_amount[X][i] = alarm_amount[X][i] + 1
     except:
@@ -1638,23 +1861,32 @@ async def bf1_alarm():
     global alarm_amount
     global sessionID,access_token,res_access_token,remid,sid
     global sessionID1,access_token1,res_access_token1,remid1,sid1
+    global sessionID2,access_token2,res_access_token2,remid2,sid2
     if time.localtime().tm_min % 15 == 0 :
         check_alarm()
-    if time.localtime().tm_hour % 2 == 0 :
+    if time.localtime().tm_hour % 2 == 0 and time.localtime().tm_min == 0:
         res_access_token,access_token = await upd_token(remid,sid)
         res_access_token1,access_token1 = await upd_token(remid1,sid1)
-    elif time.localtime().tm_hour == 13 and time.localtime().tm_min == 22 :
+        res_access_token2,access_token2 = await upd_token(remid2,sid2)
+    if time.localtime().tm_hour % 12 == 0 and time.localtime().tm_min == 0:
         remid,sid,sessionID = await upd_sessionId(res_access_token, remid, sid, 0)
-        remid,sid,sessionID = await upd_sessionId(res_access_token1, remid1, sid1, 1)
+        remid1,sid1,sessionID1 = await upd_sessionId(res_access_token1, remid1, sid1, 1)
+        remid2,sid2,sessionID2 = await upd_sessionId(res_access_token2, remid2, sid2, 2)
 
     tasks = []
     for X in range(job_cnt):
         mode = alarm_mode[X]
         session = alarm_session[X]
         bots = nonebot.get_bots()
+    
+        sign = 0
         for bot in bots.values():
             botlist = await bot.get_group_list()
-            if session in botlist:
+            for i in botlist:
+                if i["group_id"] == session:
+                    sign = 1
+                    break
+            if sign == 1:
                 break
         if mode == 1:
             num = get_server_num(session)
