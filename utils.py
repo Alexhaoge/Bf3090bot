@@ -152,10 +152,26 @@ def get_wp_info(message:str,user_id:int):
                     wpmode = 12
                     mode = 2
                     playerName = user_id
-                case '载具':
+                case '突击兵':
                     wpmode = 13
                     mode = 2
                     playerName = user_id
+                case '支援兵':
+                    wpmode = 14
+                    mode = 2
+                    playerName = user_id
+                case '侦察兵':
+                    wpmode = 15
+                    mode = 2
+                    playerName = user_id
+                case '医疗兵':
+                    wpmode = 16
+                    mode = 2
+                    playerName = user_id           
+                case '载具':
+                    wpmode = 17
+                    mode = 2
+                    playerName = user_id                                    
                 case _:
                     wpmode = 0
                     mode = 1
@@ -228,20 +244,42 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
-def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2):
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3):
     with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
         arg0 = f.read().split(',')
     with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
         arg1 = f.read().split(',')
     with open(CURRENT_FOLDER/'2.json','r',encoding='UTF-8') as f:
         arg2 = f.read().split(',')
+    with open(CURRENT_FOLDER/'3.json','r',encoding='UTF-8') as f:
+        arg3 = f.read().split(',')
     if gameId in arg1:
         return remid1,sid1,sessionId1
     elif gameId in arg0:
         return remid,sid,sessionId
     elif gameId in arg2:
         return remid2,sid2,sessionId2
-    
+    elif gameId in arg3:
+        return remid3,sid3,sessionId3
+def special_stat_to_dict1(special_stat):
+    List_AS = special_stat['4']
+    dict_AS = {
+        "name": "信号枪（信号）",
+        "category": "戰場裝備",
+        "imageUrl": "[BB_PREFIX]/gamedata/Tunguska/26/102/GadgetWebleyScottFlaregunFlash-40b27cca.png",
+        "stats": {
+            "values": {
+                "hits": List_AS[1],
+                "shots": List_AS[0],
+                "kills": List_AS[3],
+                "headshots": List_AS[4],
+                "accuracy": 0.0,
+                "seconds": List_AS[2]
+                }
+            }
+        }
+    return dict_AS
+
 def special_stat_to_dict(special_stat):
     List_AS = special_stat['13']
     dict_AS = {

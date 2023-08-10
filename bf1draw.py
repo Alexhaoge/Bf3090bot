@@ -10,7 +10,9 @@ import asyncio
 import httpx
 from io import BytesIO
 from .bf1rsp import *
-from .utils import BF1_SERVERS_DATA, BF1_PLAYERS_DATA, request_API,search_all,special_stat_to_dict
+from .utils import *
+from .image import *
+from .secret import *
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -24,13 +26,17 @@ async def paste_image(url,img,position):
 
 async def paste_emb(url,img,position):
     async with httpx.AsyncClient() as client:
-        response = await client.get(url,timeout=20)
-        image_data = response.content
-        image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
         try:
-            img.paste(image,position,image)
+            response = await client.get(url,timeout=5)
+            image_data = response.content
+            image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
+            try:
+                img.paste(image,position,image)
+            except:
+                img.paste(image,position)
         except:
-            img.paste(image,position)
+            pass
+
 
 async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     # 打开图片文件
@@ -126,7 +132,8 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],400*server_id+65), text=text ,fill=(255, 255, 0, 255),font=font_0)
-    img.save(BF1_SERVERS_DATA/f'Caches/{session}.jpg')
+    
+    img.save(CURRENT_FOLDER/f'Caches/{session}.png')
     return 1
 
 async def draw_server(remid, sid, sessionID, serverName, res):
@@ -224,7 +231,7 @@ async def draw_server(remid, sid, sessionID, serverName, res):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],400*len(res)+65), text=text ,fill=(255, 255, 0, 255),font=font_0)
     
-    img.save(BF1_SERVERS_DATA/f'Caches/{serverName}.jpg')
+    img.save(CURRENT_FOLDER/f'Caches/{serverName}.png')
     return 1
 
 def paste_img(img:Image):
@@ -247,7 +254,8 @@ def search_dicts_by_key_value(dict_list, key, value):
 
 async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     tasks = []
-    tasks.append(asyncio.create_task(upd_blazestats5(personaId)))
+    
+    tasks.append(asyncio.create_task(upd_blazestat(personaId,'s3')))
     tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_WeaponsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_VehiclesByPersonaId(remid, sid, sessionID, personaId)))
@@ -257,7 +265,8 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
     tasks.append(asyncio.create_task(bfeac_checkBan(playerName)))
-    special_stat,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac = await asyncio.gather(*tasks)
+    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac = await asyncio.gather(*tasks)
+    special_stat = await upd_blazestat(personaId,'s5')
 
     name = playerName
     tag = res_tag['result'][f'{personaId}']
@@ -323,10 +332,12 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
                 pass
     try:
         dict_AS,dict_PK,dict_BD1,dict_BD2 = special_stat_to_dict(special_stat)
+        dict_FL = special_stat_to_dict1(special_stat1)
         weapons.append(dict_AS)
         weapons.append(dict_PK)
         weapons.append(dict_BD1)
         weapons.append(dict_BD2)
+        weapons.append(dict_FL)
     except:
         pass
     weapons = sorted(weapons, key=lambda x: x['stats']['values']['kills'],reverse=True)
@@ -515,14 +526,15 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],1465), text=text ,fill=(255, 255, 0, 255),font=font_0)
  
- 
-    img.save(BF1_SERVERS_DATA/f'Caches/{playerName}.jpg')
+    img.save(CURRENT_FOLDER/f'Caches/{playerName}.png')
     return 1
+
 #draw_f(4,248966716,remid, sid, sessionID)
 
 async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     tasks = []
-    tasks.append(asyncio.create_task(upd_blazestats5(personaId)))
+
+    tasks.append(asyncio.create_task(upd_blazestat(personaId,'s3')))
     tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_WeaponsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_VehiclesByPersonaId(remid, sid, sessionID, personaId)))
@@ -532,8 +544,8 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
 
-    special_stat,res_stat,res_weapon,res_vehicle,emblem,res_tag = await asyncio.gather(*tasks)
-
+    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag = await asyncio.gather(*tasks)
+    special_stat = await upd_blazestat(personaId,'s5')
     name = playerName
     tag = res_tag['result'][f'{personaId}']
     kpm = res_stat['result']['basicStats']['kpm']
@@ -601,10 +613,12 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
                 pass
     try:
         dict_AS,dict_PK,dict_BD1,dict_BD2 = special_stat_to_dict(special_stat)
+        dict_FL = special_stat_to_dict1(special_stat1)
         weapons.append(dict_AS)
         weapons.append(dict_PK)
         weapons.append(dict_BD1)
         weapons.append(dict_BD2)
+        weapons.append(dict_FL)
     except:
         pass
     weapons = sorted(weapons, key=lambda x: x['stats']['values']['kills'],reverse=True)
@@ -621,7 +635,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
         
     vehicles = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True) 
 
-    if mode < 13:
+    if mode < 17:
         mode_1 = []
         mode_2 = []
         mode_3 = []
@@ -634,6 +648,10 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
         mode_10 = []
         mode_11 = []
         mode_12 = []
+        mode_13 = []
+        mode_14 = []
+        mode_15 = []
+        mode_16 = []        
 
         for i in weapons:
             match i['category']:
@@ -641,26 +659,52 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
                     mode_1.append(i)
                 case '配備':
                     mode_2.append(i)
+                    if i['name'] == "炸藥" or i['name'] == "反坦克火箭砲" or i['name'] == "防空火箭砲" or i['name'] == "反坦克地雷" or i['name'] == "反坦克手榴彈":
+                        mode_13.append(i)
+                    elif i['name'] == "迫擊砲（空爆）" or i['name'] == "迫擊砲（高爆）" or i['name'] == "維修工具" or i['name'] == "磁吸地雷" or i['name'] == "十字弓發射器（高爆）" or i['name'] == "十字弓發射器（破片）":
+                        mode_14.append(i)
+                    elif i['name'] == "絆索炸彈（高爆）" or i['name'] == "絆索炸彈（燃燒）" or i['name'] == "絆索炸彈（毒氣）" or i['name'] == "信號槍（閃光）" or i['name'] == "信號槍（偵察）" or i['name'] == "K 彈":
+                        mode_15.append(i)
+                    elif i['name'] == "醫療用針筒":
+                        mode_16.append(i)                    
                 case '半自動步槍':
                     mode_3.append(i)
+                    mode_16.append(i)
                 case '霰彈槍':
                     mode_4.append(i)
+                    mode_13.append(i)
                 case '佩槍':
                     mode_5.append(i)
+                    if i['name'] == "加塞 M1870" or i['name'] == "Howdah 手槍" or i['name'] == "1903 Hammerless":
+                        mode_13.append(i)
+                    elif i['name'] == "Repetierpistole M1912" or i['name'] == "Modello 1915" or i['name'] == "鬥牛犬左輪手槍":
+                        mode_14.append(i)
+                    elif i['name'] == "Mars 自動手槍" or i['name'] == "Bodeo 1889" or i['name'] == "費羅梅爾停止手槍":
+                        mode_15.append(i)
+                    elif i['name'] == "自動左輪手槍" or i['name'] == "C96" or i['name'] == "Taschenpistole M1914":
+                        mode_16.append(i)
                 case '輕機槍':
                     mode_6.append(i)
+                    mode_14.append(i)
                 case '近戰武器':
+                    if i['name'] == '奇兵棒':
+                        mode_1.append(i)
                     mode_7.append(i)
                 case '步槍':
                     mode_8.append(i)
+                    mode_15.append(i)
                 case '坦克/駕駛員':
                     mode_9.append(i)
                 case '手榴彈':
                     mode_10.append(i)
+                    if i['name'] == "步槍手榴彈（破片）" or i['name'] == "步槍手榴彈（煙霧）" or i['name'] == "步槍手榴彈（高爆）":
+                        mode_2.append(i)
+                        mode_16.append(i)                    
                 case '制式步槍':
                     mode_11.append(i)
                 case '衝鋒槍':
                     mode_12.append(i)
+                    mode_13.append(i)
 
         match mode:
             case 0:
@@ -689,10 +733,16 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
                 weapons = mode_11
             case 12:
                 weapons = mode_12
+            case 13:
+                weapons = mode_13
+            case 14:
+                weapons = mode_14
+            case 15:
+                weapons = mode_15
+            case 16:
+                weapons = mode_16
         weapons = sorted(weapons, key=lambda x: x['stats']['values']['kills'],reverse=True)
-
     else:
-        
         attack = {
             "name": "攻击机",
             "imageUrl": "https://eaassets-a.akamaihd.net/battlelog/battlebinary/gamedata/Tunguska/63/53/GERHalberstadtCLII-c1cb8257.png",
@@ -717,7 +767,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
         
         weapons = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
-    for i in range(min(10,len(weapons)-1)):
+    for i in range(min(10,len(weapons))):
         textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 150))
         draw = ImageDraw.Draw(textbox3)
 
@@ -751,7 +801,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
             whs = 0.00
         
         wtime = int(weapons[i]['stats']['values']['seconds'])/3600
-        if mode == 13:
+        if mode == 17:
             draw.text(xy=(80,150), text=f'{zhconv.convert(weapons[i]["name"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
             draw.text(xy=(10,177), text=f'-----------------------------------', fill=(255, 255, 255, 150),font=font_5)
             draw.text(xy=(80,225), text=f'击杀:{kill1}', fill=(255, 255, 255, 255),font=font_5)
@@ -777,7 +827,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],1965), text=text ,fill=(255, 255, 0, 255),font=font_0)
-    img.save(BF1_SERVERS_DATA/f'Caches/{playerName}_wp.jpg')
+    img.save(CURRENT_FOLDER/f'Caches/{playerName}_wp.png')
 
     return 1
 
@@ -1113,7 +1163,7 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
     print(datetime.datetime.now())
-    img.save(BF1_SERVERS_DATA/f'Caches/{gameId}_pl.jpg')
+    img.save(CURRENT_FOLDER/f'Caches/{gameId}_pl.png')
     return 1
 
 async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
@@ -1162,8 +1212,11 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     img.paste(textbox0, (0, 0), textbox0)
 
     textbox = Image.new("RGBA", (900,1200), (0, 0, 0, 0))
-    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_1}.png').resize((80,80))
-    textbox.paste(teamimg,(0,0),teamimg)
+    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_1}.png').resize((80,80)).convert("RGBA")
+    try:
+        textbox.paste(teamimg,(0,0),teamimg)
+    except:
+        textbox.paste(teamimg,(0,0))
     draw = ImageDraw.Draw(textbox)
 
     font_1 = ImageFont.truetype(font='comic.ttf', size=50, encoding='UTF-8')
@@ -1190,7 +1243,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     
     draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率      IP' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率   语 IP' ,fill=(255, 255, 255, 255),font=font_2)
 
     (BF1_SERVERS_DATA/f'{session}_pl').mkdir(exist_ok=True)
     f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
@@ -1270,15 +1323,18 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
         else:
             draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
-        draw.text(xy=(835,90+30*i), text=f'{stat1[i]["loc"]}/{stat1[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(835,90+30*i), text=f'{stat1[i]["loc"]} {stat1[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
         
         f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %s\n},\n'%(i+1,stat1[i]['rank'],stat1[i]['killDeath'],stat1[i]['killsPerMinute'],stat1[i]['id']))
     position = (60, 110)
     img.paste(textbox, position, textbox)
 
     textbox1 = Image.new("RGBA", (900,1200), (0, 0, 0, 0))
-    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_2}.png').resize((80,80))
-    textbox1.paste(teamimg,(0,0),teamimg)
+    teamimg = Image.open(BF1_SERVERS_DATA/f'Caches/Teams/{teamImage_2}.png').resize((80,80)).convert("RGBA")
+    try:
+        textbox1.paste(teamimg,(0,0),teamimg)
+    except:
+        textbox1.paste(teamimg,(0,0))
     draw = ImageDraw.Draw(textbox1)
 
     num_150 = 0
@@ -1300,7 +1356,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     
     draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率      IP' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率   语 IP' ,fill=(255, 255, 255, 255),font=font_2)
     
     for i in range(len(stat2)):
         draw.text(xy=(35,90+30*i), text=f'{i+33}' , fill =(255, 255,255, 255),font=font_2)
@@ -1377,7 +1433,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
         else:
             draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
-        draw.text(xy=(835,90+30*i), text=f'{stat2[i]["loc"]}/{stat2[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(835,90+30*i), text=f'{stat2[i]["loc"]} {stat2[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
         f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %s\n},\n'%(i+33,stat2[i]['rank'],stat2[i]['killDeath'],stat2[i]['killsPerMinute'],stat2[i]['id']))
 
     f.write('{\n"slot": 100,\n"rank": 0,\n"kd": 0,\n"kp": 0,\n"id": 0\n}')
@@ -1409,7 +1465,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
     print(datetime.datetime.now())
-    img.save(BF1_SERVERS_DATA/f'Caches/{gameId}_pl.jpg')
+    img.save(CURRENT_FOLDER/f'Caches/{gameId}_pl.png')
     return 1
 
 async def draw_r(remid, sid, sessionID, personaId, playerName):
@@ -1603,13 +1659,13 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     draw.text(xy=(img.width-font_0.getsize(text)[0],410*len(recent)+365), text=text ,fill=(34,139,34, 255),font=font_0)
     draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
     print(datetime.datetime.now())
-    img.save(BF1_SERVERS_DATA/f'Caches/{playerName}_r.jpg')
-
+    
+    img.save(CURRENT_FOLDER/f'Caches/{playerName}_r.png')
     return 1
 
 async def draw_exchange(remid, sid, sessionID):
     res = await upd_exchange(remid, sid, sessionID)
-    img = Image.new("RGBA", (1500,1100), (254, 238, 218, 180))
+    img = Image.new("RGBA", (1500,1100), (254, 238, 218, 255))
     tasks = []
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
@@ -1643,14 +1699,30 @@ async def draw_exchange(remid, sid, sessionID):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(1500-font_1.getsize(text)[0],1065), text=text ,fill=(34,139,34, 255),font=font_1)
 
-    img.save(BF1_SERVERS_DATA/f'Caches/exchange.png')
+    img.save(CURRENT_FOLDER/f'Caches/exchange.png')
     return 1
 
 async def draw_a(num,name,personaId):
-    img = Image.new("RGBA", (900,30*num), (254, 238, 218, 180))
+    img = Image.new("RGBA", (900,30*num), (254, 238, 218, 255))
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
     for i in range(num):
-         draw.text(xy=(10,30*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
-    img.save(BF1_SERVERS_DATA/f'Caches/{personaId}.png')
+        draw.text(xy=(10,30*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
+
+    img.save(CURRENT_FOLDER/f'Caches/{personaId}.png')
+    return 1
+
+async def draw_faq():
+    with open(CURRENT_FOLDER/"faq.txt", "r",encoding="UTF-8") as f:
+        textArg = f.read().split("\n")
+    img = Image.new("RGBA", (900,30*len(textArg)), (254, 238, 218, 255))
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='simsun.ttc', size=25, encoding='UTF-8')
+    for i in range(len(textArg)):
+        if textArg[i].startswith("Q"):
+            draw.text(xy=(10,30*i), text=textArg[i], fill=(150, 0, 0, 255),font=font_0)
+        else:
+            draw.text(xy=(10,30*i), text=textArg[i], fill=(0, 0, 100, 255),font=font_0)
+
+    img.save(CURRENT_FOLDER/f'Caches/faq.png')
     return 1
