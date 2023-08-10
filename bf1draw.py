@@ -13,9 +13,16 @@ from .bf1rsp import *
 from .utils import *
 from .image import *
 from .secret import *
+from base64 import b64encode
 
 GAME = 'bf1'
 LANG = 'zh-tw'
+
+def base64img(img):
+    buf = BytesIO()
+    img.save(buf,'png')
+    img_stream = buf.getvalue()
+    return 'base64://' + b64encode(img_stream).decode('ascii')
 
 async def paste_image(url,img,position):
     async with httpx.AsyncClient() as client:
@@ -133,8 +140,7 @@ async def draw_f(server_id:int,session:int,remid, sid, sessionID):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],400*server_id+65), text=text ,fill=(255, 255, 0, 255),font=font_0)
     
-    img.save(CURRENT_FOLDER/f'Caches/{session}.png')
-    return 1
+    return base64img(img)
 
 async def draw_server(remid, sid, sessionID, serverName, res):
     img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(1, 6)}.jpg')
@@ -231,8 +237,7 @@ async def draw_server(remid, sid, sessionID, serverName, res):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],400*len(res)+65), text=text ,fill=(255, 255, 0, 255),font=font_0)
     
-    img.save(CURRENT_FOLDER/f'Caches/{serverName}.png')
-    return 1
+    return base64img(img)
 
 def paste_img(img:Image):
     data = img.getdata()
@@ -526,8 +531,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],1465), text=text ,fill=(255, 255, 0, 255),font=font_0)
  
-    img.save(CURRENT_FOLDER/f'Caches/{playerName}.png')
-    return 1
+    return base64img(img)
 
 #draw_f(4,248966716,remid, sid, sessionID)
 
@@ -827,9 +831,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],1965), text=text ,fill=(255, 255, 0, 255),font=font_0)
-    img.save(CURRENT_FOLDER/f'Caches/{playerName}_wp.png')
-
-    return 1
+    return base64img(img)
 
 def get_pl(gameID:str)->dict:
     return request_API(GAME,'players',{'gameid':gameID})
@@ -1163,8 +1165,7 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
     print(datetime.datetime.now())
-    img.save(CURRENT_FOLDER/f'Caches/{gameId}_pl.png')
-    return 1
+    return base64img(img)
 
 async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     
@@ -1465,8 +1466,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
     print(datetime.datetime.now())
-    img.save(CURRENT_FOLDER/f'Caches/{gameId}_pl.png')
-    return 1
+    return base64img(img)
 
 async def draw_r(remid, sid, sessionID, personaId, playerName):
     print(datetime.datetime.now())
@@ -1660,8 +1660,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
     print(datetime.datetime.now())
     
-    img.save(CURRENT_FOLDER/f'Caches/{playerName}_r.png')
-    return 1
+    return base64img(img)
 
 async def draw_exchange(remid, sid, sessionID):
     res = await upd_exchange(remid, sid, sessionID)
@@ -1699,8 +1698,7 @@ async def draw_exchange(remid, sid, sessionID):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(1500-font_1.getsize(text)[0],1065), text=text ,fill=(34,139,34, 255),font=font_1)
 
-    img.save(CURRENT_FOLDER/f'Caches/exchange.png')
-    return 1
+    return base64img(img)
 
 async def draw_a(num,name,personaId):
     img = Image.new("RGBA", (900,30*num), (254, 238, 218, 255))
@@ -1709,8 +1707,7 @@ async def draw_a(num,name,personaId):
     for i in range(num):
         draw.text(xy=(10,30*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
 
-    img.save(CURRENT_FOLDER/f'Caches/{personaId}.png')
-    return 1
+    return base64img(img)
 
 async def draw_faq():
     with open(CURRENT_FOLDER/"faq.txt", "r",encoding="UTF-8") as f:
@@ -1724,5 +1721,4 @@ async def draw_faq():
         else:
             draw.text(xy=(10,30*i), text=textArg[i], fill=(0, 0, 100, 255),font=font_0)
 
-    img.save(CURRENT_FOLDER/f'Caches/faq.png')
-    return 1
+    return base64img(img)

@@ -12,4 +12,5 @@ def draw_server_array_matplotlib(res: dict) -> str:
     xfmt = DateFormatter('%d-%m-%y %H:%M')
     ax.xaxis.set_major_formatter(xfmt)
     img = BytesIO()
+    plt.savefig(img, format='png')
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
