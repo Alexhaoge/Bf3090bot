@@ -2147,12 +2147,12 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
         #     days = 1
         
         with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-                serverBL = json.load(f)
-                gameId = serverBL['result']['serverInfo']['gameId']
+            serverBL = json.load(f)
+            gameId = serverBL['result']['serverInfo']['gameId']
         
         # server_array = await request_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
         try:
-            img = draw_server_array2(gameId)
+            img = draw_server_array2(str(gameId))
             await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
         except:
             await BF1_DRAW.send(MessageSegment.reply(event.message_id) + traceback.format_exc(2))

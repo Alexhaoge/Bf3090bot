@@ -29,7 +29,7 @@ def draw_server_array2(gameid: str) -> str:
     with open(BF1_SERVERS_DATA/'draw.json', 'r',encoding='UTF-8') as f:
         d = dict(sorted(json.load(f).items())) # sort the list based on key(time)
     # Set time window
-    xlim_date = [0, datetime(2023, 8, 13, 23, 59, 59)]
+    xlim_date = [0, datetime.now()]
     xlim_date[0] = xlim_date[1] - timedelta(days=1)
 
     # Pre-processing
@@ -45,12 +45,12 @@ def draw_server_array2(gameid: str) -> str:
             continue # if not in window ignore
         times.append(ts_dt) # always append the time
         if gameid in ts_dict.keys():
-            players.append(ts_dict[gameid]['serverAmount'])
+            players.append(int(ts_dict[gameid]['serverAmount']))
             # record map change
             if len(maps):
-                if ts_dict[gameid]['map'] != maps[-1][1]:
+                if ts_dict[gameid]['map'] != maps[-1]:
                     # if the current map is the same as last element in maps list, add new map
-                    maps.append(ts_dt, ts_dict[gameid]['map'])
+                    maps.append(ts_dict[gameid]['map'])
                     map_times.append(ts_dt)
             else:
                 # if map list in non-empty, add first map
@@ -63,7 +63,7 @@ def draw_server_array2(gameid: str) -> str:
     maps.append('') # Add end boundary for map list
     map_times.append(xlim_date[1])
     assert len(maps) == len(map_times)
-    
+
     with open(BF1_SERVERS_DATA/'zh-cn.json', 'r',encoding='UTF-8') as f:
         map_dict = json.load(f)
     
@@ -71,16 +71,16 @@ def draw_server_array2(gameid: str) -> str:
     fig, ax = plt.subplots(1)
     fig.set_size_inches(12, 8)
     ax.set_xlim(xlim_date[0], xlim_date[1])
-    ax.set_ylim(0, 64)
+    ax.set_ylim(0, 65)
     fig.autofmt_xdate()
     # Convert date to num for axis config
     xlim_num = mdates.date2num(xlim_date)
     xrange = xlim_num[1] - xlim_num[0]
-    map_times_num = mdates.date2num(times)
+    map_times_num = mdates.date2num(map_times)
 
     # Render piecewise background from map images
     for i in range(len(maps)-1):
-        full_map_img = Image.open(BF1_SERVERS_DATA/'Caches'/'Maps1'/f'{map_dict[maps[i][1]]}.jpg')
+        full_map_img = Image.open(BF1_SERVERS_DATA/'Caches'/'Maps1'/f'{map_dict[maps[i]]}.jpg')
         width_ratio = (map_times_num[i+1] - map_times_num[i]) / xrange
         crop_map_img = full_map_img.crop((0, 0, full_map_img.size[0] * width_ratio, full_map_img.size[1]))
         map_img = np.array(crop_map_img)
@@ -104,10 +104,10 @@ def draw_server_array2(gameid: str) -> str:
                             loc=3)
     axes_line.plot(times, players, c='r', zorder=2, linewidth=2)
     axes_line.set_xlim(xlim_date[0], xlim_date[1])
-    axes_line.set_ylim(0, 64)
+    axes_line.set_ylim(0, 65)
     axes_line.set_axis_off()
 
-    ax.set_title(f'{server_name}\n{datetime.strftime(xlim_date[0], "%y-%m-%d")}-{datetime.strftime(xlim_date[1], "%y-%m-%d")}')
+    ax.set_title(f'{server_name}\n{datetime.strftime(xlim_date[0], "%y/%m/%d")}-{datetime.strftime(xlim_date[1], "%y/%m/%d")}')
     
     # Save figure and return in base64
     img = BytesIO()
