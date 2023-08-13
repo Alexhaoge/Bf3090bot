@@ -29,9 +29,10 @@ import time
 import random
 from datetime import datetime, timedelta
 import datetime
+import traceback
 
 from .config import Config
-from .bf1draw2 import draw_server_array_matplotlib
+from .bf1draw2 import draw_server_array2
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md
 from .utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER, request_API, zhconvert, get_wp_info,search_a,getsid,CURRENT_FOLDER,MapTeamDict
 from .bf1rsp import *
@@ -2140,18 +2141,21 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
 
     if(check_admin(session, user_id)):
         server_id = arg[0]
-        try:
-            days = int(arg[1])
-        except:
-            days = 1
+        # try:
+        #     days = int(arg[1])
+        # except:
+        #     days = 1
         
-        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-            serverGT = json.load(f)
-            GameId = serverGT['gameId']
-
-        server_array = await request_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
-       
-        await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(draw_server_array_matplotlib(server_array)))
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                gameId = serverBL['result']['serverInfo']['gameId']
+        
+        # server_array = await request_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
+        try:
+            img = draw_server_array2(gameId)
+            await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
+        except:
+            await BF1_DRAW.send(MessageSegment.reply(event.message_id) + traceback.format_exc(2))
     else:
         await BF1_DRAW.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
