@@ -1777,12 +1777,26 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
 
 @BF1_WP.handle()
 async def bf1_wp(event:GroupMessageEvent, state:T_State):
-    message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')  
+    message = _command_arg(state) or event.get_message() 
     message = message.extract_plain_text()
     session = check_session(event.group_id)
     usercard = event.sender.card
     user_id = event.user_id
+
+    if message.endswith("行") or message.endswith("列"):
+        row = int(re.findall(r'(\d+)行', message)[0])
+        col = int(re.findall(r'(\d+)列', message)[0])
+        if row > 7 or col < 2 or col > 7:
+            await BF1_WP.finish(MessageSegment.reply(event.message_id) + '行列数设置不合法，允许1-7行和2-7列')
+        index = message.rfind(" ")
+        if index != -1:
+            message = message[:index]
+        else:
+            message = ".w"
+    else:
+        row = 5
+        col = 2
+    arg = message.split(' ') 
 
     if reply_message_id(event) == None:
         mode = 0
@@ -1807,7 +1821,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + '无效id')
             else:
                 try:
-                    file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, playerName, wpmode), timeout=15)
+                    file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, playerName, wpmode, col, row), timeout=15)
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1824,7 +1838,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                 with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                     f.write(userName)                
                 try:
-                    file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
+                    file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode, col, row), timeout=15)
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1837,7 +1851,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '绑定失败')
                 else:
                     try:
-                        file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
+                        file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode, col, row), timeout=15)
                         await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     except asyncio.TimeoutError:
                         await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1871,7 +1885,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
             res1 = await upd_getPersonasByIds(remid2, sid2, sessionID2, personaIds)
             userName = res1['result'][f'{personaId}']['displayName']
             try:
-                file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
+                file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode, col, row), timeout=15)
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except asyncio.TimeoutError:
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')

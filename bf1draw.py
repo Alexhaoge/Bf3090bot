@@ -535,7 +535,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
 
 #draw_f(4,248966716,remid, sid, sessionID)
 
-async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
+async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, col, row):
     tasks = []
 
     tasks.append(asyncio.create_task(upd_blazestat(personaId,'s3')))
@@ -583,8 +583,12 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
     except:    
         img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
 
-    img = img.resize((2000,2000))
-    img = img.crop((350,0,1650,2000))
+    if 655*col-10 <= 340*row+300:
+        img = img.resize((340*row+300,340*row+300))
+        img = img.crop((170*row+150-327.5*col+5,0,170*row+150+327.5*col-5,340*row+300))
+    else:        
+        img = img.resize((655*col-10,655*col-10))
+        img = img.crop((0,327.5*col-5-170*row-150,655*col-10,327.5*col-5+170*row+150))
 
     textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox)
@@ -771,7 +775,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
         
         weapons = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
-    for i in range(min(10,len(weapons))):
+    for i in range(min(row*col,len(weapons))):
         textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 150))
         draw = ImageDraw.Draw(textbox3)
 
@@ -818,19 +822,19 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int):
             draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{wkp:.2f}\n命中:{acc:.2f}%', fill=(255, 255, 255, 255),font=font_5)
             draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{wtime:.1f}h', fill=(255, 255, 255, 255),font=font_5)
 
-        position3 = (655*(i%2), 260+(i//2)*340)
+        position3 = (655*(i%col), 260+(i//col)*340)
         img.paste(textbox3, position3, textbox3)
 
         wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
         img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
-        img.paste(paste_img(img_wp), (130+650*(i%2), 340*(i//2)+300), img_wp)
+        img.paste(paste_img(img_wp), (130+650*(i%col), 340*(i//col)+300), img_wp)
 
     await paste_emb(emblem,img,(0,0))
 
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-    draw.text(xy=(img.width-font_0.getsize(text)[0],1965), text=text ,fill=(255, 255, 0, 255),font=font_0)
+    draw.text(xy=(img.width-font_0.getsize(text)[0],340*row+265), text=text ,fill=(255, 255, 0, 255),font=font_0)
     return base64img(img)
 
 def get_pl(gameID:str)->dict:

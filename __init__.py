@@ -21,6 +21,7 @@ from .utils import PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DA
 from .bf1 import bf1_bindserver, bf1_server_alarm, bf1_server_alarmoff, bf1_binding, bf1_handler, bf1_ls, bf1_server, bf1_status, bf1_mode, bf1_map, bf1_chooseLevel, bf1_initmap, bf1_admin, bf1_kick, bf1_ban, bf1_unban, bf1_move, bf1_vip, bf_status, bf_help, bf1_fuwuqi
 from .bfv import bfv_binding, bfv_handler, bfv_ls, bfv_server
 from .bf2042 import bf2042_binding, bf2042_handler, bf2042_ls
+from .grouprsp import *
 
 BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
 BF_HELP = on_command(f"{PREFIX}bf help", block=True, priority=1)
