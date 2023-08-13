@@ -234,8 +234,8 @@ async def bf_help(event:MessageEvent, state:T_State):
 
 @BF1_FAQ.handle()
 async def bf_faq(event:MessageEvent, state:T_State):
-    await draw_faq()
-    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/'faq.png'
+    file_dir = await draw_faq()
+    #file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/'faq.png'
     await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 @BF1_BOT.handle()
 async def bf1_init(event:GroupMessageEvent, state:T_State):
@@ -1216,8 +1216,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             gameId = serverGT['gameId']
 
         try:
-            await asyncio.wait_for(draw_pl1(session,server_id, gameId, remid, sid, sessionID), timeout=20)
-            file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{gameId}_pl.png'
+            file_dir = await asyncio.wait_for(draw_pl1(session,server_id, gameId, remid, sid, sessionID), timeout=20)
             reply = await BF1_PL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             os.rename(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt', BF1_SERVERS_DATA/f'{session}_pl'/f'{reply["message_id"]}.txt')
         except asyncio.TimeoutError:
@@ -1243,8 +1242,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             await BF1_ADMINPL.finish('无法获取到服务器数据。')
 
         try:
-            await asyncio.wait_for(draw_pl1(session,99, gameId, remid, sid, sessionID), timeout=20)
-            file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{gameId}_pl.png'
+            file_dir = await asyncio.wait_for(draw_pl1(session,99, gameId, remid, sid, sessionID), timeout=20)
             reply = await BF1_ADMINPL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             os.rename(BF1_SERVERS_DATA/f'{session}_pl'/f'99_pl.txt', BF1_SERVERS_DATA/f'{session}_pl'/f'{reply["message_id"]}.txt')
         except asyncio.TimeoutError:
@@ -1417,8 +1415,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
                     await BF1_SA.send(MessageSegment.reply(event.message_id) + f'玩家{playerName}共拥有{num}个服务器的ban位：')
                 else:
                     return 0                            
-                await draw_a(num,name,personaId)
-                file_dir = Path('file:///') / CURRENT_FOLDER/f'Caches/{personaId}.png'
+                file_dir = await draw_a(num,name,personaId)
                 await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
     if mode == 2:
@@ -1456,8 +1453,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
                     await BF1_SA.send(MessageSegment.reply(event.message_id) + f'玩家{userName}共拥有{num}个服务器的ban位：')
                 else:
                     return 0                            
-                await draw_a(num,name,personaId)
-                file_dir = Path('file:///') / CURRENT_FOLDER/f'Caches/{personaId}.png'
+                file_dir = await draw_a(num,name,personaId)
                 await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
         else:
@@ -1493,8 +1489,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
                         await BF1_SA.send(MessageSegment.reply(event.message_id) + f'玩家{userName}共拥有{num}个服务器的ban位：')
                     else:
                         return 0                            
-                    await draw_a(num,name,personaId)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/f'Caches/{personaId}.png'
+                    file_dir = await draw_a(num,name,personaId)
                     await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
                         f.write(str(personaId))
@@ -1583,8 +1578,7 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
                 1/0
             else:
                 try:
-                    await asyncio.wait_for(draw_server(remid1, sid1, sessionID1, serverName,res), timeout=15)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{serverName}.png'
+                    file_dir = await asyncio.wait_for(draw_server(remid1, sid1, sessionID1, serverName,res), timeout=15)
                     await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except:
                     await BF1_F.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1595,8 +1589,7 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         session = check_session(session)
         server_id = get_server_num(session)
         #try:
-        await asyncio.wait_for(draw_f(server_id,session,remid1, sid1, sessionID1), timeout=15)
-        file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{session}.png'
+        file_dir = await asyncio.wait_for(draw_f(server_id,session,remid1, sid1, sessionID1), timeout=15)
         await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         #except:
         #    await BF1F.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1626,8 +1619,7 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                 await BF1_S.send(MessageSegment.reply(event.message_id) + '无效id')
             else:
                 try:
-                    await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, playerName), timeout=15)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{playerName}.png'
+                    file_dir = await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, playerName), timeout=15)
                     await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
                     await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1644,8 +1636,7 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                 with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                     f.write(userName)                 
                 try:
-                    await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}.png'
+                    file_dir = await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
                     await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
                     await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1658,8 +1649,7 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                     await BF1_S.send(MessageSegment.reply(event.message_id) + '绑定失败')
                 else:
                     try:
-                        await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
-                        file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}.png'
+                        file_dir = await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
                         await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     except asyncio.TimeoutError:
                         await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1686,8 +1676,7 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
             res1 = await upd_getPersonasByIds(remid1, sid1, sessionID1, personaIds)
             userName = res1['result'][f'{personaId}']['displayName']
             try:
-                await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
-                file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}.png'
+                file_dir = await asyncio.wait_for(draw_stat(remid1, sid1, sessionID1, personaId, userName), timeout=15)
                 await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except asyncio.TimeoutError:
                 await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1724,8 +1713,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + '无效id')
             else:
                 try:
-                    await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, playerName, wpmode), timeout=15)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{playerName}_wp.png'
+                    file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, playerName, wpmode), timeout=15)
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1742,8 +1730,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                 with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                     f.write(userName)                
                 try:
-                    await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}_wp.png'
+                    file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except asyncio.TimeoutError:
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1756,8 +1743,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                     await BF1_WP.send(MessageSegment.reply(event.message_id) + '绑定失败')
                 else:
                     try:
-                        await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
-                        file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}_wp.png'
+                        file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
                         await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     except asyncio.TimeoutError:
                         await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1791,8 +1777,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
             res1 = await upd_getPersonasByIds(remid2, sid2, sessionID2, personaIds)
             userName = res1['result'][f'{personaId}']['displayName']
             try:
-                await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
-                file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}_wp.png'
+                file_dir = await asyncio.wait_for(draw_wp(remid2, sid2, sessionID2, personaId, userName, wpmode), timeout=15)
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except asyncio.TimeoutError:
                 await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1820,8 +1805,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
             await BF1_R.send(MessageSegment.reply(event.message_id) + '无效id')
         else:
             try:
-                await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, playerName), timeout=35)
-                file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{playerName}_r.png'
+                file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, playerName), timeout=35)
                 await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except: 
                 await BF1_R.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1838,8 +1822,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
             with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                 f.write(userName)  
             try:
-                await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
-                file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}_r.png'
+                file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
                 await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             except: 
                 await BF1_R.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1853,8 +1836,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
                 await BF1_R.send(MessageSegment.reply(event.message_id) + '绑定失败')
             else:
                 try:
-                    await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
-                    file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/f'{userName}_r.png'
+                    file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
                     await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 except: 
                     await BF1_R.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -1891,8 +1873,7 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
 @BF1_EX.handle()
 async def bf1_ex(event:GroupMessageEvent, state:T_State):
     try:
-        await asyncio.wait_for(draw_exchange(remid2, sid2, sessionID2), timeout=35)
-        file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/'exchange.png'
+        file_dir = await asyncio.wait_for(draw_exchange(remid2, sid2, sessionID2), timeout=35)
         await BF1_EX.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except: 
         await BF1_EX.send(MessageSegment.reply(event.message_id) + '连接超时')
@@ -2066,9 +2047,9 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
             serverGT = json.load(f)
             GameId = serverGT['gameId']
 
-        server_array = await request_API(GAME,'serverarray', {'gameid': serverGT, 'days': days})
+        server_array = await request_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
        
-        await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(draw_server_array_matplotlib(server_array)))
+        await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(draw_server_array_matplotlib(server_array)))
     else:
         await BF1_DRAW.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 

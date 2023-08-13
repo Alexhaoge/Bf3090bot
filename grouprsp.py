@@ -81,8 +81,7 @@ async def user_add(event: GroupRequestEvent):
                 f.write(f'{event.flag},{event.sub_type},{event.user_id},{personaId},{playerName}')
             with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','w') as f:
                 f.write(str(personaId))
-            await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, playerName),timeout=15)
-            file_dir = pathlib.Path('file:///') / CURRENT_FOLDER/'Caches'/f'{playerName}.png'
+            file_dir = await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, playerName),timeout=15)
             await add_user.send(MessageSegment.image(file_dir))
     else:
             reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n+理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
@@ -90,8 +89,7 @@ async def user_add(event: GroupRequestEvent):
                 f.write(f'{event.flag},{event.sub_type},{event.user_id},{personaId},{playerName}')
             with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','w') as f:
                 f.write(str(personaId))
-            await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, playerName),timeout=15)
-            file_dir = pathlib.Path('file:///') / CURRENT_FOLDER/'Caches'/f'{playerName}.png'
+            file_dir = await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, playerName),timeout=15)
             await add_user.send(MessageSegment.image(file_dir))
             
 @approve_req.handle()
