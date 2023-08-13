@@ -1250,12 +1250,16 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
     f.write('{\n"pl": [\n')
     for i in range(len(stat1)):
-        draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
+        draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255, 255, 255),font=font_2)
         
-        if stat1[i]['rank'] < 150:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], outline='white')
-        else:
+        if stat1[i]['rank'] < 50:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 255, 100))
+        elif stat1[i]['rank'] < 100:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 0, 100))
+        elif stat1[i]['rank'] < 150:
             draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 255, 0, 100))
+        else:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 0, 0, 150))
         
         text_width, _ = font_3.getsize(str(stat1[i]['rank']))
         x = 120 - text_width / 2
@@ -1360,12 +1364,16 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率   语 IP' ,fill=(255, 255, 255, 255),font=font_2)
     
     for i in range(len(stat2)):
-        draw.text(xy=(35,90+30*i), text=f'{i+33}' , fill =(255, 255,255, 255),font=font_2)
+        draw.text(xy=(35,90+30*i), text=f'{i+33}' , fill =(255, 255, 255, 255),font=font_2)
         
-        if stat2[i]['rank'] < 150:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], outline='white')
-        else:
+        if stat2[i]['rank'] < 50:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 255, 100))
+        elif stat2[i]['rank'] < 100:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 0, 100))
+        elif stat2[i]['rank'] < 150:
             draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 255, 0, 100))
+        else:
+            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 0, 0, 150))
         
         text_width, _ = font_3.getsize(str(stat2[i]['rank']))
         x = 120 - text_width / 2

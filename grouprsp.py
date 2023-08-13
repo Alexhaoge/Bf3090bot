@@ -16,6 +16,7 @@ import asyncio
 import time
 import os
 import pathlib
+import re
 from .bf1 import get_player_data,remid,sid,access_token,sessionID,check_session,reply_message_id,get_player_databyID,check_admin
 from .bf1rsp import getPersonasByName
 from .bf1draw import draw_stat
@@ -56,13 +57,15 @@ async def user_bye(event: GroupDecreaseNoticeEvent):
 
 @add_user.handle()
 async def user_add(event: GroupRequestEvent):
-    playerName = event.comment.split('：')[-1]
+    comment = event.comment.strip()
+    playerName = re.findall(re.compile('答案：(.*)'), comment)[0].strip()
     session = event.group_id
     session = check_session(session)
 
     (BF1_SERVERS_DATA/f'{event.group_id}_apply').mkdir(exist_ok=True)
-    res = await getPersonasByName(access_token, str(playerName))
+    res = await getPersonasByName(access_token, playerName)
     print(res)
+    print(playerName)
     try:
         personaId,playerName = res
         print(playerName,personaId)
@@ -76,7 +79,7 @@ async def user_add(event: GroupRequestEvent):
             with open(BF1_SERVERS_DATA/f'{event.group_id}_apply'/f'{reply["message_id"]}.txt','w') as f:
                 f.write(f'{event.flag},{event.sub_type},{event.user_id}')
         else:
-            reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n+理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
+            reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n 理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
             with open(BF1_SERVERS_DATA/f'{event.group_id}_apply'/f'{reply["message_id"]}.txt','w') as f:
                 f.write(f'{event.flag},{event.sub_type},{event.user_id},{personaId},{playerName}')
             with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','w') as f:
@@ -84,7 +87,7 @@ async def user_add(event: GroupRequestEvent):
             file_dir = await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, playerName),timeout=15)
             await add_user.send(MessageSegment.image(file_dir))
     else:
-            reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n+理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
+            reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n 理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
             with open(BF1_SERVERS_DATA/f'{event.group_id}_apply'/f'{reply["message_id"]}.txt','w') as f:
                 f.write(f'{event.flag},{event.sub_type},{event.user_id},{personaId},{playerName}')
             with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','w') as f:

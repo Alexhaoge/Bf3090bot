@@ -329,6 +329,27 @@ async def upd_detailedServer(remid, sid, sessionID, gameId):
 
     return response.json()
 
+async def upd_platoons(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Platoons.getPlatoons",
+	            "params": {
+		        "game": "tunguska",
+                "personaId": personaId
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()
+
 async def upd_reserveSlot(remid, sid, sessionID, gameId) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.post(
@@ -544,6 +565,48 @@ async def upd_unvipPlayer(remid, sid, sessionID, serverId, personaId):
         )
     return response.json()
 
+async def upd_getServersByPersonaIds(remid, sid, sessionID, personaIds):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "GameServer.getServersByPersonaIds",
+	            "params": {
+		        "game": "tunguska",
+                "personaIds": personaIds
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()
+
+async def upd_mostRecentServers(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "ServerHistory.mostRecentServers",
+	            "params": {
+		        "game": "tunguska",
+                "personaId": personaId
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()
+
 #通过玩家数字Id获取玩家相关信息
 async def upd_getPersonasByIds(remid, sid, sessionID, personaIds):
     async with httpx.AsyncClient() as client:
@@ -732,8 +795,7 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
         return "网络超时!"
     if type(server_gameid) != list:
         if str(server_gameid) in response["data"]:
-            return response["data"][str(server_gameid)] if response["data"][
-                                                               str(server_gameid)] != '' else "服务器信息为空!"
+            return response["data"][str(server_gameid)] if response["data"][str(server_gameid)] != '' else "服务器信息为空!"
         else:
             return f"获取服务器信息失败:{response}"
     else:
