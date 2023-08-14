@@ -24,12 +24,12 @@ def draw_server_array_matplotlib(res: dict) -> str:
     plt.savefig(img, format='png')
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
 
-def draw_server_array2(gameid: str) -> str:
+def draw_server_array2(gameid: str, endtime: datetime = datetime.now()) -> str:
     # Read raw data
     with open(BF1_SERVERS_DATA/'draw.json', 'r',encoding='UTF-8') as f:
         d = dict(sorted(json.load(f).items())) # sort the list based on key(time)
     # Set time window
-    xlim_date = [0, datetime.now()]
+    xlim_date = [0, endtime]
     xlim_date[0] = xlim_date[1] - timedelta(days=1)
 
     # Pre-processing
@@ -62,7 +62,9 @@ def draw_server_array2(gameid: str) -> str:
             players.append(0)
     maps.append('') # Add end boundary for map list
     map_times.append(xlim_date[1])
-    assert len(maps) == len(map_times)
+    first_nonzero_player_ind = np.where(np.array(players) != 0)[0]
+    if len(first_nonzero_player_ind):
+        xlim_date[0] = times[first_nonzero_player_ind[0]]
 
     with open(BF1_SERVERS_DATA/'zh-cn.json', 'r',encoding='UTF-8') as f:
         map_dict = json.load(f)
@@ -102,12 +104,15 @@ def draw_server_array2(gameid: str) -> str:
                             bbox_transform=ax.transAxes,
                             borderpad=0,
                             loc=3)
-    axes_line.plot(times, players, c='r', zorder=2, linewidth=2)
+    axes_line.plot(times, players, c='limegreen', zorder=2, linewidth=2)
     axes_line.set_xlim(xlim_date[0], xlim_date[1])
     axes_line.set_ylim(0, 65)
+    axes_line.axhline(y=20, c='grey', linestyle='--')
+    axes_line.axhline(y=54, c='grey', linestyle='--')
     axes_line.set_axis_off()
 
     ax.set_title(f'{server_name}\n{datetime.strftime(xlim_date[0], "%y/%m/%d")}-{datetime.strftime(xlim_date[1], "%y/%m/%d")}')
+    ax.set_yticks([0, 10, 20, 32, 40, 54, 64])
     
     # Save figure and return in base64
     img = BytesIO()
