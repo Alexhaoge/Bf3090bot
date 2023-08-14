@@ -111,9 +111,10 @@ def draw_server_array2(gameid: str, endtime: datetime = datetime.now()) -> str:
     axes_line.axhline(y=54, c='grey', linestyle='--')
     axes_line.set_axis_off()
 
-    ax.set_title(f'{server_name}\n{datetime.strftime(xlim_date[0], "%y/%m/%d")}-{datetime.strftime(xlim_date[1], "%y/%m/%d")}')
+    ax.set_title(f'{server_name}\n{datetime.strftime(xlim_date[0], "%Y/%m/%d")}-{datetime.strftime(xlim_date[1], "%Y/%m/%d")}')
     ax.set_yticks([0, 10, 20, 32, 40, 54, 64])
-    
+    fig.tight_layout()
+
     # Save figure and return in base64
     img = BytesIO()
     plt.savefig(img, format='png')
