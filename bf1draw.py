@@ -377,8 +377,11 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
 
     try:
         img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
-    except:    
-        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
+    except:
+        if bfeac["stat"] == "已封禁":
+            img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'ban.jpg')     
+        else:
+            img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
 
     
     img = img.resize((1500,1500))
@@ -1542,7 +1545,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
         img = img.resize((1800,1800))
         img = img.crop((250,0,1550,(410*len(recent)+410)))
     except:    
-        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC1.jpg')
         img = img.resize((1300,1800))
         img = img.crop((0,0,1300,(410*len(recent)+410)))
         img = img.filter(ImageFilter.GaussianBlur(radius=15))

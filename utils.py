@@ -244,7 +244,7 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
-def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3):
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4):
     with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
         arg0 = f.read().split(',')
     with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
@@ -253,6 +253,8 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
         arg2 = f.read().split(',')
     with open(CURRENT_FOLDER/'3.json','r',encoding='UTF-8') as f:
         arg3 = f.read().split(',')
+    with open(CURRENT_FOLDER/'4.json','r',encoding='UTF-8') as f:
+        arg4 = f.read().split(',')    
     if gameId in arg1:
         return remid1,sid1,sessionId1
     elif gameId in arg0:
@@ -261,6 +263,9 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
         return remid2,sid2,sessionId2
     elif gameId in arg3:
         return remid3,sid3,sessionId3
+    elif gameId in arg4:
+        return remid4,sid4,sessionId4
+    
 def special_stat_to_dict1(special_stat):
     List_AS = special_stat['4']
     dict_AS = {
