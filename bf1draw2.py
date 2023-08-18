@@ -24,11 +24,13 @@ def draw_server_array_matplotlib(res: dict) -> str:
     plt.savefig(img, format='png')
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
 
-def draw_server_array2(gameid: str, endtime: datetime = datetime.now()) -> str:
+def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
     # Read raw data
     with open(BF1_SERVERS_DATA/'draw.json', 'r',encoding='UTF-8') as f:
         d = dict(sorted(json.load(f).items())) # sort the list based on key(time)
     # Set time window
+    if endtime is None:
+        endtime = datetime.now()
     xlim_date = [0, endtime]
     xlim_date[0] = xlim_date[1] - timedelta(days=1)
 
