@@ -227,6 +227,12 @@ async def upd_sessionId(res_access_token, remid, sid, num):
     elif num == 4:
         with open(BF1_SERVERS_DATA/'Caches'/'id4.txt','w' ,encoding='UTF-8') as f:
             f.write(f'{remid},{sid}')
+    elif num == 5:
+        with open(BF1_SERVERS_DATA/'Caches'/'id5.txt','w' ,encoding='UTF-8') as f:
+            f.write(f'{remid},{sid}')
+    elif num == 6:
+        with open(BF1_SERVERS_DATA/'Caches'/'id6.txt','w' ,encoding='UTF-8') as f:
+            f.write(f'{remid},{sid}')
     async with httpx.AsyncClient() as client:
         res_session = await client.post( 
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
