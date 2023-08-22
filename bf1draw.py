@@ -45,24 +45,24 @@ async def paste_emb(url,img,position):
             pass
 
 
-async def draw_f(server_id:int,session:int,remid, sid, sessionID):
+async def draw_f(server_id,session:int,remid, sid, sessionID):
+    tasks = []
+    ress = []
+    for id in server_id:
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{id}','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
+            gameId = serverBL['result']['serverInfo']['gameId']
+        tasks.append(asyncio.create_task(upd_detailedServer(remid, sid, sessionID, gameId)))
+    server_id = len(server_id)
     # 打开图片文件
     img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(1, 6)}.jpg')
     img = img.resize((1506,2900))
     img = img.crop((0,0,1506,400*server_id+100))
     un = 0
     # 将原始图片模糊化
-    img = img.filter(ImageFilter.GaussianBlur(radius=15))
-
-    tasks = []
-    ress = []
-    for id in range(server_id):
-        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{id+1}.json','r', encoding='utf-8') as f:
-            serverGT = json.load(f)
-            gameId = serverGT['gameId']
-        tasks.append(asyncio.create_task(upd_detailedServer(remid, sid, sessionID, gameId)))
-    
+    img = img.filter(ImageFilter.GaussianBlur(radius=15))    
     ress = await asyncio.gather(*tasks)
+    
     for id in range(server_id):
         try:
             res =  ress[id]
@@ -1683,6 +1683,7 @@ async def draw_exchange(remid, sid, sessionID):
     tasks = []
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=10, encoding='UTF-8')
     for i in range(len(res['result']['items'])):
         url = 'https://eaassets-a.akamaihd.net/battlelog/battlebinary/'+res['result']['items'][i]['item']['images']['Png180xANY'][11:]
         position = (50+200*(i%7),100+150*(i//7))
@@ -1702,7 +1703,7 @@ async def draw_exchange(remid, sid, sessionID):
                 draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text)[0],150+150*(i//7)), text=text ,fill=((255,100,0,255)),font=font_0)
     
         if text1 != None:
-            draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text1)[0],170+150*(i//7)), text=text1 ,fill=(55, 1, 27, 255),font=font_0)
+            draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text1)[0],175+150*(i//7)), text=text1 ,fill=(55, 1, 27, 255),font=font_2)
 
         draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text2)[0],190+150*(i//7)), text=text2 ,fill=(0, 0, 100, 255),font=font_0)
         tasks.append(asyncio.create_task(paste_image(url,img,position)))

@@ -182,8 +182,8 @@ async def get_detailedServer_databyid(server_name)->dict:
     return await request_API(GAME,'detailedserver',{'gameid':server_name})
 
 def get_server_num(session:int):      
-    files = os.listdir(BF1_SERVERS_DATA/f'{session}')
-    return len(files)
+    files = os.listdir(BF1_SERVERS_DATA/f'{session}_jsonBL')
+    return files
     
 alarm_mode = [0]*100
 alarm_session = [0]*100
@@ -272,7 +272,7 @@ async def bf_help(event:MessageEvent, state:T_State):
 
     pic = await md_to_pic(md_help, css_path=CODE_FOLDER/"github-markdown-dark.css",width=900)
 
-    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + '捐赠地址：https://afdian.net/a/Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。\n使用EAC功能请直接输入.举报 id。\n更多问题请输入.FAQ查询。')
+    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + '捐赠地址：https://afdian.net/a/Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。\n使用EAC功能请直接输入.举报 id。\n更多问题请输入.FAQ查询或加群908813634问我。')
 
 @BF1_FAQ.handle()
 async def bf_faq(event:MessageEvent, state:T_State):
@@ -496,7 +496,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
     
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = arg[0]
         mapName = arg[1]
         try:
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
@@ -507,15 +507,15 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
             if mapName != '重开':
                 await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + '请输入正确的地图名称')
         
-        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-            serverGT = json.load(f)
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
         
-        gameId = serverGT['gameId']
+        gameId = serverBL['result']['serverInfo']['gameId']
         try:
             remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
         except:
             await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
-        persistedGameId = serverGT['serverId']
+        persistedGameId = serverBL['result']['serverInfo']['guid']
 
         serverBL = await upd_detailedServer(remid0, sid0, sessionID0, gameId)
         rotation = serverBL['result']['serverInfo']["rotation"]
@@ -577,22 +577,26 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
     if(check_admin(session, user_id)):
         if reply_message_id(event) == None:
             try:
-                server_id = int(arg[0])
+                server_id = arg[0]
                 name = arg[1]
                 reason = zhconvert(arg[2])
             except:
-                server_id = int(arg[0])
+                server_id = arg[0]
                 name = arg[1]
                 reason = zhconvert('违反规则')
-            with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-                serverGT = json.load(f)
-                gameId = serverGT['gameId']
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                gameId = serverBL['result']['serverInfo']['gameId']
             try:
                 remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
             except:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'bot没有权限，输入.bot查询服管情况。')
-            personaId,name,_ = await getPersonasByName(access_token, name)
-            print(sessionID0)
+            
+            try:
+                personaId,name,_ = await getPersonasByName(access_token, name)
+            except:
+                await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'无效id')
+
             res = await upd_kickPlayer(remid0, sid0, sessionID0, gameId, personaId, reason)
 
             if 'error' in res:
@@ -612,9 +616,9 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 personaIds = []
                 mode = 0
 
-                with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-                    serverGT = json.load(f)
-                    gameId = serverGT['gameId']
+                with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                    serverBL = json.load(f)
+                    gameId = serverBL['result']['serverInfo']['gameId']
                 try:
                     remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
                 except:
@@ -702,9 +706,9 @@ async def bf1_kickall(event:GroupMessageEvent, state:T_State):
             reason = zhconvert(arg[1])
         except:
             reason = zhconvert('管理员进行了清服')
-        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-            serverGT = json.load(f)
-            gameId = serverGT['gameId']      
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
+            gameId = serverBL['result']['serverInfo']['gameId']      
         
         try:        
             pl = await upd_blazepl(gameId)
@@ -760,8 +764,10 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                     remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
                 except:
                     await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
-                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
-
+                try:
+                    personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+                except:
+                    await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '无效id')
             res = await upd_kickPlayer(remid0, sid0, sessionID0, gameId, personaId, reason)
             res = await upd_banPlayer(remid0, sid0, sessionID0, serverId, personaName)
 
@@ -823,16 +829,19 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
             reason = zhconv.convert(arg[1], 'zh-tw')
         except:
             reason = '违反规则'
-        num = get_server_num(session)
+        files = get_server_num(session)
         tasks = []
-        for i in range(num):
-            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{i+1}.json','r', encoding='utf-8') as f:
+        try:
+            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+        except:
+            await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + '无效id')
+        for i in files:
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{i}','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:    
                 remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
-                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
                 tasks.append(asyncio.create_task(upd_banPlayer(remid0, sid0, sessionID0, serverId, personaName)))
             except:
                 continue
@@ -852,16 +861,19 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
     if(check_admin(session, user_id)):
         personaName = arg[0]
 
-        num = get_server_num(session)
+        files = get_server_num(session)
         tasks = []
-        for i in range(num):
+        try:
+            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+        except:
+            await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + '无效id')
+        for i in files:
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{i+1}.json','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:                 
                 remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
-                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
                 tasks.append(asyncio.create_task(upd_unbanPlayer(remid0, sid0, sessionID0, serverId, personaId)))
             except:
                 continue
@@ -891,7 +903,10 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
                 remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
             except:
                 await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            try:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            except:
+                await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + '无效id')
 
         res = await upd_unbanPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
@@ -915,14 +930,17 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
             server_id = int(arg[0])
             personaName = arg[1]
 
-            with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-                serverGT = json.load(f)
-                gameId = serverGT['gameId']      
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                gameId = serverBL['result']['serverInfo']['gameId']     
                 try:
                     remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
                 except:
                     await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
-                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+                try:
+                    personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+                except:
+                    await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + '无效id')
             try:
                 pl = await upd_blazepl(gameId)
                 mapName = MapTeamDict[f'{pl["map"]}']['Chinese']
@@ -976,9 +994,9 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                             else:
                                 teamIds.append(2)
 
-                with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-                    serverGT = json.load(f)
-                    gameId = serverGT['gameId']
+                with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                    serverBL = json.load(f)
+                    gameId = serverBL['result']['serverInfo']['gameId']
                     try:
                         remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6)
                     except:
@@ -1002,7 +1020,10 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
         if reply_message_id(event) == None:
             server_id = int(arg[0])
             personaName = arg[1]
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            try:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            except:
+                await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '无效id')
             day = int(arg[2])
 
             (BF1_SERVERS_DATA/f'{session}_vip').mkdir(exist_ok=True)
@@ -1242,7 +1263,10 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
     if(check_admin(session, user_id)):
         server_id = int(arg[0])
         personaName = arg[1]
-        personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+        try:
+            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+        except:
+            await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '无效id')
 
         (BF1_SERVERS_DATA/f'{session}_vip').mkdir(exist_ok=True)
         vipfile = os.listdir(BF1_SERVERS_DATA/f'{session}_vip')
@@ -1283,9 +1307,9 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
 
     if(check_admin(session, user_id)):
         server_id = int(arg[0])
-        with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-            serverGT = json.load(f)
-            gameId = serverGT['gameId']
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
+            gameId = serverBL['result']['serverInfo']['gameId']
 
         try:
             file_dir = await asyncio.wait_for(draw_pl1(session,server_id, gameId, remid, sid, sessionID), timeout=20)
@@ -2212,8 +2236,6 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
     session = event.group_id
 
     if session == 609250652:
-        server = html.unescape(arg[0])
-
         try:
             result = await upd_servers(remid2, sid2, sessionID2, server)
             gameId = result['result']['gameservers'][0]['gameId']
@@ -2292,10 +2314,10 @@ def check_alarm():
         for j in range(100):
             alarm_amount[i][j] = 0
 
-async def get_server_status(session:int,num:int,X,i,bot): 
-    with open(BF1_SERVERS_DATA/f'{session}_jsonGT'/f'{session}_{i+1}.json','r', encoding='utf-8') as f:
-        serverGT = json.load(f)
-        gameId = serverGT['gameId']
+async def get_server_status(session:int,num,X,i,bot): 
+    with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{num[i]}','r', encoding='utf-8') as f:
+        serverBL= json.load(f)
+        gameId = serverBL['result']['serverInfo']['gameId']
     try:
         async_result = await upd_detailedServer(remid2, sid2, sessionID2, gameId)
         status = async_result['result']['serverInfo']['slots']['Soldier']
@@ -2304,7 +2326,7 @@ async def get_server_status(session:int,num:int,X,i,bot):
         map = async_result['result']['serverInfo']['mapNamePretty']
         #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
         if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
-            await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{i+1}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+            await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{num[i][-6]}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
             alarm_amount[X][i] = alarm_amount[X][i] + 1
     except:
         print('获取失败')
@@ -2355,7 +2377,7 @@ async def bf1_alarm():
                 break
         if mode == 1:
             num = get_server_num(session)
-            for Y in range(num):
+            for Y in range(len(num)):
                 if alarm_amount[X][Y] < 3:
                     tasks.append(asyncio.create_task(get_server_status(session,num,X,Y,bot)))
     if len(tasks) != 0:
