@@ -178,5 +178,3 @@ cython_debug/
 
 secret.py
 image.py
-
-*.pyc
