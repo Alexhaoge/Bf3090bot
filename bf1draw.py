@@ -1683,7 +1683,7 @@ async def draw_exchange(remid, sid, sessionID):
     tasks = []
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
-    font_2 = ImageFont.truetype(font='Dengb.ttf', size=10, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=15, encoding='UTF-8')
     for i in range(len(res['result']['items'])):
         url = 'https://eaassets-a.akamaihd.net/battlelog/battlebinary/'+res['result']['items'][i]['item']['images']['Png180xANY'][11:]
         position = (50+200*(i%7),100+150*(i//7))
@@ -1703,7 +1703,7 @@ async def draw_exchange(remid, sid, sessionID):
                 draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text)[0],150+150*(i//7)), text=text ,fill=((255,100,0,255)),font=font_0)
     
         if text1 != None:
-            draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text1)[0],175+150*(i//7)), text=text1 ,fill=(55, 1, 27, 255),font=font_2)
+            draw.text(xy=(140+200*(i%7)-0.5*font_2.getsize(text1)[0],173+150*(i//7)), text=text1 ,fill=(55, 1, 27, 255),font=font_2)
 
         draw.text(xy=(140+200*(i%7)-0.5*font_0.getsize(text2)[0],190+150*(i//7)), text=text2 ,fill=(0, 0, 100, 255),font=font_0)
         tasks.append(asyncio.create_task(paste_image(url,img,position)))

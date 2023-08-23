@@ -140,6 +140,17 @@ def check_session(session:int):
         result = int(f.read())
     return result
 
+def check_server_id(session,new_server_id):
+    try:
+        with open(BF1_SERVERS_DATA/f'{session}'/ f'{session}_{new_server_id}.json',"r") as f:
+            server_id = f.read()
+            if f'{session}_{server_id}.json' in os.listdir(BF1_SERVERS_DATA/f'{session}_jsonBL'):
+                return server_id
+            else:
+                return new_server_id
+    except:
+        return new_server_id
+
 def search_dicts_by_key_value(dict_list, key, value):
     for d in dict_list:
         if d[key] == value:
@@ -200,6 +211,7 @@ BF1_REPORT = on_command(f"{PREFIX}举报",aliases={f'{PREFIX}举办', f'{PREFIX}
 #bf1rsp
 BF1_ADDADMIN = on_command(f'{PREFIX}addadmin', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 BF1_DELADMIN = on_command(f'{PREFIX}deladmin', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
+BF1_ADMINLIST = on_command(f'{PREFIX}adminlist', aliases={f'{PREFIX}管理列表'}, block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 BF1_INITMAP = on_command(f'{PREFIX}initmap', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
 BF1_CHOOSELEVEL = on_command(f'{PREFIX}map', block=True, priority=1)
 BF1_KICK = on_command(f'{PREFIX}k', aliases={f'{PREFIX}kick', f'{PREFIX}踢出'}, block=True, priority=1)
@@ -235,6 +247,8 @@ BF1_ADMINDRAW= on_command(f'{PREFIX}admindraw', block=True, priority=1)
 
 #bf1 server alarm
 BF_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=SUPERUSER)
+BF_REBIND = on_command(f'{PREFIX}改绑', block=True, priority=1, permission=SUPERUSER)
+BF_ADDBIND = on_command(f'{PREFIX}添加服别名', block=True, priority=1, permission=SUPERUSER)
 BF1_SERVER_ALARM = on_command(f'{PREFIX}打开预警', block=True, priority=1)
 BF1_SERVER_ALARMOFF = on_command(f'{PREFIX}关闭预警', block=True, priority=1)
 
@@ -434,15 +448,31 @@ async def bf1_admin(event:GroupMessageEvent, state:T_State):
     session = event.group_id
     session = check_session(session)
     arg = message.extract_plain_text().split(' ')
+
     with open(BF1_SERVERS_DATA/f'{session}_admin.txt','r') as f:
         admin = f.read()
         
     with open(BF1_SERVERS_DATA/f'{session}_admin.txt','a+') as f:
-        if admin.find(arg[0]) != -1:
-            await BF1_ADDADMIN.send(MessageSegment.reply(event.message_id) + f'请不要重复添加')
+        ok = ""
+        error = ""
+        msg = ""
+        for ad in arg:
+            if admin.find(ad) != -1:
+                error += f"{ad} "
+            else:
+                try:
+                    ad = int(ad)
+                    f.write(f',{ad}')
+                except:
+                    continue
+                ok += f"{ad} "
+        if error == "":
+            msg = f'本群组已添加管理：{ok.rstrip()}'
+        elif ok == "":
+            msg = f'请不要重复添加：{error.rstrip()}'
         else:
-            f.write(f',{arg[0]}')
-            await BF1_ADDADMIN.send(MessageSegment.reply(event.message_id) + f'本群组已添加管理：{int(arg[0])}')
+            msg = f'本群组已添加管理：{ok.rstrip()}\n请不要重复添加：{error.rstrip()}'
+        await BF1_ADDADMIN.send(MessageSegment.reply(event.message_id) + msg)
 
 @BF1_DELADMIN.handle()
 async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
@@ -455,13 +485,31 @@ async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
     
     adminnew = ''
     for ad in admin:
-        if ad == arg[0] or ad == '': 
+        if ad in arg or ad == '': 
             continue
         else:
             adminnew = adminnew + ad +','
     with open(BF1_SERVERS_DATA/f'{session}_admin.txt','w') as f:
             f.write(adminnew)
-    await BF1_DELADMIN.send(MessageSegment.reply(event.message_id) + f'本群组已删除管理：{int(arg[0])}')
+    await BF1_DELADMIN.send(MessageSegment.reply(event.message_id) + f'本群组已删除管理：{message.extract_plain_text()}')
+
+@BF1_ADMINLIST.handle()
+async def bf1_adminlist(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    session = event.group_id
+    session = check_session(session)
+    arg = message.extract_plain_text().split(' ')
+    with open(BF1_SERVERS_DATA/f'{session}_admin.txt','r') as f:
+        admin = f.read().split(',')
+    
+    adminlist = ''
+    for ad in admin:
+        if ad == '' or ad == "120681532": 
+            continue
+        else:
+            adminlist = adminlist + ad +'\n'
+
+    await BF1_DELADMIN.send(MessageSegment.reply(event.message_id) + f'本群组管理列表：\n{adminlist.rstrip()}')
 
 @BF1_INITMAP.handle()
 async def bf1_initmap(event:GroupMessageEvent, state:T_State):
@@ -496,7 +544,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
     
     if(check_admin(session, user_id)):
-        server_id = arg[0]
+        server_id = check_server_id(session,arg[0])
         mapName = arg[1]
         try:
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
@@ -577,11 +625,11 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
     if(check_admin(session, user_id)):
         if reply_message_id(event) == None:
             try:
-                server_id = arg[0]
+                server_id = check_server_id(session,arg[0])
                 name = arg[1]
                 reason = zhconvert(arg[2])
             except:
-                server_id = arg[0]
+                server_id = check_server_id(session,arg[0])
                 name = arg[1]
                 reason = zhconvert('违反规则')
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
@@ -608,7 +656,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 with open(BF1_SERVERS_DATA/f'{session}_pl'/f'{reply_message_id(event)}.txt','r') as f:
                     pl_json = json.load(f)
                     pl = pl_json['pl']
-                    server_id = int(pl_json['id'])
+                    server_id = pl_json['id']
             except:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '请回复正确的消息')
             else:
@@ -701,7 +749,7 @@ async def bf1_kickall(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = check_server_id(session,arg[0])
         try:
             reason = zhconvert(arg[1])
         except:
@@ -750,7 +798,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
 
     if(check_admin(session, user_id)):
         if reply_message_id(event) == None:
-            server_id = int(arg[0])
+            server_id = check_server_id(session,arg[0])
             personaName = arg[1]
             try:
                 reason = zhconv.convert(arg[2], 'zh-tw')
@@ -780,7 +828,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 with open(BF1_SERVERS_DATA/f'{session}_pl'/f'{reply_message_id(event)}.txt','r') as f:
                     pl_json = json.load(f)
                     pl = pl_json['pl']
-                    server_id = int(pl_json['id'])
+                    server_id = pl_json['id']
             except:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '请回复正确的消息')
             else:
@@ -891,7 +939,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = check_server_id(session,arg[0])
         personaName = arg[1]
     #    reason = zhconv.convert(arg[2], 'zh-tw')
 
@@ -927,7 +975,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
 
     if(check_admin(session, user_id)):
         if reply_message_id(event) == None:
-            server_id = int(arg[0])
+            server_id = check_server_id(session,arg[0])
             personaName = arg[1]
 
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
@@ -960,9 +1008,9 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                         continue 
 
                 if teamId == 1:
-                    teamName = pl['team1']
-                elif teamId == 2:
                     teamName = pl['team2']
+                elif teamId == 2:
+                    teamName = pl['team1']
                 else : await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + '移动失败,玩家不在服务器中')
 
                 res = await upd_movePlayer(remid0, sid0, sessionID0, gameId, personaId, teamId)
@@ -979,7 +1027,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 with open(BF1_SERVERS_DATA/f'{session}_pl'/f'{reply_message_id(event)}.txt','r') as f:
                     pl_json = json.load(f)
                     pl = pl_json['pl']
-                    server_id = int(pl_json['id'])
+                    server_id = pl_json['id']
             except:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '请回复正确的消息')
             else:
@@ -1018,7 +1066,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
 
     if(check_admin(session, user_id)):
         if reply_message_id(event) == None:
-            server_id = int(arg[0])
+            server_id = check_server_id(session,arg[0])
             personaName = arg[1]
             try:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -1087,7 +1135,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 with open(BF1_SERVERS_DATA/f'{session}_pl'/f'{reply_message_id(event)}.txt','r') as f:
                     pl_json = json.load(f)
                     pl = pl_json['pl']
-                    server_id = int(pl_json['id'])
+                    server_id = pl_json['id']
             except:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '请回复正确的消息')
             else:
@@ -1170,7 +1218,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = check_server_id(session,arg[0])
 
         (BF1_SERVERS_DATA/f'{session}_vip').mkdir(exist_ok=True)
         vipfile =  os.listdir(BF1_SERVERS_DATA/f'{session}_vip')
@@ -1180,7 +1228,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
             with open(BF1_SERVERS_DATA/f'{session}_vip'/i,'r', encoding='utf-8') as f:
                 personaName = f.read()
                 nextday = i.split('_')
-                if int(nextday[1]) != server_id:
+                if nextday[1] != server_id:
                     continue
                 else:
                     if nextday[len(nextday)-1] == 'unabled':
@@ -1207,7 +1255,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = check_server_id(session,arg[0])
 
         (BF1_SERVERS_DATA/f'{session}_vip').mkdir(exist_ok=True)
         vipfile =  os.listdir(BF1_SERVERS_DATA/f'{session}_vip')
@@ -1227,7 +1275,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 personaName = f.read()
                 nextday = i.split('_')
                 personaId = int(nextday[2])
-                if int(nextday[1]) != server_id:
+                if nextday[1] != server_id:
                     f.close()
                     continue
                 else:
@@ -1261,7 +1309,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = check_server_id(session,arg[0])
         personaName = arg[1]
         try:
             personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -1306,7 +1354,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        server_id = int(arg[0])
+        server_id = check_server_id(session,arg[0])
         with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
             serverBL = json.load(f)
             gameId = serverBL['result']['serverInfo']['gameId']
@@ -2094,6 +2142,47 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
         except FileNotFoundError:
             await BF1_BIND.finish(f'请联系管理员处理')
 
+@BF_REBIND.handle()
+async def bf1_rebindserver(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ',1)
+    server_id = arg[0]
+    new_server_id = html.unescape(arg[1])
+    session = check_session(event.group_id)
+ 
+    (BF1_SERVERS_DATA/f'{session}').mkdir(exist_ok=True)
+    (BF1_SERVERS_DATA/f'{session}_jsonBL').mkdir(exist_ok=True)
+    (BF1_SERVERS_DATA/f'{session}_jsonGT').mkdir(exist_ok=True)
+    (BF1_SERVERS_DATA/f'{session}_vip').mkdir(exist_ok=True)
+
+    os.rename(BF1_SERVERS_DATA/f'{session}'/ f'{session}_{server_id}.json',BF1_SERVERS_DATA/f'{session}'/ f'{session}_{new_server_id}.json')
+    os.rename(BF1_SERVERS_DATA/f'{session}_jsonBL'/ f'{session}_{server_id}.json',BF1_SERVERS_DATA/f'{session}_jsonBL'/ f'{session}_{new_server_id}.json')
+    os.rename(BF1_SERVERS_DATA/f'{session}_jsonGT'/ f'{session}_{server_id}.json',BF1_SERVERS_DATA/f'{session}_jsonGT'/ f'{session}_{new_server_id}.json')
+
+    vipfile =  os.listdir(BF1_SERVERS_DATA/f'{session}_vip')
+
+    for i in vipfile:
+        nextday = i.split('_')
+        if nextday[1] == server_id:
+            newvip = ""
+            nextday[1] = new_server_id
+            for j in nextday:
+                newvip += f"{j}_"
+            os.rename(BF1_SERVERS_DATA/f'{session}_vip'/i,BF1_SERVERS_DATA/f'{session}_vip'/newvip.rstrip("_"))
+    await BF_REBIND.finish(f'已将"{server_id}"改绑为"{new_server_id}"')
+
+@BF_ADDBIND.handle()
+async def bf1_addbindserver(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ',1)
+    server_id = arg[0]
+    new_server_id = html.unescape(arg[1])
+    session = check_session(event.group_id)
+
+    with open(BF1_SERVERS_DATA/f'{session}'/ f'{session}_{new_server_id}.json',"w") as f:
+        f.write(server_id)
+    await BF_ADDBIND.finish(f'已为"{server_id}"添加别名："{new_server_id}"')
+
 @BF1_SERVER_ALARM.handle()
 async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
@@ -2216,7 +2305,7 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
     session = check_session(session)
     user_id = event.user_id
 
-    server_id = arg[0]
+    server_id = check_server_id(session,arg[0])
         
     with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
         serverBL = json.load(f)
@@ -2315,9 +2404,10 @@ def check_alarm():
             alarm_amount[i][j] = 0
 
 async def get_server_status(session:int,num,X,i,bot): 
-    with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{num[i]}','r', encoding='utf-8') as f:
+    with open(BF1_SERVERS_DATA/f'{check_session(session)}_jsonBL'/f'{num[i]}','r', encoding='utf-8') as f:
         serverBL= json.load(f)
         gameId = serverBL['result']['serverInfo']['gameId']
+        serverName = re.findall(r'_(\w+).json',num[i])[0]
     try:
         async_result = await upd_detailedServer(remid2, sid2, sessionID2, gameId)
         status = async_result['result']['serverInfo']['slots']['Soldier']
@@ -2326,7 +2416,7 @@ async def get_server_status(session:int,num,X,i,bot):
         map = async_result['result']['serverInfo']['mapNamePretty']
         #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
         if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
-            await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{num[i][-6]}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+            await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{serverName}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
             alarm_amount[X][i] = alarm_amount[X][i] + 1
     except:
         print('获取失败')
@@ -2376,7 +2466,7 @@ async def bf1_alarm():
             if sign == 1:
                 break
         if mode == 1:
-            num = get_server_num(session)
+            num = get_server_num(check_session(session))
             for Y in range(len(num)):
                 if alarm_amount[X][Y] < 3:
                     tasks.append(asyncio.create_task(get_server_status(session,num,X,Y,bot)))
