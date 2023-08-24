@@ -36,17 +36,21 @@ async def paste_exchange(url:str,img,position):
     img.paste(image,position,image)
 
 async def paste_emb(url,img,position):
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(url,timeout=5)
-            image_data = response.content
-            image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
+    if f'{url.split("=")[-1]}.png' in os.listdir(BF1_PLAYERS_DATA/"Emblem"):
+        image = Image.open(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+    else:
+        async with httpx.AsyncClient() as client:
             try:
-                img.paste(image,position,image)
+                response = await client.get(url,timeout=5)
+                image_data = response.content
+                image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
+                image.save(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+                try:
+                    img.paste(image,position,image)
+                except:
+                    img.paste(image,position)
             except:
-                img.paste(image,position)
-        except:
-            pass
+                pass
 
 
 async def draw_f(server_id,session:int,remid, sid, sessionID):
@@ -1254,26 +1258,26 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
         avlevel = avkd = avkp = 0
     
     draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率   语 IP' ,fill=(255, 255, 255, 255),font=font_2)
-
+    draw.text(xy=(298,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(410,27.5), text=f'            KD    KP     爆头       胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(865,27.5), text=f'语' ,fill=(255, 255, 255, 255),font=font_2)
+    
     (BF1_SERVERS_DATA/f'{session}_pl').mkdir(exist_ok=True)
     f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
     f.write('{\n"pl": [\n')
     for i in range(len(stat1)):
-        draw.text(xy=(35,90+30*i), text=f'{i+1}' , fill =(255, 255, 255, 255),font=font_2)
-        
+        draw.text(xy=(22.5-font_2.getsize(f'{i+1}')[0]/2,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
         if stat1[i]['rank'] < 50:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 255, 100))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(0, 255, 255, 100))
         elif stat1[i]['rank'] < 100:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 0, 100))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(0, 255, 0, 100))
         elif stat1[i]['rank'] < 150:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 255, 0, 100))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(255, 255, 0, 100))
         else:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 0, 0, 150))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(255, 0, 0, 150))
         
         text_width, _ = font_3.getsize(str(stat1[i]['rank']))
-        x = 120 - text_width / 2
+        x = 80 - text_width / 2
         y = 93 + 30*i
         draw.text((x, y), str(stat1[i]['rank']), fill=(255, 255, 255, 255), font=font_3)
         
@@ -1287,59 +1291,60 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
                 if result3 == []:
                     if result4 == []:
                         if stat1[i]['platoon'] == "":
-                            draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
                         else:
-                            draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
                     else:
                         if stat1[i]['platoon'] == "":
-                            draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'{stat1[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
                         else:
-                            draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
                 else:
                     if stat1[i]['platoon'] == "":
-                        draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+                        draw.text(xy=(110,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
                     else:
-                        draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+                        draw.text(xy=(110,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
             else:
                 if stat1[i]['platoon'] == "":
-                    draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+                    draw.text(xy=(110,90+30*i), text=f'{stat1[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
                 else:
-                    draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+                    draw.text(xy=(110,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
         else:
             if stat1[i]['platoon'] == "":
-                draw.text(xy=(145,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+                draw.text(xy=(110,90+30*i), text=f'{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
             else:
-                draw.text(xy=(145,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+                draw.text(xy=(110,90+30*i), text=f'[{stat1[i]["platoon"]}]{stat1[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
 
         if stat1[i]['killDeath'] > 2.5:
-            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(485,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat1[i]['killDeath'] > 1:
-            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(485,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(540,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(485,90+30*i), text=f'{stat1[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if stat1[i]['killsPerMinute'] > 2.5:
-            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(549,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat1[i]['killsPerMinute'] > 1:
-            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(549,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(599,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(549,90+30*i), text=f'{stat1[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat1[i]['headShot'].strip('%')) / 100  > 0.2:
-            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(617,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat1[i]['headShot'].strip('%')) / 100 > 0.05:
-            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(617,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(662,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(617,90+30*i), text=f'{stat1[i]["headShot"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat1[i]['winPercent'].strip('%')) / 100 > 0.7:
-            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(710,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat1[i]['winPercent'].strip('%')) / 100 > 0.4:
-            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(710,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(750,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(710,90+30*i), text=f'{stat1[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
-        draw.text(xy=(835,90+30*i), text=f'{stat1[i]["loc"]} {stat1[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(800,90+30*i), text=f'{int(stat1[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(865,90+30*i), text=f'{stat1[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
         
         f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %s\n},\n'%(i+1,stat1[i]['rank'],stat1[i]['killDeath'],stat1[i]['killsPerMinute'],stat1[i]['id']))
     position = (60, 110)
@@ -1370,24 +1375,27 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     except:
         avlevel = avkd = avkp = 0
     
-    draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(320,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(455,27.5), text=f'             KD    KP     爆头      胜率   语 IP' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(298,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(410,27.5), text=f'            KD    KP     爆头       胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(865,27.5), text=f'语' ,fill=(255, 255, 255, 255),font=font_2)
     
+    (BF1_SERVERS_DATA/f'{session}_pl').mkdir(exist_ok=True)
+    f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
+    f.write('{\n"pl": [\n')
     for i in range(len(stat2)):
-        draw.text(xy=(35,90+30*i), text=f'{i+33}' , fill =(255, 255, 255, 255),font=font_2)
-        
+        draw.text(xy=(22.5-font_2.getsize(f'{i+1}')[0]/2,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
         if stat2[i]['rank'] < 50:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 255, 100))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(0, 255, 255, 100))
         elif stat2[i]['rank'] < 100:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(0, 255, 0, 100))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(0, 255, 0, 100))
         elif stat2[i]['rank'] < 150:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 255, 0, 100))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(255, 255, 0, 100))
         else:
-            draw.rectangle([(100, 94+30*i), (140, 112+30*i)], fill=(255, 0, 0, 150))
+            draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(255, 0, 0, 150))
         
         text_width, _ = font_3.getsize(str(stat2[i]['rank']))
-        x = 120 - text_width / 2
+        x = 80 - text_width / 2
         y = 93 + 30*i
         draw.text((x, y), str(stat2[i]['rank']), fill=(255, 255, 255, 255), font=font_3)
         
@@ -1401,59 +1409,61 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
                 if result3 == []:
                     if result4 == []:
                         if stat2[i]['platoon'] == "":
-                            draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
                         else:
-                            draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 255, 255),font=font_2)
                     else:
                         if stat2[i]['platoon'] == "":
-                            draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'{stat2[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
                         else:
-                            draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
+                            draw.text(xy=(110,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(0, 255, 255, 255),font=font_2)
                 else:
                     if stat2[i]['platoon'] == "":
-                        draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+                        draw.text(xy=(110,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
                     else:
-                        draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
+                        draw.text(xy=(110,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 125, 125, 255),font=font_2)
             else:
                 if stat2[i]['platoon'] == "":
-                    draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+                    draw.text(xy=(110,90+30*i), text=f'{stat2[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
                 else:
-                    draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
+                    draw.text(xy=(110,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(0, 255, 0, 255),font=font_2)
         else:
             if stat2[i]['platoon'] == "":
-                draw.text(xy=(145,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+                draw.text(xy=(110,90+30*i), text=f'{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
             else:
-                draw.text(xy=(145,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
-        
+                draw.text(xy=(110,90+30*i), text=f'[{stat2[i]["platoon"]}]{stat2[i]["userName"]}', fill=(255, 255, 0, 255),font=font_2)
+
         if stat2[i]['killDeath'] > 2.5:
-            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(485,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat2[i]['killDeath'] > 1:
-            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(485,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(540,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(485,90+30*i), text=f'{stat2[i]["killDeath"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if stat2[i]['killsPerMinute'] > 2.5:
-            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(549,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif stat2[i]['killsPerMinute'] > 1:
-            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(549,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(599,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(549,90+30*i), text=f'{stat2[i]["killsPerMinute"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat2[i]['headShot'].strip('%')) / 100  > 0.2:
-            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(617,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat2[i]['headShot'].strip('%')) / 100 > 0.05:
-            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(617,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(662,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(617,90+30*i), text=f'{stat2[i]["headShot"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
         if float(stat2[i]['winPercent'].strip('%')) / 100 > 0.7:
-            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
+            draw.text(xy=(710,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 0, 255),font=font_2)
         elif float(stat2[i]['winPercent'].strip('%')) / 100 > 0.4:
-            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
+            draw.text(xy=(710,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(255, 255, 255, 255),font=font_2)
         else:
-            draw.text(xy=(750,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
+            draw.text(xy=(710,90+30*i), text=f'{stat2[i]["winPercent"]}' ,fill=(173, 216, 255, 255),font=font_2)
 
-        draw.text(xy=(835,90+30*i), text=f'{stat2[i]["loc"]} {stat2[i]["lang"]}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(800,90+30*i), text=f'{int(stat2[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
+        draw.text(xy=(865,90+30*i), text=f'{stat2[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
+
         f.write('{\n"slot": %d,\n"rank": %d,\n"kd": %f,\n"kp": %f,\n"id": %s\n},\n'%(i+33,stat2[i]['rank'],stat2[i]['killDeath'],stat2[i]['killsPerMinute'],stat2[i]['id']))
 
     f.write('{\n"slot": 100,\n"rank": 0,\n"kd": 0,\n"kp": 0,\n"id": 0\n}')
@@ -1479,9 +1489,9 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     draw.line((60, 1165, 1860, 1165), fill=(128, 128, 128, 120), width=4)
 
     draw.line((60, 190, 60, 1165), fill=(128, 128, 128, 120), width=4)
-    draw.line((145, 190, 145, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((105, 190, 105, 1165), fill=(128, 128, 128, 120), width=4)
     draw.line((960, 190, 960, 1165), fill=(128, 128, 128, 120), width=4)
-    draw.line((1045, 190, 1045, 1165), fill=(128, 128, 128, 120), width=4)
+    draw.line((1005, 190, 1005, 1165), fill=(128, 128, 128, 120), width=4)
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
     print(datetime.datetime.now())
