@@ -38,6 +38,10 @@ async def paste_exchange(url:str,img,position):
 async def paste_emb(url,img,position):
     if f'{url.split("=")[-1]}.png' in os.listdir(BF1_PLAYERS_DATA/"Emblem"):
         image = Image.open(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+        try:
+            img.paste(image,position,image)
+        except:
+            img.paste(image,position)
     else:
         async with httpx.AsyncClient() as client:
             try:
@@ -1375,7 +1379,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     except:
         avlevel = avkd = avkp = 0
     
-        draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(100,15), text=f'150数量: {num_150}\n平均等级: {avlevel}' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(298,15), text=f'平均kd: {avkd}\n平均kp: {avkp}' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(410,27.5), text=f'            KD    KP     爆头       胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(865,27.5), text=f'语' ,fill=(255, 255, 255, 255),font=font_2)
