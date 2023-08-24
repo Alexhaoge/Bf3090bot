@@ -916,7 +916,7 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
         except:
             await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + '无效id')
         for i in files:
-            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{i+1}.json','r', encoding='utf-8') as f:
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{i}','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
