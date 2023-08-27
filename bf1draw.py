@@ -43,18 +43,39 @@ async def paste_emb(url,img,position):
         except:
             img.paste(image,position)
     else:
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.get(url,timeout=5)
-                image_data = response.content
-                image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
-                image.save(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+        if url.endswith('.JPEG') or url.endswith('.png'):
+            if url.split("/")[-1] in os.listdir(BF1_PLAYERS_DATA/"Emblem"):
+                image = Image.open(BF1_PLAYERS_DATA/"Emblem"/url.split("/")[-1])
                 try:
                     img.paste(image,position,image)
                 except:
                     img.paste(image,position)
-            except:
-                pass
+            else:
+                async with httpx.AsyncClient() as client:
+                    try:
+                        response = await client.get(url,timeout=5)
+                        image_data = response.content
+                        image = Image.open(BytesIO(image_data)).resize((250,250))     
+                        image.save(BF1_PLAYERS_DATA/"Emblem"/url.split("/")[-1])
+                        try:
+                            img.paste(image,position,image)
+                        except:
+                            img.paste(image,position)
+                    except:
+                        pass
+        else:
+            async with httpx.AsyncClient() as client:
+                try:
+                    response = await client.get(url,timeout=5)
+                    image_data = response.content
+                    image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
+                    image.save(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+                    try:
+                        img.paste(image,position,image)
+                    except:
+                        img.paste(image,position)
+                except:
+                    pass
 
 
 async def draw_f(server_id,session:int,remid, sid, sessionID):
@@ -1384,11 +1405,8 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     draw.text(xy=(410,27.5), text=f'            KD    KP     爆头       胜率    时长' ,fill=(255, 255, 255, 255),font=font_2)
     draw.text(xy=(865,27.5), text=f'语' ,fill=(255, 255, 255, 255),font=font_2)
     
-    (BF1_SERVERS_DATA/f'{session}_pl').mkdir(exist_ok=True)
-    f = open(BF1_SERVERS_DATA/f'{session}_pl'/f'{server_id}_pl.txt','w')
-    f.write('{\n"pl": [\n')
     for i in range(len(stat2)):
-        draw.text(xy=(22.5-font_2.getsize(f'{i+1}')[0]/2,90+30*i), text=f'{i+1}' , fill =(255, 255,255, 255),font=font_2)
+        draw.text(xy=(22.5-font_2.getsize(f'{i+33}')[0]/2,90+30*i), text=f'{i+33}' , fill =(255, 255,255, 255),font=font_2)
         if stat2[i]['rank'] < 50:
             draw.rectangle([(60, 94+30*i), (100, 112+30*i)], fill=(0, 255, 255, 100))
         elif stat2[i]['rank'] < 100:
@@ -1761,5 +1779,144 @@ async def draw_faq():
             draw.text(xy=(10,30*i), text=textArg[i], fill=(150, 0, 0, 255),font=font_0)
         else:
             draw.text(xy=(10,30*i), text=textArg[i], fill=(0, 0, 100, 255),font=font_0)
+
+    return base64img(img)
+
+async def draw_re(remid, sid, sessionID, personaId, playerName):
+    print(datetime.datetime.now())
+    tasks = []
+    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
+
+    personaIds=[]
+    personaIds.append(personaId)
+    tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
+    tasks.append(asyncio.create_task(BTR_get_recent_info(playerName)))
+    res_stat,emblem,res_tag,recent = await asyncio.gather(*tasks)
+
+    name = playerName
+    tag = res_tag['result'][f'{personaId}']
+    kpm = res_stat['result']['basicStats']['kpm']
+    win = res_stat['result']['basicStats']['wins']
+    loss = res_stat['result']['basicStats']['losses']
+    acc = res_stat['result']['accuracyRatio']
+    hs = res_stat['result']['headShots']
+    secondsPlayed = res_stat['result']['basicStats']['timePlayed']
+    kd = res_stat['result']['kdr']
+    k = res_stat['result']['basicStats']['kills']
+    d = res_stat['result']['basicStats']['deaths']
+    print(datetime.datetime.now())
+
+    try:
+        emblem = emblem['result'].split('/')
+    except:
+        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+    else:
+        try: 
+            sta1 = emblem[7]
+            sta2 = emblem[8]
+            sta3 = emblem[9]
+            sta4 = emblem[10].split('?')[1]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/ugc/'+sta1+'/'+sta2+'/'+sta3+'/256.png?'+sta4
+        except:
+            sta1 = emblem[6]
+            sta2 = emblem[len(emblem)-1].split('.')[0]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+
+    try:
+        img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg') 
+        img = img.resize((1800,1800))
+        img = img.crop((250,0,1550,(170*len(recent)+300)))
+    except:    
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC1.jpg')
+        img = img.resize((1300,1800))
+        img = img.crop((0,0,1300,(170*len(recent)+300)))
+        img = img.filter(ImageFilter.GaussianBlur(radius=15))
+
+    textbox = Image.new("RGBA", (1300,250), (254, 238, 218, 180))
+    draw = ImageDraw.Draw(textbox)
+    font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_3 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
+    font_4 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_5 = ImageFont.truetype(font='Dengb.ttf', size=30, encoding='UTF-8')
+    if tag == '':
+        text=f'{name}'
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
+    else:
+        text=f'[{tag}]{name}'
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
+
+    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    try:
+        draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
+    except:
+        draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:0.00)', fill=(66, 112, 244, 255),font=font_2)
+    
+    position = (0, 0)
+    img.paste(textbox, position, textbox)
+    
+    await paste_emb(emblem,img,(0,0))
+
+    if recent == None:
+        return 0
+    for i in range(len(recent)):
+        textbox1 = Image.new("RGBA", (1300,170), (254, 238, 218, 180))
+        draw = ImageDraw.Draw(textbox1)
+
+        match = re.search(r'(\d+)h (\d+)m', recent[i]['time_play'])
+        if match:
+            hour = int(match.group(1))
+            minute = int(match.group(2))
+            time_played = 60*hour + minute
+        else:
+            match = re.search(r'(\d+)m', recent[i]['time_play'])
+            if match:                  
+                time_played = int(match.group(1))
+            else:
+                time_played = 0
+        time_play = recent[i]['time_play'].replace("h", "时").replace("m", "分")
+
+        kill = round(float(recent[i]["kpm"])*time_played,0)
+        death = round(kill / float(recent[i]["kd"]),0)
+        formatted_dt = '数据记录时间: ' + recent[i]["time"]
+ 
+        draw.text(xy=((650-font_5.getsize(formatted_dt)[0]/2),20), text=formatted_dt, fill=(34,139,34, 255),font=font_5)
+
+        draw.text(xy=(100,60), text=f'时长:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(210,60), text=f'{time_play}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(480,60), text=f'得分:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,60), text=f'{recent[i]["score"]}', fill=(66, 112, 244, 255),font=font_4)
+  
+        draw.text(xy=(790,60), text=f'击杀:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(900,60), text=f'{int(kill)}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1010,60), text=f'死亡:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(1120,60), text=f'{int(death)}', fill=(66, 112, 244, 255),font=font_4)        
+        
+        draw.text(xy=(100,100), text=f'胜负:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(210,100), text=f'{recent[i]["win_rate"]}', fill=(66, 112, 244, 255),font=font_4)        
+        draw.text(xy=(480,100), text=f'SPM:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,100), text=f'{recent[i]["spm"]}', fill=(66, 112, 244, 255),font=font_4)  
+
+        draw.text(xy=(790,100), text=f'KDA:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(900,100), text=f'{recent[i]["kd"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1010,100), text=f'KPM:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(1120,100), text=f'{recent[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
+        
+        draw.text(xy=(0,150), text=f'-----------------------------------------------------------------------------------------------',fill=(55, 1, 27, 255), font=font_5)
+        
+        position = (0, 250+170*i)
+        img.paste(textbox1,position,textbox1)
+
+    textbox = Image.new("RGBA", (1300,50), (254, 238, 218, 180))
+    img.paste(textbox,(0,170*len(recent)+250),textbox)
+
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
+    text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+    draw.text(xy=(img.width-font_0.getsize(text)[0],170*len(recent)+255), text=text ,fill=(34,139,34, 255),font=font_0)
+    draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
+    print(datetime.datetime.now())
 
     return base64img(img)

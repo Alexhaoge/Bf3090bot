@@ -10,17 +10,19 @@ from nonebot.adapters.onebot.v11 import (
     GroupDecreaseNoticeEvent, GroupIncreaseNoticeEvent,
     GroupRequestEvent,
 )
+from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
+from nonebot.permission import SUPERUSER
 
 from typing import Annotated
 import asyncio
-import time
+import html
 import os
 import pathlib
 import re
 from .bf1 import get_player_data,remid,sid,access_token,sessionID,check_session,reply_message_id,get_player_databyID,check_admin
-from .bf1rsp import getPersonasByName
+from .bf1rsp import getPersonasByName,upd_getPersonasByIds
 from .bf1draw import draw_stat
-from .utils import BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CURRENT_FOLDER
+from .utils import *
 from .image import *
 
 message_id = 0
@@ -39,6 +41,8 @@ del_user = on_notice(Rule(_is_del_user), priority=1, block=True)
 get_user = on_notice(Rule(_is_get_user), priority=1, block=True)
 
 add_user = on_request(Rule(_is_add_user), priority=1, block=True)
+
+welcome_user = on_command(f'{PREFIX}配置入群欢迎', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 
 approve_req = on_command('y',rule = to_me ,aliases={'n'},priority=1, block=True)
 
@@ -154,6 +158,16 @@ async def user_add(event: GroupMessageEvent):
             #    pass
 
 
+@welcome_user.handle()
+async def bf1_welcome(event:GroupMessageEvent, state:T_State):   
+    message = _command_arg(state) or event.get_message()
+    msg = html.unescape(message.extract_plain_text())
+    
+    (BF1_SERVERS_DATA/f'{event.group_id}_apply').mkdir(exist_ok=True)
+    with open(BF1_SERVERS_DATA/f'{event.group_id}_apply'/f'config.txt','w',encoding="utf-8") as f:
+        f.write(msg)
+    await welcome_user.finish(MessageSegment.reply(event.message_id) + f'已配置入群欢迎: {msg}')
+
 @get_user.handle()
 async def user_get(event: GroupIncreaseNoticeEvent):
     session = event.group_id
@@ -168,13 +182,20 @@ async def user_get(event: GroupIncreaseNoticeEvent):
                 break
         if sign == 1:
             break
-    try:
-        with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','r') as f:
-            personaId = str(f.read())
-        res = await get_player_databyID(personaId)
-        playerName = res['userName']
-        await bot.set_group_card(group_id=event.group_id, user_id=event.user_id, card=playerName)
-        await get_user.send(f'欢迎入群，已自动将您绑定为{playerName}')
-    except:
-        await get_user.send(f'欢迎入群')
+    if "config.txt" in os.listdir(BF1_SERVERS_DATA/f'{session}_apply'):
+        with open(BF1_SERVERS_DATA/f'{event.group_id}_apply'/f'config.txt',"r",encoding="utf-8") as f:
+            msg = f.read()
+        await get_user.finish(MessageSegment.at(event.user_id) + " " + msg)
+    else:
+        try:
+            with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','r') as f:
+                personaId= int(f.read())
+                personaIds = []
+                personaIds.append(personaId)
+                res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+                playerName = res1['result'][f'{personaId}']['displayName']
+            await bot.set_group_card(group_id=event.group_id, user_id=event.user_id, card=playerName)
+            await get_user.send(f'欢迎入群，已自动将您绑定为{playerName}')
+        except:
+            await get_user.send(f'欢迎入群')
 

@@ -239,7 +239,8 @@ BF1_PID= on_command(f'{PREFIX}tyc', aliases={f'{PREFIX}天眼查'}, block=True, 
 BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
 BF1_WP= on_command(f'{PREFIX}武器', aliases={f'{PREFIX}w', f'{PREFIX}wp', f'{PREFIX}weapon'}, block=True, priority=1)
 BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩', f'{PREFIX}查询',f'{PREFIX}生涯'}, block=True, priority=1)
-BF1_R= on_command(f'{PREFIX}r', aliases={f'{PREFIX}最近', f'{PREFIX}对局'}, block=True, priority=1)
+BF1_R= on_command(f'{PREFIX}r', aliases={f'{PREFIX}对局'}, block=True, priority=1)
+BF1_RE= on_command(f'{PREFIX}最近', block=True, priority=1)
 BF1_BIND_MAG = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)
 BF1_EX= on_command(f'{PREFIX}交换', block=True, priority=1)
 BF1_DRAW= on_command(f'{PREFIX}draw', block=True, priority=1)
@@ -2068,6 +2069,79 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
                         await BF1_R.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
                 except: 
                     await BF1_R.send(MessageSegment.reply(event.message_id) + '连接超时')
+                with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
+                    f.write(str(personaId))
+                (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
+                with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
+                    f.write(playerName)
+
+@BF1_RE.handle()
+async def bf1_recent1(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    session = check_session(event.group_id)
+    usercard = event.sender.card
+    user_id = event.user_id
+
+    mode = 0
+    if message.extract_plain_text().startswith(f'{PREFIX}'):
+        mode = 2
+    else:
+        playerName = message.extract_plain_text()
+        mode = 1
+    
+    print(f'mode={mode}')
+
+    if mode == 1:
+        try:
+            personaId,playerName,_ = await getPersonasByName(access_token, playerName)  
+        except:
+            await BF1_RE.send(MessageSegment.reply(event.message_id) + '无效id')
+        else:
+            try:
+                file_dir = await asyncio.wait_for(draw_re(remid2, sid2, sessionID2, personaId, playerName), timeout=35)
+                if str(file_dir) != '0':
+                    await BF1_RE.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+                else:
+                    await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
+            except: 
+                await BF1_RE.send(MessageSegment.reply(event.message_id) + '连接超时')
+
+    if mode == 2:
+        if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
+            with open(BF1_PLAYERS_DATA/f'{user_id}.txt','r') as f:
+                personaId = int(f.read())
+                personaIds = []
+                personaIds.append(personaId)
+                res1 = await upd_getPersonasByIds(remid2, sid2, sessionID2, personaIds)
+                userName = res1['result'][f'{personaId}']['displayName']
+            (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
+            with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
+                f.write(userName)  
+            try:
+                file_dir = await asyncio.wait_for(draw_re(remid2, sid2, sessionID2, personaId, userName), timeout=35)
+                if str(file_dir) != '0':
+                    await BF1_RE.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+                else:
+                    await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
+            except: 
+                await BF1_RE.send(MessageSegment.reply(event.message_id) + '连接超时')
+
+        else:
+            await BF1_RE.send(MessageSegment.reply(event.message_id) + f'您还未绑定，将尝试绑定: {usercard}')
+            try:
+                playerName = usercard
+                personaId,userName,_ = await getPersonasByName(access_token, playerName)
+            except:
+                await BF1_RE.send(MessageSegment.reply(event.message_id) + '绑定失败')
+            else:
+                try:
+                    file_dir = await asyncio.wait_for(draw_re(remid2, sid2, sessionID2, personaId, userName), timeout=35)
+                    if str(file_dir) != '0':
+                        await BF1_RE.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+                    else:
+                        await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
+                except: 
+                    await BF1_RE.send(MessageSegment.reply(event.message_id) + '连接超时')
                 with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
                     f.write(str(personaId))
                 (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
