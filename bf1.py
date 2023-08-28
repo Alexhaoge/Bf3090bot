@@ -196,9 +196,15 @@ def get_server_num(session:int):
     files = os.listdir(BF1_SERVERS_DATA/f'{session}_jsonBL')
     return files
     
-alarm_mode = [0]*100
-alarm_session = [0]*100
-job_cnt = 0
+with open(CURRENT_FOLDER/'alarm.json','r',encoding='UTF-8') as f:
+    alarm_json = json.load(f)
+
+job_cnt = alarm_json["job_cnt"]
+alarm_session = alarm_json["alarm_session"]
+alarm_mode = alarm_json["alarm_mode"]
+print(job_cnt)
+print(alarm_session)
+print(alarm_mode)
 
 #bf1 help
 BF1_INIT = on_command(f'{PREFIX}init', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
@@ -2285,8 +2291,19 @@ async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
             print(job_cnt)
             print(alarm_session)
             print(alarm_mode)
+
+            alarm_json = {
+                "job_cnt": job_cnt,
+                "alarm_session": alarm_session,
+                "alarm_mode": alarm_mode
+            }
+
+            with open(CURRENT_FOLDER/'alarm.json','w',encoding='UTF-8') as f:
+                alarm_json = json.dump(alarm_json,f,indent=4,ensure_ascii=False)
+
             await BF1_SERVER_ALARM.send(f'已打开预警，请注意接收消息')
-        else:await BF1_SERVER_ALARM.send(f'请不要重复打开')
+        else:
+            await BF1_SERVER_ALARM.send(f'请不要重复打开')
     else:
         await BF1_SERVER_ALARM.send('你不是本群组的管理员')
 
@@ -2315,6 +2332,15 @@ async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
             print(job_cnt)
             print(alarm_session)
             print(alarm_mode)
+
+            alarm_json = {
+                "job_cnt": job_cnt,
+                "alarm_session": alarm_session,
+                "alarm_mode": alarm_mode
+            }
+
+            with open(CURRENT_FOLDER/'alarm.json','w',encoding='UTF-8') as f:
+                alarm_json = json.dump(alarm_json,f,indent=4,ensure_ascii=False)
     else:
         await BF1_SERVER_ALARM.send('你不是本群组的管理员')
 

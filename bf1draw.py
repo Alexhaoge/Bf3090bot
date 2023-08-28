@@ -1879,7 +1879,10 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
         time_play = recent[i]['time_play'].replace("h", "时").replace("m", "分")
 
         kill = round(float(recent[i]["kpm"])*time_played,0)
-        death = round(kill / float(recent[i]["kd"]),0)
+        try:
+            death = round(kill / float(recent[i]["kd"]),0)
+        except:
+            death = 0
         formatted_dt = '数据记录时间: ' + recent[i]["time"]
  
         draw.text(xy=((650-font_5.getsize(formatted_dt)[0]/2),20), text=formatted_dt, fill=(34,139,34, 255),font=font_5)
