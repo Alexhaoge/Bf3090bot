@@ -1,6 +1,10 @@
 import json
 import numpy as np
 import matplotlib.dates as mdates
+import asyncio
+import time
+import httpx
+import uuid
 
 from io import BytesIO
 from base64 import b64encode
@@ -11,6 +15,79 @@ from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
 from .bf1draw import base64img
+
+async def upd_servers1(remid, sid, sessionID):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "GameServer.searchServers",
+	            "params": {
+		        "filterJson": "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
+                "game": "tunguska",
+                "limit": 200,
+                "protocolVersion": "3779779"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=None
+        )
+    return response.json()
+
+async def upd_draw(remid,sid,sessionID):
+    time_start = time.time()
+    print(datetime.now())
+    nameList = []
+    gameIdList = []
+    mapList = []
+    maxList = []
+    numList = []
+    tasks = []
+    for _ in range(30):
+        tasks.append(upd_servers1(remid, sid, sessionID))
+    results = await asyncio.gather(*tasks)
+    for result in results:
+        if isinstance(result, str):
+            continue
+        result: list = result["result"]
+        server_list = result['gameservers']
+        for server in server_list:
+            if server["gameId"] not in gameIdList and int(server["slots"]["Soldier"]["current"])!=0:
+                nameList.append(server["name"])
+                gameIdList.append(server["gameId"])
+                numList.append(server["slots"]["Soldier"]["current"])
+                maxList.append(server["slots"]["Soldier"]["max"])
+                mapList.append(server["mapName"])
+
+    print(f"共获取{len(gameIdList)}个私服")
+    
+    draw_dict = {}
+
+    for i in range(len(gameIdList)):
+        serverInfo = {
+            "server_name": f"{nameList[i]}",
+            "serverMax": f"{maxList[i]}",
+            "serverAmount": f"{numList[i]}",
+            "map": f"{mapList[i]}"
+            }
+        draw_dict[f"{gameIdList[i]}"] = serverInfo
+
+    with open(BF1_SERVERS_DATA/'draw.json','r',encoding='UTF-8') as f:
+        data = json.load(f)
+    data[f"{datetime.now().isoformat()}"] = draw_dict    
+    for i in list(data.keys()):    
+        if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
+            del data[i]
+    
+    with open(BF1_SERVERS_DATA/'draw.json','w',encoding='UTF-8') as f:
+        json.dump(data,f,indent=4,ensure_ascii=False)
+    
+    return draw_dict
 
 def draw_server_array_matplotlib(res: dict) -> str:
     local_tz = datetime.now(timezone.utc).astimezone().tzinfo

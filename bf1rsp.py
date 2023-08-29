@@ -269,24 +269,10 @@ async def upd_sessionId(res_access_token, remid, sid, num):
     if num == 0:
         with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
             f.write(f'{remid},{sid}')
-    elif num == 1:
-        with open(BF1_SERVERS_DATA/'Caches'/'id1.txt','w' ,encoding='UTF-8') as f:
+    else:
+        with open(BF1_SERVERS_DATA/'Caches'/f'id{num}.txt','w' ,encoding='UTF-8') as f:
             f.write(f'{remid},{sid}')
-    elif num == 2:
-        with open(BF1_SERVERS_DATA/'Caches'/'id2.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
-    elif num == 3:
-        with open(BF1_SERVERS_DATA/'Caches'/'id3.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
-    elif num == 4:
-        with open(BF1_SERVERS_DATA/'Caches'/'id4.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
-    elif num == 5:
-        with open(BF1_SERVERS_DATA/'Caches'/'id5.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
-    elif num == 6:
-        with open(BF1_SERVERS_DATA/'Caches'/'id6.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
+
     async with httpx.AsyncClient() as client:
         res_session = await client.post( 
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",

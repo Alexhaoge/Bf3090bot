@@ -185,6 +185,16 @@ async def user_get(event: GroupIncreaseNoticeEvent):
     if "config.txt" in os.listdir(BF1_SERVERS_DATA/f'{session}_apply'):
         with open(BF1_SERVERS_DATA/f'{event.group_id}_apply'/f'config.txt',"r",encoding="utf-8") as f:
             msg = f.read()
+        try:
+            with open(BF1_PLAYERS_DATA/f'{event.user_id}.txt','r') as f:
+                personaId= int(f.read())
+                personaIds = []
+                personaIds.append(personaId)
+                res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+                playerName = res1['result'][f'{personaId}']['displayName']
+            await bot.set_group_card(group_id=event.group_id, user_id=event.user_id, card=playerName)
+        except:
+            pass
         await get_user.finish(MessageSegment.at(event.user_id) + " " + msg)
     else:
         try:
