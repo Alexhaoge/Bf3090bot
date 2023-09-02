@@ -242,6 +242,8 @@ BF1_CHECKVIP = on_command(f'{PREFIX}checkvip', block=True, priority=1)
 BF1_UNVIP = on_command(f'{PREFIX}unvip', block=True, priority=1)
 BF1_PL = on_command(f'{PREFIX}pl', block=True, priority=1)
 BF1_ADMINPL = on_command(f'{PREFIX}adminpl', block=True, priority=1)
+BF1_PLS = on_command(f'{PREFIX}查黑队', block=True, priority=1)
+BF1_PLSS = on_command(f'{PREFIX}查战队', block=True, priority=1)
 
 #bf1status
 BF_STATUS = on_command(f'{PREFIX}bf status', block=True, priority=1)
@@ -832,7 +834,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 except:
                     await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '无效id')
             res = await upd_kickPlayer(remid0, sid0, sessionID0, gameId, personaId, reason)
-            res = await upd_banPlayer(remid0, sid0, sessionID0, serverId, personaName)
+            res = await upd_banPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
             if 'error' in res:
                 await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'封禁玩家：{personaName}失败，理由：无法处置管理员')
@@ -869,7 +871,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 personaName = res['result'][f'{personaId}']['displayName']
                 
                 res = await upd_kickPlayer(remid0, sid0, sessionID0, gameId, personaId, reason)
-                res = await upd_banPlayer(remid0, sid0, sessionID0, serverId, personaName)
+                res = await upd_banPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
                 if 'error' in res:
                     await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'封禁玩家：{personaName}失败，理由：无法处置管理员')
@@ -905,7 +907,7 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:    
                 remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7)
-                tasks.append(asyncio.create_task(upd_banPlayer(remid0, sid0, sessionID0, serverId, personaName)))
+                tasks.append(asyncio.create_task(upd_banPlayer(remid0, sid0, sessionID0, serverId, personaId)))
             except:
                 continue
         await asyncio.gather(*tasks)
@@ -1137,7 +1139,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         f.write(personaName)
                     await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})(未生效)')
                 else:        
-                    res = await upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaName)
+                    res = await upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
                     if 'error' in res:
                         await BF1_VIP.send(MessageSegment.reply(event.message_id) + '添加失败：可能玩家已经是vip了，且在本地没有记录')
@@ -1213,7 +1215,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                             f.write(personaName)
                         await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})(未生效)')
                     else:        
-                        res = await upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaName)
+                        res = await upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
                         if 'error' in res:
                             await BF1_VIP.send(MessageSegment.reply(event.message_id) + '添加失败：可能玩家已经是vip了，且在本地没有记录')
@@ -1295,7 +1297,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     continue
                 else:
                     if nextday[len(nextday)-1] == 'unabled':
-                        tasks.append(asyncio.create_task(upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaName)))
+                        tasks.append(asyncio.create_task(upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaId)))
                         nextday = nextday[len(nextday)-2]
                         f.close()
                         os.remove(BF1_SERVERS_DATA/f'{session}_vip'/i)
@@ -1407,6 +1409,54 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
         except:
             await BF1_ADMINPL.send(MessageSegment.reply(event.message_id) + '服务器未开启。')
  
+@BF1_PLS.handle()
+async def bf_pls(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ')
+    session = event.group_id
+    session = check_session(session)
+    user_id = event.user_id
+
+    if(check_admin(session, user_id)):
+        server_id = check_server_id(session,arg[0])
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
+            gameId = serverBL['result']['serverInfo']['gameId']
+
+        try:
+            file_dir = await asyncio.wait_for(draw_platoons(remid, sid, sessionID,gameId,1), timeout=20)
+            reply = await BF1_PLS.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        except asyncio.TimeoutError:
+            await BF1_PLS.send(MessageSegment.reply(event.message_id) + '连接超时')
+        except:
+            await BF1_PLS.send(MessageSegment.reply(event.message_id) + '服务器未开启，或者服务器内无两人以上黑队。')
+    else:
+        await BF1_PLS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
+
+
+@BF1_PLSS.handle()
+async def bf_plss(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split(' ')
+    session = event.group_id
+    session = check_session(session)
+    user_id = event.user_id
+
+    if(check_admin(session, user_id)):
+        server_id = check_server_id(session,arg[0])
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
+            gameId = serverBL['result']['serverInfo']['gameId']
+
+        try:
+            file_dir = await asyncio.wait_for(draw_platoons(remid, sid, sessionID,gameId,0), timeout=20)
+            reply = await BF1_PLSS.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        except asyncio.TimeoutError:
+            await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '连接超时')
+        except:
+            await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '服务器未开启。')
+    else:
+        await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
 @BF_STATUS.handle()
 async def bf_status(event:GroupMessageEvent, state:T_State):
@@ -2311,6 +2361,7 @@ async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
 
             await BF1_SERVER_ALARM.send(f'已打开预警，请注意接收消息')
         else:
+            job_cnt = job_cnt - 1
             await BF1_SERVER_ALARM.send(f'请不要重复打开')
     else:
         await BF1_SERVER_ALARM.send('你不是本群组的管理员')

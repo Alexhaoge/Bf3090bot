@@ -1923,3 +1923,98 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     print(datetime.datetime.now())
 
     return base64img(img)
+
+async def upd_pl_platoons(remid, sid, sessionID, gameId):
+    pljson = await upd_blazepl(gameId)
+    personaIds = []
+    playerNames = []
+    tasks = []
+    for stats in pljson["1"]:
+        personaIds.append(stats["id"])
+        playerNames.append(stats["userName"])
+    for stats in pljson["2"]:
+        personaIds.append(stats["id"])
+        playerNames.append(stats["userName"])
+
+    for id in personaIds:
+        tasks.append(asyncio.create_task(upd_platoons(remid,sid,sessionID,id)))
+    
+    plat = await asyncio.gather(*tasks)
+
+
+    platjson = {}
+    guids = []
+    for i in range(len(plat)):
+        res = plat[i]["result"]
+        for platoon in res:
+            name = platoon["name"]
+            guid = platoon["guid"]
+            if guid not in guids:
+                guids.append(guid)
+                platjson[guid] = {}
+                platjson[guid]["name"] = name
+                platjson[guid]["tag"] = platoon["tag"]
+                platjson[guid]["emblem"] = platoon["emblem"]
+                platjson[guid]["player"] = []
+                platjson[guid]["player"].append(playerNames[i])
+            else:
+                platjson[guid]["player"].append(playerNames[i])
+
+    return platjson
+
+async def draw_platoons(remid, sid, sessionID, gameId,mode):
+    platjson = await upd_pl_platoons(remid, sid, sessionID, gameId)
+    status = list(platjson.values())
+    
+    tasks = []
+    names = []
+    tags = []
+    emblems = []
+    players = []
+    hs = []
+    h = 0
+    for i in status:
+        if len(i["player"]) > mode:
+            names.append(i["name"])
+            tags.append(i["tag"])
+            emblems.append(i["emblem"])
+            players.append(i["player"])
+            hs.append(290+100*(len(i["player"])))
+            h += (290+100*(len(i["player"])))
+
+    img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC1.jpg')
+    img = img.resize((1300,h))
+    draw = ImageDraw.Draw(img)
+    
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=250, encoding='UTF-8')
+    font_1 = ImageFont.truetype(font='Dengb.ttf', size=90, encoding='UTF-8')
+    
+    y = 0
+    for i in range(len(names)):
+        draw.text(xy=(775-font_0.getsize(tags[i])[0]/2,y), text=tags[i] ,fill=(34,139,34, 255),font=font_0)
+        for j in range(len(players[i])):
+            draw.text(xy=(0,y + 250 + j*100), text=f"[{tags[i]}]{players[i][j]}" ,fill=(66, 112, 244, 255),font=font_1)
+
+        try:
+            emblem = emblems[i].split('/')
+        except:
+            emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+        else:
+            try: 
+                sta1 = emblem[7]
+                sta2 = emblem[8]
+                sta3 = emblem[9]
+                sta4 = emblem[10].split('?')[1]
+                emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/ugc/'+sta1+'/'+sta2+'/'+sta3+'/256.png?'+sta4
+            except:
+                sta1 = emblem[6]
+                sta2 = emblem[len(emblem)-1].split('.')[0]
+                emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+        
+
+        position = (0,y)
+        tasks.append(paste_emb(emblem,img,position))
+        y += hs[i]
+    await asyncio.gather(*tasks)
+
+    return base64img(img)

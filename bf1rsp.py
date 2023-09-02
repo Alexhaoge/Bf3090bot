@@ -498,7 +498,7 @@ async def upd_unbanPlayer(remid, sid, sessionID, serverId, personaId):
     return response.json()
 
 #加ban
-async def upd_banPlayer(remid, sid, sessionID, serverId, personaName):
+async def upd_banPlayer(remid, sid, sessionID, serverId, personaId):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
@@ -508,7 +508,7 @@ async def upd_banPlayer(remid, sid, sessionID, serverId, personaName):
 	            "params": {
 		        "game": "tunguska",
                 "serverId": f"{serverId}",
-                "personaName": f"{personaName}"
+                "personaId": f"{personaId}"
 	            },
                 "id": str(uuid.uuid4())
             },
@@ -569,7 +569,7 @@ async def upd_kickPlayer(remid, sid, sessionID, GameId, personaId, reason):
     return response.json()
 
 #加v
-async def upd_vipPlayer(remid, sid, sessionID, serverId, personaName):
+async def upd_vipPlayer(remid, sid, sessionID, serverId, personaId):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
@@ -579,7 +579,7 @@ async def upd_vipPlayer(remid, sid, sessionID, serverId, personaName):
 	            "params": {
 		        "game": "tunguska",
                 "serverId": f"{serverId}",
-                "personaName": f"{personaName}"
+                "personaId": f"{personaId}"
 	            },
                 "id": str(uuid.uuid4())
             },
