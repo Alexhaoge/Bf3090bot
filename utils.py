@@ -2,7 +2,7 @@ import json
 import requests
 import httpx
 from pathlib import Path
-
+import os
 from .config import Config
 from nonebot import get_driver
 
@@ -178,11 +178,41 @@ def get_wp_info(message:str,user_id:int):
                     playerName = message
     return [playerName,wpmode,mode]
 
+def search_vban(personaId):
+    with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
+        info = json.load(f)
+    
+    files = os.listdir(BF1_SERVERS_DATA/f'vban')
+    gameIds = []
+    reason = []
+    name = []
+    vbans = {}
+
+
+    for file in files:
+        arg = file.split("_")
+        session = arg[0]
+        server_id = arg[1]
+
+        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+            serverBL = json.load(f)
+            serverId = serverBL['result']['rspInfo']['server']['serverId']
+
+        with open(BF1_SERVERS_DATA/f'vban'/file,'r',encoding="UTF-8") as f:
+            vbanjson = json.load(f)
+            personaIds = list(vbanjson.keys())
+
+            for key in personaIds:
+                if key == str(personaId):
+                    try:
+                        name.append(info[f"{serverId}"]["server_name"])
+                        reason.append(vbanjson[key]["reason"])
+                    except:
+                        pass
+    num = len(name)
+    return num,name,reason
+
 def search_all(personaId):
-    owner = 0
-    ban = 0
-    admin = 0
-    vip = 0
 
     with open(BF1_SERVERS_DATA/'vip.json','r',encoding='UTF-8') as f:
         vip_dict = json.load(f)
@@ -192,6 +222,13 @@ def search_all(personaId):
         admin_dict = json.load(f)
     with open(BF1_SERVERS_DATA/'owner.json','r',encoding='UTF-8') as f:
         owner_dict = json.load(f)
+    
+    num,name,reason = search_vban(personaId)
+
+    owner = 0
+    ban = num
+    admin = 0
+    vip = 0
 
     for i in owner_dict.values():
         for dict in i:
@@ -229,7 +266,7 @@ def search_a(personaId,mode):
         with open(BF1_SERVERS_DATA/'owner.json','r',encoding='UTF-8') as f:
             res = json.load(f)
     else:
-        return 0
+        return num,name
     
     with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
         info = json.load(f)
@@ -244,7 +281,7 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
-def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7):
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8):
     with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
         arg0 = f.read().split(',')
     with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
@@ -260,7 +297,9 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     with open(CURRENT_FOLDER/'6.json','r',encoding='UTF-8') as f:
         arg6 = f.read().split(',')   
     with open(CURRENT_FOLDER/'7.json','r',encoding='UTF-8') as f:
-        arg7 = f.read().split(',')          
+        arg7 = f.read().split(',')  
+    with open(CURRENT_FOLDER/'8.json','r',encoding='UTF-8') as f:
+        arg8 = f.read().split(',')             
     if gameId in arg1:
         return remid1,sid1,sessionId1
     elif gameId in arg0:
@@ -276,7 +315,9 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     elif gameId in arg6:
         return remid6,sid6,sessionId6  
     elif gameId in arg7:
-        return remid7,sid7,sessionId7           
+        return remid7,sid7,sessionId7      
+    elif gameId in arg8:
+        return remid8,sid8,sessionId8      
 def special_stat_to_dict1(special_stat):
     List_AS = special_stat['4']
     dict_AS = {

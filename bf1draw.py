@@ -130,27 +130,24 @@ async def draw_f(server_id,session:int,remid, sid, sessionID):
         font_3 = ImageFont.truetype(font='msyhbd.ttc', size=28, encoding='UTF-8')
         font_4 = ImageFont.truetype(font='comic.ttf', size=72, encoding='UTF-8')
         draw0.text(xy=(80,8), text=servername, fill=(255, 255, 255, 255),font=font_1)
-        draw.text(xy=(560,10), text=status1, fill=(255, 255, 0, 200),font=font_2)
+        draw.text(xy=(560,10), text=zhconv.convert(status1,"zh-cn"), fill=(255, 255, 0, 200),font=font_2)
         draw.text(xy=(1160,10), text=status3, fill=(0, 255, 255, 200),font=font_2)
         draw.text(xy=(500,40), text='------------------------------------------------------', fill=(0, 255, 0, 100),font=font_1)
         if int(servermaxamount) - int(serveramount) < 10:
             draw.text(xy=(960,125), text=status2, fill=(0, 255, 0, 255),font=font_4)
         else:
             draw.text(xy=(960,125), text=status2, fill=(255, 150, 0, 255),font=font_4)
-        pattern = re.compile(r"([\u4e00-\u9fa5]|[a-zA-Z]|[≤≥。，、；：“”‘’！？【】（）{}\[\]&nbsp;&mdash;…《》〈〉·—～,.?+\'\"\/;_\(\)]\ |[0-9])")
-        count = 0
-        result = ''
-        for i in serverinfo:
-            if pattern.match(i) and len(i.encode('utf-8')) == 3:
-                count += 2
-            else:
-                count += 1
 
-            if count < 25:
+        result = ""
+        text = ""
+        for i in serverinfo:
+            if font_3.getsize(text)[0] <= 350:
+                text += i
                 result += i
             else:
-                result += i + '\n'
-                count = 0
+                result += i + "\n"
+                text = ""
+        result = zhconv.convert(result,"zh-cn")
 
         for i in range(len(result.split('\n'))):
             draw.text(xy=(520,90+i*40), text=result.split('\n')[i], fill=(255, 255, 255, 255),font=font_3)
@@ -222,30 +219,27 @@ async def draw_server(remid, sid, sessionID, serverName, res):
         draw = ImageDraw.Draw(textbox)
         font_1 = ImageFont.truetype(font='comic.ttf', size=44, encoding='UTF-8')
         font_2 = ImageFont.truetype(font='msyhbd.ttc', size=44, encoding='UTF-8')
-        font_3 = ImageFont.truetype(font='msyh.ttc', size=28, encoding='UTF-8')
+        font_3 = ImageFont.truetype(font='msyhbd.ttc', size=28, encoding='UTF-8')
         font_4 = ImageFont.truetype(font='comic.ttf', size=72, encoding='UTF-8')
         draw0.text(xy=(80,8), text=servername, fill=(255, 255, 255, 255),font=font_1)
-        draw.text(xy=(560,10), text=status1, fill=(255, 255, 0, 200),font=font_2)
+        draw.text(xy=(560,10), text=zhconv.convert(status1,"zh-cn"), fill=(255, 255, 0, 200),font=font_2)
         draw.text(xy=(1160,10), text=status3, fill=(0, 255, 255, 200),font=font_2)
         draw.text(xy=(500,40), text='------------------------------------------------------', fill=(0, 255, 0, 100),font=font_1)
         if int(servermaxamount) - int(serveramount) < 10:
             draw.text(xy=(960,125), text=status2, fill=(0, 255, 0, 255),font=font_4)
         else:
             draw.text(xy=(960,125), text=status2, fill=(255, 150, 0, 255),font=font_4)
-        pattern = re.compile(r"([\u4e00-\u9fa5]|[a-zA-Z]|[≤≥。，、；：“”‘’！？【】（）{}\[\]&nbsp;&mdash;…《》〈〉·—～,.?+\'\"\/;_\(\)]\ |[0-9])")
-        count = 0
-        result = ''
+        
+        result = ""
+        text = ""
         for i in serverinfo:
-            if pattern.match(i) and len(i.encode('utf-8')) == 3:
-                count += 2
-            else:
-                count += 1
-
-            if count < 25:
+            if font_3.getsize(text)[0] <= 350:
+                text += i
                 result += i
             else:
-                result += i + '\n'
-                count = 0
+                result += i + "\n"
+                text = ""
+        result = zhconv.convert(result,"zh-cn")
 
         for i in range(len(result.split('\n'))):
             draw.text(xy=(520,90+i*40), text=result.split('\n')[i], fill=(255, 255, 255, 255),font=font_3)
@@ -1715,7 +1709,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
 
 async def draw_exchange(remid, sid, sessionID):
     res = await upd_exchange(remid, sid, sessionID)
-    img = Image.new("RGBA", (1500,1100), (254, 238, 218, 255))
+    img = Image.new("RGBA", (1500,1500), (254, 238, 218, 255))
     tasks = []
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
@@ -1755,17 +1749,24 @@ async def draw_exchange(remid, sid, sessionID):
     
     font_1 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-    draw.text(xy=(1500-font_1.getsize(text)[0],1065), text=text ,fill=(34,139,34, 255),font=font_1)
+    draw.text(xy=(1500-font_1.getsize(text)[0],1465), text=text ,fill=(34,139,34, 255),font=font_1)
 
     return base64img(img)
 
-async def draw_a(num,name,personaId):
-    img = Image.new("RGBA", (900,30*num), (254, 238, 218, 255))
-    draw = ImageDraw.Draw(img)
-    font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
-    for i in range(num):
-        draw.text(xy=(10,30*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
-
+async def draw_a(num,name,reason,personaId):
+    if reason == []:
+        img = Image.new("RGBA", (900,30*num), (254, 238, 218, 255))
+        draw = ImageDraw.Draw(img)
+        font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+        for i in range(num):
+            draw.text(xy=(10,30*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
+    else:
+        img = Image.new("RGBA", (900,60*num), (254, 238, 218, 255))
+        draw = ImageDraw.Draw(img)
+        font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+        for i in range(num):
+            draw.text(xy=(10,60*i), text=str(i+1)+'. '+name[i] ,fill=(0, 0, 100, 255),font=font_0)
+            draw.text(xy=(10,60*i+30), text="理由: "+ reason[i],fill=(0, 0, 100, 255),font=font_0)
     return base64img(img)
 
 async def draw_faq():

@@ -11,6 +11,7 @@ import httpx
 import asyncio
 import bs4
 import re
+import os
 import IPy
 import geoip2.database
 from typing import Union
