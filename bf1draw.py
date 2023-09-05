@@ -2019,3 +2019,171 @@ async def draw_platoons(remid, sid, sessionID, gameId,mode):
     await asyncio.gather(*tasks)
 
     return base64img(img)
+
+async def draw_searchplatoons(remid, sid, sessionID, partialName):
+    platjson = await upd_findplatoon(remid, sid, sessionID, partialName)
+    status = platjson["result"]
+    
+    tasks = []
+    names = []
+    tags = []
+    emblems = []
+    players = []
+
+    for i in status:
+        names.append(i["name"])
+        tags.append(i["tag"])
+        emblems.append(i["emblem"])
+
+    img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC1.jpg')
+    img = img.resize((1300,250*len(status)))
+    draw = ImageDraw.Draw(img)
+    
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=250, encoding='UTF-8')
+    font_1 = ImageFont.truetype(font='Dengb.ttf', size=90, encoding='UTF-8')
+    
+    y = 0
+    for i in range(len(names)):
+        draw.text(xy=(775-font_1.getsize(tags[i])[0]/2,y+20), text=tags[i] ,fill=(34,139,34, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(names[i])[0]/2,y+140), text=names[i] ,fill=(66, 112, 244, 255),font=font_1)
+
+        try:
+            emblem = emblems[i].split('/')
+        except:
+            emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+        else:
+            try: 
+                sta1 = emblem[7]
+                sta2 = emblem[8]
+                sta3 = emblem[9]
+                sta4 = emblem[10].split('?')[1]
+                emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/ugc/'+sta1+'/'+sta2+'/'+sta3+'/256.png?'+sta4
+            except:
+                sta1 = emblem[6]
+                sta2 = emblem[len(emblem)-1].split('.')[0]
+                emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+        
+
+        position = (0,y)
+        tasks.append(paste_emb(emblem,img,position))
+        y += 250
+    await asyncio.gather(*tasks)
+
+    return base64img(img)
+
+async def draw_detailplatoon(remid, sid, sessionID, partialName):
+    platjson = await upd_findplatoon(remid, sid, sessionID, partialName)
+    guid = platjson["result"][0]["guid"]
+    
+    details,members = await asyncio.gather(
+        upd_platoon(remid, sid, sessionID, guid),
+        upd_platoonMembers(remid, sid, sessionID, guid)
+    )
+
+    name = details["result"]["name"]
+    try:
+        des = "简介: " + details["result"]["description"]
+    except:
+        des = "简介: "
+    tag = details["result"]["tag"]
+    emblem = details["result"]["emblem"]
+    dateCreated = details["result"]["dateCreated"]
+    dateCreated = datetime.datetime.fromtimestamp(int(dateCreated)).strftime("%Y-%m-%d %H:%M:%S")
+    members = members["result"]     
+
+    role9 = []
+    role6 = []
+    role3 = []
+    role0 = []
+    for i in members:
+        if i["role"] == "role9":
+            role9.append(i["displayName"])
+        elif i["role"] == "role6":
+            role6.append(i["displayName"])
+        elif i["role"] == "role3":
+            role3.append(i["displayName"])
+        elif i["role"] == "role0":
+            role0.append(i["displayName"])  
+    h = 700 + 50*(len(role9)//3+len(role6)//3+len(role3)//3+len(role0)//3)
+
+    img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC1.jpg')
+    img = img.resize((1300,h))
+    draw = ImageDraw.Draw(img)
+    
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=50, encoding='UTF-8')
+    font_1 = ImageFont.truetype(font='Dengb.ttf', size=90, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+
+
+    draw.text(xy=(775-font_1.getsize(tag)[0]/2,20), text=tag ,fill=(34,139,34, 255),font=font_1)
+    draw.text(xy=(775-font_1.getsize(name)[0]/2,140), text=name ,fill=(66, 112, 244, 255),font=font_1)
+
+    draw.text(xy=(0,260), text=f"创建时间: {dateCreated}" ,fill=(255,100,0,255),font=font_2)
+
+    result = ""
+    text = ""
+    for i in des:
+        if font_2.getsize(text)[0] <= 1200:
+            text += i
+            result += i
+        else:
+            result += i + "\n"
+            text = ""
+    result = zhconv.convert(result,"zh-cn")
+
+    for i in range(len(result.split('\n'))):
+        draw.text(xy=(0,320+i*50), text=result.split('\n')[i], fill=(66, 112, 244, 255),font=font_2)
+        if i == 1:
+            break
+
+    draw.text(xy=(0,430), text=f"成员(共{len(members)}人): " ,fill=(34,139,34, 255),font=font_2)
+    
+    draw.text(xy=(0,480), text=f"将军: " ,fill=(34,139,34, 255),font=font_2)       
+    for a in range(len(role9)):
+        draw.text(xy=(120+a%3*400,480+a//3*50), text=role9[a] ,fill=(34,139,34, 255),font=font_2)
+    try:
+        y = 530+a//3*50
+    except:
+        y = 530
+    
+    draw.text(xy=(0,y), text=f"上校: " ,fill=(34,139,34, 255),font=font_2) 
+    for b in range(len(role6)):
+        draw.text(xy=(120+b%3*400,y+b//3*50), text=role6[b] ,fill=(34,139,34, 255),font=font_2)
+    try:
+        y = y+b//3*50 +50
+    except:
+        y = y+50
+    
+    draw.text(xy=(0,y), text=f"中尉: " ,fill=(34,139,34, 255),font=font_2) 
+    for c in range(len(role3)):
+        draw.text(xy=(120+c%3*400,y+c//3*50), text=role3[c] ,fill=(34,139,34, 255),font=font_2)
+    try:
+        y = y+c//3*50 +50
+    except:
+        y = y+50
+    
+    draw.text(xy=(0,y), text=f"列兵: " ,fill=(34,139,34, 255),font=font_2) 
+    for d in range(len(role0)):
+        draw.text(xy=(120+d%3*400,y+d//3*50), text=role0[d] ,fill=(34,139,34, 255),font=font_2)
+
+    try:
+        emblem = emblem.split('/')
+    except:
+        emblem = 'https://secure.download.dm.origin.com/production/avatar/prod/1/599/208x208.JPEG'
+    else:
+        try: 
+            sta1 = emblem[7]
+            sta2 = emblem[8]
+            sta3 = emblem[9]
+            sta4 = emblem[10].split('?')[1]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/ugc/'+sta1+'/'+sta2+'/'+sta3+'/256.png?'+sta4
+        except:
+            sta1 = emblem[6]
+            sta2 = emblem[len(emblem)-1].split('.')[0]
+            emblem = 'https://eaassets-a.akamaihd.net/battlelog/bf-emblems/prod_default/'+sta1+'/256/'+sta2+'.png'
+        
+
+    position = (0,0)
+    await paste_emb(emblem,img,position)
+
+    return base64img(img)

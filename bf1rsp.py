@@ -170,7 +170,7 @@ async def BTR_get_recent_info(player_name: str) -> list[dict]:
                 time_item = time_item['data-livestamp']
                 # 将时间戳转换为时间
                 time_item = datetime.datetime.fromtimestamp(
-                    time.mktime(time.strptime(time_item, "%Y-%m-%dT%H:%M:%S.000Z")))+datetime.timedelta(hours=10)
+                    time.mktime(time.strptime(time_item, "%Y-%m-%dT%H:%M:%S.000Z")))+datetime.timedelta(hours=8)
                 # 将时间转换为字符串
                 time_item = time_item.strftime('%Y-%m-%d %H:%M')
                 # 提取胜率
@@ -379,6 +379,27 @@ async def upd_detailedServer(remid, sid, sessionID, gameId):
 
     return response.json()
 
+async def upd_platoon(remid, sid, sessionID, guid):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Platoons.getPlatoon",
+	            "params": {
+		        "game": "tunguska",
+                "guid": guid
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()
+
 async def upd_platoons(remid, sid, sessionID, personaId):
     async with httpx.AsyncClient() as client:
         response = await client.post(
@@ -389,6 +410,52 @@ async def upd_platoons(remid, sid, sessionID, personaId):
 	            "params": {
 		        "game": "tunguska",
                 "personaId": personaId
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()
+
+async def upd_findplatoon(remid, sid, sessionID,partialName):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Platoons.findByPartialName",
+	            "params": {
+		        "game": "tunguska",
+                "partialName": partialName,
+                "pageIndex": 0,
+                "pageSize": 10
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()
+
+async def upd_platoonMembers(remid, sid, sessionID,guid):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Platoons.getMembers",
+	            "params": {
+		        "game": "tunguska",
+                "guid": guid,
+                "pageIndex": 0,
+                "pageSize": 100
 	            },
                 "id": str(uuid.uuid4())
             },

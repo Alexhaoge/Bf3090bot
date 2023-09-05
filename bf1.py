@@ -291,6 +291,8 @@ BF1_PL = on_command(f'{PREFIX}pl', block=True, priority=1)
 BF1_ADMINPL = on_command(f'{PREFIX}adminpl', block=True, priority=1)
 BF1_PLS = on_command(f'{PREFIX}查黑队', block=True, priority=1)
 BF1_PLSS = on_command(f'{PREFIX}查战队', block=True, priority=1)
+BF1_PLA = on_command(f'{PREFIX}搜战队', block=True, priority=1)
+BF1_PLAA = on_command(f'{PREFIX}查战队成员', aliases={f'{PREFIX}查成员'}, block=True, priority=1)
 
 #bf1status
 BF_STATUS = on_command(f'{PREFIX}bf status', block=True, priority=1)
@@ -1672,6 +1674,28 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
     else:
         await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
+@BF1_PLA.handle()
+async def bf_pla(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    platoon = html.unescape(message.extract_plain_text())
+
+    try:
+        file_dir = await asyncio.wait_for(draw_searchplatoons(remid, sid, sessionID,platoon), timeout=20)
+        reply = await BF1_PLA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+    except:
+        await BF1_PLA.send(MessageSegment.reply(event.message_id) + '连接超时')
+
+@BF1_PLAA.handle()
+async def bf_pla(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    platoon = html.unescape(message.extract_plain_text())
+
+    try:
+        file_dir = await asyncio.wait_for(draw_detailplatoon(remid, sid, sessionID,platoon), timeout=20)
+        reply = await BF1_PLAA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+    except:
+        await BF1_PLAA.send(MessageSegment.reply(event.message_id) + '连接超时')
+
 @BF_STATUS.handle()
 async def bf_status(event:GroupMessageEvent, state:T_State):
     try:
@@ -2823,12 +2847,6 @@ async def get_server_status(session:int,num,X,i,bot,draw_dict):
 
 
 async def kick_vbanPlayer(pljson,vbans):
-    try:
-        await upd_ping()
-    except:
-        return 0
-    
-    await asyncio.sleep(10)
     tasks = []
     
     for gameId in list(pljson.keys()):
@@ -2883,17 +2901,19 @@ async def upd_vbanPlayer(draw_dict:dict):
             vbans[f"{gameId}"] = personaIds
             vbans[f"{gameId}_reasons"] = reasons
 
+    if len(gameIds) == 0:
+        return 0
     gids = []
     for i in range(len(gameIds)):
         if len(gids) < 50:
             gids.append(gameIds[i])
         else:
-            pljson = await upd_blazeplforvban(gids)
+            pljson = await Blaze2788Pro(gids)
             await kick_vbanPlayer(pljson,vbans) 
             gids = []
     
     if len(gids) < 50:
-        pljson = await upd_blazeplforvban(gids)
+        pljson = await Blaze2788Pro(gids)
         await kick_vbanPlayer(pljson,vbans)
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_0")
@@ -2961,9 +2981,5 @@ async def bf1_alarm():
     
     await asyncio.sleep(10)
     
-    try:
-        await upd_ping()
-    except:
-        pass
     
     
