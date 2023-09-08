@@ -44,6 +44,49 @@ MapTeamDict = {
         "MP_London": {"Chinese": "伦敦的呼唤：灾祸", "Team1": "GER", "Team2": "UK"}
     }
 
+UpdateDict = {
+        "4": "MP_MountainFort",
+        "11": "MP_Forest",
+        "2": "MP_ItalianCoast",
+        "7": "MP_Chateau",
+        "8": "MP_Scar",
+        "10": "MP_Desert",
+        "1": "MP_Amiens",
+        "9": "MP_Suez",
+        "6": "MP_FaoFortress",
+        "12": "MP_Giant",
+        "16": "MP_Fields",
+        "5": "MP_Graveyard",
+        "15": "MP_Underworld",
+        "13": "MP_Verdun",
+        "14": "MP_Trench",
+        "3": "MP_ShovelTown",
+        "18": "MP_Bridge",
+        "22": "MP_Islands",
+        "20": "MP_Ravines",
+        "17": "MP_Valley",
+        "19": "MP_Tsaritsyn",
+        "21": "MP_Volga",
+        "23": "MP_Beachhead",
+        "24": "MP_Harbor",
+        "29": "MP_Naval",
+        "25": "MP_Ridge",
+        "28": "MP_Offensive",
+        "27": "MP_Hell",
+        "26": "MP_River",
+        "32": "MP_Alps",
+        "30": "MP_Blitz",
+        "31": "MP_London",
+        "Z": "CQ0",
+        "F": "TOW0",
+        "S": "TDM0",
+        "X": "POS0",
+        "Q": "DOM0",
+        "R": "R0",
+        "K": "ZC0",
+        "A": "AA0"
+    }
+
 CODE_FOLDER = Path(__file__).parent.resolve()
 
 global_config = get_driver().config

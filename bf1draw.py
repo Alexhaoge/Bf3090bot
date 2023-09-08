@@ -1709,7 +1709,9 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
 
 async def draw_exchange(remid, sid, sessionID):
     res = await upd_exchange(remid, sid, sessionID)
-    img = Image.new("RGBA", (1500,1500), (254, 238, 218, 255))
+    h = len(res['result']['items'])
+    h = h//7+1 if h%7 else h//7
+    img = Image.new("RGBA", (1500,150*h+150), (254, 238, 218, 255))
     tasks = []
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=20, encoding='UTF-8')
@@ -1749,7 +1751,7 @@ async def draw_exchange(remid, sid, sessionID):
     
     font_1 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-    draw.text(xy=(1500-font_1.getsize(text)[0],1465), text=text ,fill=(34,139,34, 255),font=font_1)
+    draw.text(xy=(1500-font_1.getsize(text)[0],150*h+115), text=text ,fill=(34,139,34, 255),font=font_1)
 
     return base64img(img)
 

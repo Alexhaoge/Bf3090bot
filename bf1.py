@@ -293,6 +293,7 @@ BF1_PLS = on_command(f'{PREFIX}查黑队', block=True, priority=1)
 BF1_PLSS = on_command(f'{PREFIX}查战队', block=True, priority=1)
 BF1_PLA = on_command(f'{PREFIX}搜战队', block=True, priority=1)
 BF1_PLAA = on_command(f'{PREFIX}查战队成员', aliases={f'{PREFIX}查成员'}, block=True, priority=1)
+BF1_UPD = on_command(f'{PREFIX}配置', block=True, priority=1)
 
 #bf1status
 BF_STATUS = on_command(f'{PREFIX}bf status', block=True, priority=1)
@@ -1696,6 +1697,69 @@ async def bf_pla(event:GroupMessageEvent, state:T_State):
     except:
         await BF1_PLAA.send(MessageSegment.reply(event.message_id) + '连接超时')
 
+@BF1_UPD.handle()
+async def bf_upd(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    message = html.unescape(message.extract_plain_text())
+    arg = message.split(" ",maxsplit=2)
+    session = event.group_id
+    session = check_session(session)
+    user_id = event.user_id
+
+    if(check_admin(session, user_id)):
+        if len(arg) < 3 or arg[1] not in ["name","desc","map"]:
+            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n" + MessageSegment.image(file_dir))
+        else:
+            server_id = arg[0]
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                gameId = serverBL['result']['serverInfo']['gameId']
+            try:
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8)
+            except:
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
+            res = await upd_detailedServer(remid0, sid0, sessionID0, gameId)
+            
+            rspInfo = res['result']['rspInfo']
+            serverId = rspInfo['server']['serverId']
+            maps = rspInfo['mapRotations'][0]['maps']
+            name = rspInfo['serverSettings']['name']
+            description = rspInfo['serverSettings']['description']
+            customGameSettings = rspInfo['serverSettings']['customGameSettings']
+
+            with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
+                zh_cn = json.load(f)
+
+            if arg[1] == "desc":
+                description = zhconvert(arg[2])
+                await upd_updateServer(remid,sid,sessionID,serverId,maps,name,description,customGameSettings)
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
+            elif arg[1] == "name":
+                name = arg[2]
+                await upd_updateServer(remid,sid,sessionID,serverId,maps,name,description,customGameSettings)
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
+            elif arg[1] == "map":
+                map = arg[2].split(" ")
+                maps = []
+                msg = ""
+                for i in map:
+                    try:
+                        mode = UpdateDict[f'{str.upper(i[-1])}']
+                        map0 = UpdateDict[f'{i[:-1]}']
+                        msg += f'{zh_cn[map0]}-{zh_cn[mode]}\n'
+                        maps.append(
+                            {   
+                                "gameMode": mode,
+                                "mapName": map0
+                            }
+                        )
+                    except:
+                        continue
+                await upd_updateServer(remid,sid,sessionID,serverId,maps,name,description,customGameSettings)
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置图池:\n'+ msg.rstrip())
+    else:
+        await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
 @BF_STATUS.handle()
 async def bf_status(event:GroupMessageEvent, state:T_State):
     try:
