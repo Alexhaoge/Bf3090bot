@@ -47,8 +47,8 @@ async def getPersonasByName(access_token, player_name) -> dict:
                 name = res['personas']['persona'][0]['displayName']
                 pidid = res['personas']['persona'][0]['pidId']
                 return id,name,pidid
-        except:
-            return "网络超时!"
+        except Exception as e:
+            return e
 
 async def fetch_data(url,headers):
     async with httpx.AsyncClient() as client:

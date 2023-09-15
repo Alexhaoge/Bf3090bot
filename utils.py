@@ -87,6 +87,8 @@ UpdateDict = {
         "A": "AA0"
     }
 
+UpdateDict_1 = {value: key for key, value in UpdateDict.items()}
+
 CODE_FOLDER = Path(__file__).parent.resolve()
 
 global_config = get_driver().config

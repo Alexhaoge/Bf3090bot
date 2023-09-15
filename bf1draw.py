@@ -861,10 +861,13 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
 
     await paste_emb(emblem,img,(0,0))
 
-    draw = ImageDraw.Draw(img)
+    textbox = Image.new("RGBA", (img.width,40), (0, 0, 0, 150))
+    draw = ImageDraw.Draw(textbox)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-    draw.text(xy=(img.width-font_0.getsize(text)[0],340*row+265), text=text ,fill=(255, 255, 0, 255),font=font_0)
+    draw.text(xy=(img.width-font_0.getsize(text)[0],20-font_0.getsize(text)[1]/2), text=text ,fill=(255, 255, 0, 255),font=font_0)
+    img.paste(textbox, (0,340*row+260), textbox)
+
     return base64img(img)
 
 def get_pl(gameID:str)->dict:

@@ -259,6 +259,7 @@ print(alarm_session)
 print(alarm_mode)
 
 #bf1 help
+BF1_PING = on_command(f"{PREFIX}ping",aliases={f'{PREFIX}原神'},block=True, priority=1)
 BF1_INIT = on_command(f'{PREFIX}init', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 BF1_HELP = on_command(f"{PREFIX}help",block=True, priority=1)
 BF1_FAQ = on_command(f"{PREFIX}FAQ",block=True, priority=1)
@@ -324,7 +325,13 @@ BF1_SERVER_ALARMOFF = on_command(f'{PREFIX}关闭预警', block=True, priority=1
 BF1_BIND = on_command(f'{PREFIX}bf1 bind', block=True, priority=10)
 BF1_LS = on_command(f'{PREFIX}bf1 list', block=True, priority=10)
 BF1_SERVER = on_command(f'{PREFIX}bf1 server', block=True, priority=10)
-BF1F = on_command(f'{PREFIX}bf1', block=True, priority=1)
+BF1F = on_command(f'{PREFIX}bf1 player', block=True, priority=1)
+
+@BF1_PING.handle()
+async def bf1_ping(event:GroupMessageEvent, state:T_State):
+    file_dir = Path('file:///') / CURRENT_FOLDER/'ys.png'
+    await BF1_INIT.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+
 
 @BF1_INIT.handle()
 async def bf1_init(event:GroupMessageEvent, state:T_State):
@@ -500,7 +507,7 @@ async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Me
                     image_data = response.content
                     image = Image.open(BytesIO(image_data))
                 
-                imageurl = upload_img(image,f"report{random.randint(1, 100000000)}.png")
+                imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
                 state['case_num'] += 1
                 state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
                 state['txturl'].append(imageurl)
@@ -1707,9 +1714,33 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
 
     if(check_admin(session, user_id)):
-        if len(arg) < 3 or arg[1] not in ["name","desc","map"]:
+        if len(arg) == 2 and arg[1] == "info":
+            server_id = arg[0]
+            with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
+                serverBL = json.load(f)
+                gameId = serverBL['result']['serverInfo']['gameId']
+            
+            res = await upd_detailedServer(remid5, sid5, sessionID5, gameId)
+            rspInfo = res['result']['rspInfo']
+            maps = rspInfo['mapRotations'][0]['maps']
+            name = rspInfo['serverSettings']['name']
+            description = rspInfo['serverSettings']['description']
+
+            with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
+                zh_cn = json.load(f)
+
+            map = ""
+            for i in maps:
+                mode = i["gameMode"]
+                map0 = i["mapName"]
+
+                map += f'{UpdateDict_1[map0]}{UpdateDict_1[mode]} '
+
+            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'                
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n" + MessageSegment.image(file_dir))
+        elif len(arg) < 3 or arg[1] not in ["name","desc","map"]:
             file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'
-            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n" + MessageSegment.image(file_dir))
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n" + MessageSegment.image(file_dir))
         else:
             server_id = arg[0]
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
