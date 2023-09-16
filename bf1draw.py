@@ -88,7 +88,7 @@ async def draw_f(server_id,session:int,remid, sid, sessionID):
         tasks.append(asyncio.create_task(upd_detailedServer(remid, sid, sessionID, gameId)))
     server_id = len(server_id)
     # 打开图片文件
-    img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(1, 6)}.jpg')
+    img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(2, 6)}.jpg')
     img = img.resize((1506,2900))
     img = img.crop((0,0,1506,400*server_id+100))
     un = 0
@@ -173,7 +173,7 @@ async def draw_f(server_id,session:int,remid, sid, sessionID):
     return base64img(img)
 
 async def draw_server(remid, sid, sessionID, serverName, res):
-    img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(1, 6)}.jpg')
+    img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(2, 6)}.jpg')
     img = img.resize((1506,2100))
     img = img.filter(ImageFilter.GaussianBlur(radius=15))
 
@@ -408,7 +408,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         if bfeac["stat"] == "已封禁":
             img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'ban.jpg')     
         else:
-            img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
+            img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(2, 6)}.jpg')
 
     
     img = img.resize((1500,1500))
@@ -611,7 +611,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     try:
         img = Image.open(BF1_PLAYERS_DATA/'Caches'/f'{personaId}.jpg')
     except:    
-        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(1, 6)}.jpg')
+        img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC{random.randint(2, 6)}.jpg')
 
     if 655*col-10 <= 340*row+300:
         img = img.resize((340*row+300,340*row+300))

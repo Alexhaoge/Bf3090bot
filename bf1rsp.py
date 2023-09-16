@@ -48,6 +48,7 @@ async def getPersonasByName(access_token, player_name) -> dict:
                 pidid = res['personas']['persona'][0]['pidId']
                 return id,name,pidid
         except Exception as e:
+            print(response.text)
             return e
 
 async def fetch_data(url,headers):
