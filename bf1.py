@@ -724,6 +724,10 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 server_id = check_server_id(session,arg1[0])
                 name = arg1[1]
                 reason = zhconvert('违反规则')
+
+            if len(reason.encode('utf-8')) > 32:
+                await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '理由过长')
+            
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 gameId = serverBL['result']['serverInfo']['gameId']
@@ -823,6 +827,9 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                         for i in pl:
                             if i['slot'] in slots:
                                 personaIds.append(i['id'])
+
+                if len(reason.encode('utf-8')) > 32:
+                    await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '理由过长')
                 tasks = []
                 for i in personaIds:
                     tasks.append(asyncio.create_task(upd_kickPlayer(remid0, sid0, sessionID0, gameId, i, reason)))
@@ -846,6 +853,10 @@ async def bf1_kickall(event:GroupMessageEvent, state:T_State):
             reason = zhconvert(arg[1])
         except:
             reason = zhconvert('管理员进行了清服')
+        
+        if len(reason.encode('utf-8')) > 32:
+            await BF1_KICKALL.finish(MessageSegment.reply(event.message_id) + '理由过长')
+
         with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
             serverBL = json.load(f)
             gameId = serverBL['result']['serverInfo']['gameId']      
@@ -896,6 +907,10 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 reason = zhconv.convert(arg[2], 'zh-tw')
             except:
                 reason = zhconv.convert('违反规则', 'zh-tw')
+
+            if len(reason.encode('utf-8')) > 32:
+                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
+
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
@@ -932,6 +947,10 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                     reason = zhconv.convert(arg[1], 'zh-tw')
                 except:
                     reason = zhconv.convert('违反规则', 'zh-tw')
+
+                if len(reason.encode('utf-8')) > 32:
+                    await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
+
                 personaIds = []
                 for i in pl:
                     if int(i['slot']) == int(arg[0]):
@@ -969,6 +988,10 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
             reason = zhconv.convert(arg[1], 'zh-tw')
         except:
             reason = zhconv.convert('违反规则', 'zh-tw')
+
+        if len(reason.encode('utf-8')) > 32:
+            await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + '理由过长')
+
         files = get_server_num(session)
         tasks = []
         try:
@@ -1073,6 +1096,10 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 reason = 'Vban:' + zhconv.convert(arg[2], 'zh-tw')
             except:
                 reason = 'Vbanned by admin'
+
+            if len(reason.encode('utf-8')) > 32:
+                await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
+
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
@@ -1105,6 +1132,9 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                     reason = 'Vban:' + zhconv.convert(arg[2], 'zh-tw')
                 except:
                     reason = 'Vbanned by admin'
+
+                if len(reason.encode('utf-8')) > 32:
+                    await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
                 personaIds = []
                 for i in pl:
                     if int(i['slot']) == int(arg[0]):
@@ -1137,6 +1167,9 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
             reason = 'Vban:' + zhconv.convert(arg[1], 'zh-tw')
         except:
             reason = 'Vbanned by admin'
+
+        if len(reason.encode('utf-8')) > 32:
+            await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + '理由过长')
         files = get_server_num(session)
 
         try:
@@ -2695,7 +2728,7 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
                 else:
                     await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
             except: 
-                await BF1_RE.send(MessageSegment.reply(event.message_id) + '连接超时')
+                await BF1_RE.send(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！')
 
     if mode == 2:
         if f'{user_id}.txt' in os.listdir(BF1_PLAYERS_DATA):
@@ -2715,7 +2748,7 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
                 else:
                     await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
             except: 
-                await BF1_RE.send(MessageSegment.reply(event.message_id) + '连接超时')
+                await BF1_RE.send(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！')
 
         else:
             await BF1_RE.send(MessageSegment.reply(event.message_id) + f'您还未绑定，将尝试绑定: {usercard}')
@@ -2732,7 +2765,7 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
                     else:
                         await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
                 except: 
-                    await BF1_RE.send(MessageSegment.reply(event.message_id) + '连接超时')
+                    await BF1_RE.send(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！')
                 with open(BF1_PLAYERS_DATA/f'{user_id}.txt','w') as f:
                     f.write(str(personaId))
                 (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
