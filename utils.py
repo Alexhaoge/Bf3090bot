@@ -89,6 +89,8 @@ UpdateDict = {
 
 UpdateDict_1 = {value: key for key, value in UpdateDict.items()}
 
+RankList = [0,1000,5000,15000,25000,40000,55000,75000,95000,120000,145000,175000,205000,235000,265000,295000,325000,355000,395000,435000,475000,515000,555000,595000,635000,675000,715000,755000,795000,845000,895000,945000,995000,1045000,1095000,1145000,1195000,1245000,1295000,1345000,1405000,1465000,1525000,1585000,1645000,1705000,1765000,1825000,1885000,1945000,2015000,2085000,2155000,2225000,2295000,2365000,2435000,2505000,2575000,2645000,2745000,2845000,2945000,3045000,3145000,3245000,3345000,3445000,3545000,3645000,3750000,3870000,4000000,4140000,4290000,4450000,4630000,4830000,5040000,5260000,5510000,5780000,6070000,6390000,6730000,7110000,7510000,7960000,8430000,8960000,9520000,10130000,10800000,11530000,12310000,13170000,14090000,15100000,16190000,17380000,20000000,20500000,21000000,21500000,22000000,22500000,23000000,23500000,24000000,24500000,25000000,25500000,26000000,26500000,27000000,27500000,28000000,28500000,29000000,29500000,30000000,30500000,31000000,31500000,32000000,32500000,33000000,33500000,34000000,34500000,35000000,35500000,36000000,36500000,37000000,37500000,38000000,38500000,39000000,39500000,40000000,41000000,42000000,43000000,44000000,45000000,46000000,47000000,48000000,49000000,50000000]
+
 CODE_FOLDER = Path(__file__).parent.resolve()
 
 global_config = get_driver().config
@@ -326,7 +328,7 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
-def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8):
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8,remid9,sid9,sessionId9):
     with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
         arg0 = f.read().split(',')
     with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
@@ -344,7 +346,9 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     with open(CURRENT_FOLDER/'7.json','r',encoding='UTF-8') as f:
         arg7 = f.read().split(',')  
     with open(CURRENT_FOLDER/'8.json','r',encoding='UTF-8') as f:
-        arg8 = f.read().split(',')             
+        arg8 = f.read().split(',')  
+    with open(CURRENT_FOLDER/'9.json','r',encoding='UTF-8') as f:
+        arg9 = f.read().split(',')                    
     if gameId in arg1:
         return remid1,sid1,sessionId1
     elif gameId in arg0:
@@ -362,7 +366,9 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     elif gameId in arg7:
         return remid7,sid7,sessionId7      
     elif gameId in arg8:
-        return remid8,sid8,sessionId8      
+        return remid8,sid8,sessionId8   
+    elif gameId in arg9:
+        return remid9,sid9,sessionId9       
 def special_stat_to_dict1(special_stat):
     List_AS = special_stat['4']
     dict_AS = {
@@ -450,3 +456,14 @@ def special_stat_to_dict(special_stat):
             }
         }
     return dict_AS,dict_PK,dict_BD1,dict_BD2
+
+def getRank(spm,secondsPlayed):
+    Score = spm*secondsPlayed/60
+
+    for i in range(len(RankList)-1):
+        if RankList[i] <= Score < RankList[i+1]:
+            break
+    if Score > 50000000:
+        return 150
+    else:
+        return i

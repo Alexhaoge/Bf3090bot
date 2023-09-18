@@ -416,20 +416,29 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
-    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     if tag == '':
         text=f'{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(255, 255, 0, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(255, 255, 0, 255),font=font_1)
     else:
         text=f'[{tag}]{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(255, 255, 0, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(255, 255, 0, 255),font=font_1)
 
-    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
-    try:
-        draw.text(xy=(1070,95), text=f'KDA:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
-    except:
-        draw.text(xy=(1070,95), text=f'KDA:{kd:.2f}\nKPM:{kpm}\nDPM:0.00', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,80), text=f'游玩时长:{secondsPlayed//3600}小时', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,120), text=f'击杀数:{k}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,160), text=f'死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,200), text=f'场均击杀:{0 if win+loss == 0 else round(k/(win+loss),1)}', fill=(255, 255, 255, 255),font=font_2)
+
+    draw.text(xy=(680,80), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,120), text=f'命中率:{acc*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,160), text=f'爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,200), text=f'场均死亡:{0 if win+loss == 0 else round(d/(win+loss),1)}', fill=(255, 255, 255, 255),font=font_2)
+    
+    draw.text(xy=(1070,80), text=f'等级:{getRank(spm,secondsPlayed)}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(1070,120), text=f'KDA:{kd:.2f}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(1070,160), text=f'KPM:{kpm}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(1070,200), text=f'DPM:{0.0 if secondsPlayed == 0 else round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
+
     position = (100, 100)
     img.paste(textbox, position, textbox)
 
@@ -466,8 +475,8 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     draw.text(xy=(35,403), text=f'{gamemodes[0]["prettyName"][0:2]}场次:{gamemodes[0]["wins"]+gamemodes[0]["losses"]}', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(35,447), text=f'{gamemodes[1]["prettyName"][0:2]}场次:{gamemodes[1]["wins"]+gamemodes[1]["losses"]}', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(35,491), text=f'其他场次:{smallmode}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,536), text=f'步兵击杀:{infantrykill}', fill=(255, 255, 255, 255),font=font_4)
-    draw.text(xy=(35,580), text=f'载具击杀:{carkill}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,536), text=f'步兵击杀:{int(infantrykill)}', fill=(255, 255, 255, 255),font=font_4)
+    draw.text(xy=(35,580), text=f'载具击杀:{int(carkill)}', fill=(255, 255, 255, 255),font=font_4)
     draw.text(xy=(35,624), text=f'BFEAC状态:{bfeac["stat"]}', fill=(255, 255, 255, 255),font=font_4)
 
     draw.text(xy=(360,403), text=f'{gamemodes[0]["prettyName"][0:2]}胜率:{(100*gamemodes[0]["winLossRatio"])/(1+gamemodes[0]["winLossRatio"]):.2f}%', fill=(255, 255, 255, 255),font=font_4)
@@ -559,7 +568,8 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-    draw.text(xy=(img.width-font_0.getsize(text)[0],1465), text=text ,fill=(255, 255, 0, 255),font=font_0)
+    a,b,c = img.getpixel((1490,1490))
+    draw.text(xy=(img.width-font_0.getsize(text)[0],1465), text=text ,fill=(a+128 if a<128 else a-128, b+128 if b<128 else b-128, c+128 if c<128 else c-128, 255),font=font_0)
  
     return base64img(img)
 
@@ -591,6 +601,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     kd = res_stat['result']['kdr']
     k = res_stat['result']['basicStats']['kills']
     d = res_stat['result']['basicStats']['deaths']
+    spm = res_stat['result']['basicStats']['spm']
 
     try:
         emblem = emblem['result'].split('/')
@@ -623,21 +634,30 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
-    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     if tag == '':
         text=f'{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(255, 255, 0, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(255, 255, 0, 255),font=font_1)
     else:
         text=f'[{tag}]{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(255, 255, 0, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(255, 255, 0, 255),font=font_1)
 
-    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
-    try:
-        draw.text(xy=(1070,95), text=f'KDA:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
-    except:
-        draw.text(xy=(1070,95), text=f'KDA:{kd:.2f}\nKPM:{kpm}\nDPM:0.00', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,80), text=f'游玩时长:{secondsPlayed//3600}小时', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,120), text=f'击杀数:{k}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,160), text=f'死亡数:{d}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(290,200), text=f'场均击杀:{0 if win+loss == 0 else round(k/(win+loss),1)}', fill=(255, 255, 255, 255),font=font_2)
+
+    draw.text(xy=(680,80), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,120), text=f'命中率:{acc*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,160), text=f'爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(680,200), text=f'场均死亡:{0 if win+loss == 0 else round(d/(win+loss),1)}', fill=(255, 255, 255, 255),font=font_2)
+    
+    draw.text(xy=(1070,80), text=f'等级:{getRank(spm,secondsPlayed)}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(1070,120), text=f'KDA:{kd:.2f}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(1070,160), text=f'KPM:{kpm}', fill=(255, 255, 255, 255),font=font_2)
+    draw.text(xy=(1070,200), text=f'DPM:{0.0 if secondsPlayed == 0 else round((d*60)/secondsPlayed,2)}', fill=(255, 255, 255, 255),font=font_2)
+
     position = (0, 0)
     img.paste(textbox, position, textbox)
 
@@ -1539,6 +1559,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     kd = res_stat['result']['kdr']
     k = res_stat['result']['basicStats']['kills']
     d = res_stat['result']['basicStats']['deaths']
+    spm = res_stat['result']['basicStats']['spm']
     print(datetime.datetime.now())
 
     try:
@@ -1586,23 +1607,32 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     textbox = Image.new("RGBA", (1300,250), (254, 238, 218, 180))
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
-    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     font_3 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
     font_4 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    
     if tag == '':
         text=f'{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(55, 1, 27, 255),font=font_1)
     else:
         text=f'[{tag}]{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(55, 1, 27, 255),font=font_1)
 
-    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
-    try:
-        draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
-    except:
-        draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:0.00)', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,80), text=f'游玩时长:{secondsPlayed//3600}小时', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,120), text=f'击杀数:{k}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,160), text=f'死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,200), text=f'场均击杀:{0 if win+loss == 0 else round(k/(win+loss),1)}', fill=(66, 112, 244, 255),font=font_2)
+
+    draw.text(xy=(680,80), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,120), text=f'命中率:{acc*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,160), text=f'爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,200), text=f'场均死亡:{0 if win+loss == 0 else round(d/(win+loss),1)}', fill=(66, 112, 244, 255),font=font_2)
+    
+    draw.text(xy=(1070,80), text=f'等级:{getRank(spm,secondsPlayed)}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(1070,120), text=f'KDA:{kd:.2f}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(1070,160), text=f'KPM:{kpm}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(1070,200), text=f'DPM:{0.0 if secondsPlayed == 0 else round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
     
     position = (0, 0)
     img.paste(textbox, position, textbox)
@@ -1811,6 +1841,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     kd = res_stat['result']['kdr']
     k = res_stat['result']['basicStats']['kills']
     d = res_stat['result']['basicStats']['deaths']
+    spm = res_stat['result']['basicStats']['spm']
     print(datetime.datetime.now())
 
     try:
@@ -1842,7 +1873,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     textbox = Image.new("RGBA", (1300,250), (254, 238, 218, 180))
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
-    font_2 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     font_3 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
     font_4 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=30, encoding='UTF-8')
@@ -1853,12 +1884,27 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
         text=f'[{tag}]{name}'
         draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
 
-    draw.text(xy=(290,95), text=f'游玩时长:{secondsPlayed//3600}小时\n击杀数:{k}\n死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
-    draw.text(xy=(680,95), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%\n命中率:{acc*100:.2f}%\n爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
-    try:
-        draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:{round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
-    except:
-        draw.text(xy=(1070,95), text=f'K/D:{kd:.2f}\nKPM:{kpm}\nDPM:0.00)', fill=(66, 112, 244, 255),font=font_2)
+    if tag == '':
+        text=f'{name}'
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(55, 1, 27, 255),font=font_1)
+    else:
+        text=f'[{tag}]{name}'
+        draw.text(xy=(775-font_1.getsize(text)[0]/2,5), text=text, fill=(55, 1, 27, 255),font=font_1)
+
+    draw.text(xy=(290,80), text=f'游玩时长:{secondsPlayed//3600}小时', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,120), text=f'击杀数:{k}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,160), text=f'死亡数:{d}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(290,200), text=f'场均击杀:{0 if win+loss == 0 else round(k/(win+loss),1)}', fill=(66, 112, 244, 255),font=font_2)
+
+    draw.text(xy=(680,80), text=f'获胜率:{0 if win+loss == 0 else win*100/(win+loss):.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,120), text=f'命中率:{acc*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,160), text=f'爆头率:{0 if k == 0 else hs/k*100:.2f}%', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(680,200), text=f'场均死亡:{0 if win+loss == 0 else round(d/(win+loss),1)}', fill=(66, 112, 244, 255),font=font_2)
+    
+    draw.text(xy=(1070,80), text=f'等级:{getRank(spm,secondsPlayed)}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(1070,120), text=f'KDA:{kd:.2f}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(1070,160), text=f'KPM:{kpm}', fill=(66, 112, 244, 255),font=font_2)
+    draw.text(xy=(1070,200), text=f'DPM:{0.0 if secondsPlayed == 0 else round((d*60)/secondsPlayed,2)}', fill=(66, 112, 244, 255),font=font_2)
     
     position = (0, 0)
     img.paste(textbox, position, textbox)
