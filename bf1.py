@@ -1618,15 +1618,6 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
 
         (BF1_SERVERS_DATA/f'{session}_vip').mkdir(exist_ok=True)
         vipfile = os.listdir(BF1_SERVERS_DATA/f'{session}_vip')
-        j = 0
-        for i in vipfile:
-            if i.startswith(f'{session}_{server_id}_{personaId}'):
-                j = 1
-                break
-        if j == 1:
-            current_date = i.split('_')
-            current_date = current_date[len(current_date)-1]
-            os.remove(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{current_date}')
 
         with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
             serverBL = json.load(f)
@@ -1636,6 +1627,30 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
                 remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9)
             except:
                 await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
+                
+        j = 0
+        for i in vipfile:
+            if i.startswith(f'{session}_{server_id}_{personaId}'):
+                j = 1
+                break
+        if j == 1:
+            current_date = i.split('_')
+            current_date = current_date[len(current_date)-1]
+            try:
+                if serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge':
+                    nextday = datetime.date.today() - timedelta(days=2)
+                    os.rename(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{current_date}',BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{nextday}')
+                    await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + f'已移除玩家{personaName}的行动vip(需要check)')
+                else:
+                    os.remove(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{current_date}')
+            except:
+                os.remove(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{i.split("_")[len(i.split("_"))-2]}_unabled')
+                await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + f'已移除玩家{personaName}未生效的行动vip(不需要check)')
+
+        else:
+            if serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge':
+                await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + f'您正在尝试删除未在bot数据库内的行动vip，请在删除完成后立刻进行切图处理！')
+
         res = await upd_unvipPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
         if 'error' in res:
@@ -1919,10 +1934,11 @@ async def user_add(event: GroupMessageEvent):
                     arg = f.read().split(',')
                 if message[0] == 'y':
                     try:
+                        qq = arg[2]
                         personaId = arg[3]
                         userName = arg[4]
                         (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
-                        with open(BF1_PLAYERS_DATA/f'{session}'/f'{event.user_id}_{personaId}.txt','w') as f:
+                        with open(BF1_PLAYERS_DATA/f'{session}'/f'{qq}_{personaId}.txt','w') as f:
                             f.write(userName)
                     except:
                         pass

@@ -1877,12 +1877,6 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     font_3 = ImageFont.truetype(font='comic.ttf', size=36, encoding='UTF-8')
     font_4 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=30, encoding='UTF-8')
-    if tag == '':
-        text=f'{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
-    else:
-        text=f'[{tag}]{name}'
-        draw.text(xy=(775-font_1.getsize(text)[0]/2,15), text=text, fill=(55, 1, 27, 255),font=font_1)
 
     if tag == '':
         text=f'{name}'
