@@ -413,7 +413,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     
     img = img.resize((1500,1500))
 
-    textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
+    textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 100))
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
     font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
@@ -442,7 +442,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     position = (100, 100)
     img.paste(textbox, position, textbox)
 
-    textbox1 = Image.new("RGBA", (640,675), (0, 0, 0, 150))
+    textbox1 = Image.new("RGBA", (640,675), (0, 0, 0, 100))
     draw = ImageDraw.Draw(textbox1)
     font_3 = ImageFont.truetype(font='Dengb.ttf', size=45, encoding='UTF-8')
     font_4 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
@@ -488,7 +488,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     position1 = (100, 380)
     img.paste(textbox1, position1, textbox1)
 
-    textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 150))
+    textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 100))
     draw = ImageDraw.Draw(textbox3)
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     draw.text(xy=(80,150), text=f'{zhconv.convert(vehicles[0]["name"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
@@ -514,7 +514,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     img.paste(textbox3, position3, textbox3)
 
     for i in range(3):
-        textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 150))
+        textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 100))
         draw = ImageDraw.Draw(textbox3)
         draw.text(xy=(80,150), text=f'{zhconv.convert(weapons[i]["name"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
         kill1 = int(weapons[i]['stats']['values']['kills'])
@@ -631,7 +631,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
         img = img.resize((655*col-10,655*col-10))
         img = img.crop((0,327.5*col-5-170*row-150,655*col-10,327.5*col-5+170*row+150))
 
-    textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 150))
+    textbox = Image.new("RGBA", (1300,250), (0, 0, 0, 100))
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
     font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
@@ -826,7 +826,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
         weapons = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
     for i in range(min(row*col,len(weapons))):
-        textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 150))
+        textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 100))
         draw = ImageDraw.Draw(textbox3)
 
         kill1 = int(weapons[i]['stats']['values']['kills'])
@@ -881,7 +881,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
 
     await paste_emb(emblem,img,(0,0))
 
-    textbox = Image.new("RGBA", (img.width,40), (0, 0, 0, 150))
+    textbox = Image.new("RGBA", (img.width,40), (0, 0, 0, 100))
     draw = ImageDraw.Draw(textbox)
     font_0 = ImageFont.truetype(font='comic.ttf', size=25, encoding='UTF-8')
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
@@ -950,7 +950,7 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
         tasks.append(asyncio.create_task(async_get_stat(personaId,platoon,latency)))
     
     results = await asyncio.gather(*tasks)
-    print(datetime.datetime.now())
+    print("draw_pl: "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     stat1 = []
     stat2 = []
     for i in range(len(pl_1)):
@@ -1221,7 +1221,7 @@ async def draw_pl(session,server_id,pl,gameId,remid, sid, sessionID):
     draw.line((1045, 190, 1045, 1165), fill=(128, 128, 128, 120), width=4)
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
-    print(datetime.datetime.now())
+    print("draw_pl: "+datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     return base64img(img)
 
 async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
@@ -1258,7 +1258,7 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     teamImage_1 = pljson['team1']
     teamImage_2 = pljson['team2']
 
-    print(datetime.datetime.now())
+    print("draw_pl1"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     stat1 = sorted(pljson['1'], key=lambda x: x['rank'],reverse=True)
     stat2 = sorted(pljson['2'], key=lambda x: x['rank'],reverse=True)
@@ -1533,11 +1533,11 @@ async def draw_pl1(session,server_id,gameId,remid, sid, sessionID):
     draw.line((1005, 190, 1005, 1165), fill=(128, 128, 128, 120), width=4)
     draw.line((1860, 190, 1860, 1165), fill=(128, 128, 128, 120), width=4)
     
-    print(datetime.datetime.now())
+    print("draw_pl1"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     return base64img(img)
 
 async def draw_r(remid, sid, sessionID, personaId, playerName):
-    print(datetime.datetime.now())
+    print("draw_r"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     tasks = []
     tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
@@ -1560,7 +1560,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     k = res_stat['result']['basicStats']['kills']
     d = res_stat['result']['basicStats']['deaths']
     spm = res_stat['result']['basicStats']['spm']
-    print(datetime.datetime.now())
+    print("draw_r"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     try:
         emblem = emblem['result'].split('/')
@@ -1736,7 +1736,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],410*len(recent)+365), text=text ,fill=(34,139,34, 255),font=font_0)
     draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
-    print(datetime.datetime.now())
+    print("draw_r"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     
     return base64img(img)
 
@@ -1819,7 +1819,7 @@ async def draw_faq():
     return base64img(img)
 
 async def draw_re(remid, sid, sessionID, personaId, playerName):
-    print(datetime.datetime.now())
+    print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     tasks = []
     tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
@@ -1842,7 +1842,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     k = res_stat['result']['basicStats']['kills']
     d = res_stat['result']['basicStats']['deaths']
     spm = res_stat['result']['basicStats']['spm']
-    print(datetime.datetime.now())
+    print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     try:
         emblem = emblem['result'].split('/')
@@ -1966,7 +1966,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     text = f'Powered by Mag1Catz and special thanks to Openblas. QQ: 120681532. Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     draw.text(xy=(img.width-font_0.getsize(text)[0],170*len(recent)+255), text=text ,fill=(34,139,34, 255),font=font_0)
     draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
-    print(datetime.datetime.now())
+    print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     return base64img(img)
 
