@@ -95,21 +95,20 @@ with open(BF1_SERVERS_DATA/'Caches'/'id9.txt','r' ,encoding='UTF-8') as f:
     sid9 = id_list[1]
 
 async def init_token():
-    global sessionID,access_token,res_access_token,remid,sid
-    global sessionID1,access_token1,res_access_token1,remid1,sid1
-    global sessionID2,access_token2,res_access_token2,remid2,sid2
-    global sessionID3,access_token3,res_access_token3,remid3,sid3
-    global sessionID4,access_token4,res_access_token4,remid4,sid4
-    global sessionID5,access_token5,res_access_token5,remid5,sid5
-    global sessionID6,access_token6,res_access_token6,remid6,sid6
-    global sessionID7,access_token7,res_access_token7,remid7,sid7
-    global sessionID8,access_token8,res_access_token8,remid8,sid8
-    global sessionID9,access_token9,res_access_token9,remid9,sid9
+    global access_token,res_access_token,remid,sid
+    global access_token1,res_access_token1,remid1,sid1
+    global access_token2,res_access_token2,remid2,sid2
+    global access_token3,res_access_token3,remid3,sid3
+    global access_token4,res_access_token4,remid4,sid4
+    global access_token5,res_access_token5,remid5,sid5
+    global access_token6,res_access_token6,remid6,sid6
+    global access_token7,res_access_token7,remid7,sid7
+    global access_token8,res_access_token8,remid8,sid8
+    global access_token9,res_access_token9,remid9,sid9
 
     #sessionID8=access_token8=res_access_token8=remid8=sid8 = ""
 
     tasks_token = []
-    tasks_session = []
 
     tasks_token.append(upd_token(remid, sid))
     tasks_token.append(upd_token(remid1, sid1))
@@ -123,6 +122,19 @@ async def init_token():
     tasks_token.append(upd_token(remid9, sid9))
 
     [res_access_token,access_token],[res_access_token1,access_token1],[res_access_token2,access_token2],[res_access_token3,access_token3],[res_access_token4,access_token4],[res_access_token5,access_token5],[res_access_token6,access_token6],[res_access_token7,access_token7],[res_access_token8,access_token8],[res_access_token9,access_token9] = await asyncio.gather(*tasks_token)
+
+async def init_session():
+    global sessionID,access_token,res_access_token,remid,sid
+    global sessionID1,access_token1,res_access_token1,remid1,sid1
+    global sessionID2,access_token2,res_access_token2,remid2,sid2
+    global sessionID3,access_token3,res_access_token3,remid3,sid3
+    global sessionID4,access_token4,res_access_token4,remid4,sid4
+    global sessionID5,access_token5,res_access_token5,remid5,sid5
+    global sessionID6,access_token6,res_access_token6,remid6,sid6
+    global sessionID7,access_token7,res_access_token7,remid7,sid7
+    global sessionID8,access_token8,res_access_token8,remid8,sid8
+    global sessionID9,access_token9,res_access_token9,remid9,sid9
+    tasks_session = []
 
     tasks_session.append(upd_sessionId(res_access_token, remid, sid, 0))
     tasks_session.append(upd_sessionId(res_access_token1, remid1, sid1, 1))
@@ -148,6 +160,7 @@ async def init_token():
     print(sessionID9)
 
 asyncio.run(init_token())
+asyncio.run(init_session())
 
 def reply_message_id(event: GroupMessageEvent) -> int:
     message_id = None
@@ -717,8 +730,8 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
 @BF1_KICK.handle()
 async def bf1_kick(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',maxsplit=2)
-    arg1 = message.extract_plain_text().split(' ')
+    arg1 = message.extract_plain_text().split(' ',maxsplit=2)
+    arg = message.extract_plain_text().split(' ')
     session = event.group_id
     session = check_session(session)
     user_id = event.user_id
@@ -936,7 +949,9 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             res = await upd_banPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
             if 'error' in res:
-                await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'封禁玩家：{personaName}失败，理由：无法处置管理员')
+                error_code = res["error"]["code"]
+                reason = error_code_dict[error_code]
+                await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'封禁玩家：{personaName}失败，理由：{reason}')
             else:
                 await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
         else:
@@ -1425,7 +1440,9 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     res = await upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
                     if 'error' in res:
-                        await BF1_VIP.send(MessageSegment.reply(event.message_id) + '添加失败：可能玩家已经是vip了，且在本地没有记录')
+                        error_code = res["error"]["code"]
+                        reason = error_code_dict[error_code]
+                        await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'添加失败：{reason}')
                     else:
                         with open(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{nextday}','w', encoding='utf-8') as f:
                             f.write(personaName)
@@ -1501,7 +1518,9 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         res = await upd_vipPlayer(remid0, sid0, sessionID0, serverId, personaId)
 
                         if 'error' in res:
-                            await BF1_VIP.send(MessageSegment.reply(event.message_id) + '添加失败：可能玩家已经是vip了，且在本地没有记录')
+                            error_code = res["error"]["code"]
+                            reason = error_code_dict[error_code]
+                            await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'添加失败：{reason}')
                         else:
                             with open(BF1_SERVERS_DATA/f'{session}_vip'/f'{session}_{server_id}_{personaId}_{nextday}','w', encoding='utf-8') as f:
                                 f.write(personaName)
@@ -1827,22 +1846,24 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             res = await upd_detailedServer(remid0, sid0, sessionID0, gameId)
             
             rspInfo = res['result']['rspInfo']
-            serverId = rspInfo['server']['serverId']
             maps = rspInfo['mapRotations'][0]['maps']
             name = rspInfo['serverSettings']['name']
             description = rspInfo['serverSettings']['description']
-            customGameSettings = rspInfo['serverSettings']['customGameSettings']
 
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                 zh_cn = json.load(f)
 
             if arg[1] == "desc":
                 description = zhconvert(arg[2])
-                await upd_updateServer(remid,sid,sessionID,serverId,maps,name,description,customGameSettings)
+                if len(description) > 256 or len(description.encode('utf-8')) > 512:
+                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '简介过长')
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
             elif arg[1] == "name":
                 name = arg[2]
-                await upd_updateServer(remid,sid,sessionID,serverId,maps,name,description,customGameSettings)
+                if len(description) > 64:
+                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '名称过长')
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
             elif arg[1] == "map":
                 map = arg[2].split(" ")
@@ -1861,7 +1882,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                         )
                     except:
                         continue
-                await upd_updateServer(remid,sid,sessionID,serverId,maps,name,description,customGameSettings)
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置图池:\n'+ msg.rstrip())
     else:
         await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
@@ -2674,7 +2695,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
             await BF1_R.send(MessageSegment.reply(event.message_id) + '无效id')
         else:
             try:
-                file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, playerName), timeout=35)
+                file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, playerName), timeout=60)
                 if str(file_dir) != '0':
                     await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 else:
@@ -2694,7 +2715,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
             with open(BF1_PLAYERS_DATA/f'{session}'/f'{user_id}_{personaId}.txt','w') as f:
                 f.write(userName)  
             try:
-                file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
+                file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=60)
                 if str(file_dir) != '0':
                     await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                 else:
@@ -2711,7 +2732,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
                 await BF1_R.send(MessageSegment.reply(event.message_id) + '绑定失败')
             else:
                 try:
-                    file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=35)
+                    file_dir = await asyncio.wait_for(draw_r(remid2, sid2, sessionID2, personaId, userName), timeout=60)
                     if str(file_dir) != '0':
                         await BF1_R.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
                     else:
@@ -3192,10 +3213,16 @@ async def kick_vbanPlayer(pljson,vbans):
             if str(personaId) in vban_ids:
                 index = vban_ids.index(str(personaId))
                 reason = vban_reasons[index]
+                #bot = nonebot.get_bot("2703509964")
+                #await bot.send_group_msg(group_id=694884849, message=f'在')
                 tasks.append(upd_kickPlayer(remid0,sid0,sessionID0,gameId,personaId,reason))
 
     res = await asyncio.gather(*tasks)
     print(res)
+
+async def start_vban(gids,vbans):
+    pljson = await upd_blazeplforvban(gids)
+    await kick_vbanPlayer(pljson,vbans) 
 
 async def upd_vbanPlayer(draw_dict:dict):
     alive_servers = list(draw_dict.keys())
@@ -3227,21 +3254,32 @@ async def upd_vbanPlayer(draw_dict:dict):
     if len(gameIds) == 0:
         return 0
     gids = []
+    #tasks = []
     for i in range(len(gameIds)):
-        if len(gids) < 50:
+        if len(gids) < 10:
             gids.append(gameIds[i])
         else:
-            pljson = await Blaze2788Pro(gids)
-            await kick_vbanPlayer(pljson,vbans) 
+            print(gids)
+            await start_vban(gids,vbans) 
             gids = []
     
-    if len(gids) < 50:
-        pljson = await Blaze2788Pro(gids)
-        await kick_vbanPlayer(pljson,vbans)
+    if 0 < len(gids) < 10:
+        print(gids)
+        await start_vban(gids,vbans)
 
-@scheduler.scheduled_job("interval", minutes=1, id=f"job_0")
-async def bf1_alarm():
+ #   await asyncio.gather(*tasks)
+
+
+draw_dict = {}
+
+@scheduler.scheduled_job("interval", minutes=15, id=f"job_1")
+async def bf1_checkalarm():
     global alarm_amount
+    check_alarm()
+
+@scheduler.scheduled_job("interval", hours=2, id=f"job_2")
+async def bf1_init_token():
+
     global sessionID,access_token,res_access_token,remid,sid
     global sessionID1,access_token1,res_access_token1,remid1,sid1
     global sessionID2,access_token2,res_access_token2,remid2,sid2
@@ -3253,30 +3291,28 @@ async def bf1_alarm():
     global sessionID8,access_token8,res_access_token8,remid8,sid8
     global sessionID9,access_token9,res_access_token9,remid9,sid9
 
-    if time.localtime().tm_min % 15 == 0 :
-        check_alarm()
-    if time.localtime().tm_hour % 2 == 0 and time.localtime().tm_min == 0:
-        res_access_token,access_token = await upd_token(remid,sid)
-        res_access_token1,access_token1 = await upd_token(remid1,sid1)
-        res_access_token2,access_token2 = await upd_token(remid2,sid2)
-        res_access_token3,access_token3 = await upd_token(remid3,sid3)
-        res_access_token4,access_token4 = await upd_token(remid4,sid4)
-        res_access_token5,access_token5 = await upd_token(remid5,sid5)
-        res_access_token6,access_token6 = await upd_token(remid6,sid6)
-        res_access_token7,access_token7 = await upd_token(remid7,sid7)
-        res_access_token8,access_token8 = await upd_token(remid8,sid8)
-        res_access_token9,access_token9 = await upd_token(remid9,sid9)
-    if time.localtime().tm_hour % 12 == 0 and time.localtime().tm_min == 0:
-        remid,sid,sessionID = await upd_sessionId(res_access_token, remid, sid, 0)
-        remid1,sid1,sessionID1 = await upd_sessionId(res_access_token1, remid1, sid1, 1)
-        remid2,sid2,sessionID2 = await upd_sessionId(res_access_token2, remid2, sid2, 2)
-        remid3,sid3,sessionID3 = await upd_sessionId(res_access_token3, remid3, sid3, 3)
-        remid4,sid4,sessionID4 = await upd_sessionId(res_access_token4, remid4, sid4, 4)
-        remid5,sid5,sessionID5 = await upd_sessionId(res_access_token5, remid5, sid5, 5)
-        remid6,sid6,sessionID6 = await upd_sessionId(res_access_token6, remid6, sid6, 6)
-        remid7,sid7,sessionID7 = await upd_sessionId(res_access_token7, remid7, sid7, 7)
-        remid8,sid8,sessionID8 = await upd_sessionId(res_access_token8, remid8, sid8, 8)
-        remid9,sid9,sessionID9 = await upd_sessionId(res_access_token9, remid9, sid9, 9)
+    await init_token()
+
+@scheduler.scheduled_job("interval", hours=12, id=f"job_3")
+async def bf1_init_session():
+
+    global sessionID,access_token,res_access_token,remid,sid
+    global sessionID1,access_token1,res_access_token1,remid1,sid1
+    global sessionID2,access_token2,res_access_token2,remid2,sid2
+    global sessionID3,access_token3,res_access_token3,remid3,sid3
+    global sessionID4,access_token4,res_access_token4,remid4,sid4
+    global sessionID5,access_token5,res_access_token5,remid5,sid5
+    global sessionID6,access_token6,res_access_token6,remid6,sid6
+    global sessionID7,access_token7,res_access_token7,remid7,sid7
+    global sessionID8,access_token8,res_access_token8,remid8,sid8
+    global sessionID9,access_token9,res_access_token9,remid9,sid9
+
+    await init_session()
+
+@scheduler.scheduled_job("interval", minutes=1, id=f"job_0")
+async def bf1_alarm():
+    global draw_dict
+    global alarm_amount
     tasks = []
 
     draw_dict = await upd_draw(remid4,sid4,sessionID4)
@@ -3302,10 +3338,13 @@ async def bf1_alarm():
                     tasks.append(asyncio.create_task(get_server_status(session,num,X,Y,bot,draw_dict)))
     if len(tasks) != 0:
         await asyncio.wait(tasks)
-    
+
+@scheduler.scheduled_job("interval", minutes=1, id=f"job_4")
+async def bf1_upd_vbanPlayer():
     await upd_vbanPlayer(draw_dict)
-    
-    await asyncio.sleep(10)
+
+    await asyncio.sleep(30)
+    await upd_ping()
     
     
     
