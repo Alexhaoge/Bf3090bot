@@ -24,15 +24,17 @@ def base64img(img):
     img_stream = buf.getvalue()
     return 'base64://' + b64encode(img_stream).decode('ascii')
 
-async def paste_exchange(url:str,img,position):
+async def paste_exchange(url:str,img,position,size):
     if url.split("/")[-1] in os.listdir(BF1_SERVERS_DATA/"Caches"/"Skins"):
         image = Image.open(BF1_SERVERS_DATA/"Caches"/"Skins"/url.split("/")[-1])
+        image = image.resize(size)
     else:
         async with httpx.AsyncClient() as client:
             response = await client.get(url,timeout=20)
             image_data = response.content
             image = Image.open(BytesIO(image_data))
             image.save(BF1_SERVERS_DATA/"Caches"/"Skins"/url.split("/")[-1])
+            image = image.resize(size)
     img.paste(image,position,image)
 
 async def paste_emb(url,img,position):
@@ -297,9 +299,11 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
     tasks.append(asyncio.create_task(bfeac_checkBan(playerName)))
-    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac = await asyncio.gather(*tasks)
-    special_stat = await upd_blazestat(personaId,'s5')
+    tasks.append(asyncio.create_task(upd_loadout(remid, sid, sessionID, personaId)))
 
+    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac,res_pre = await asyncio.gather(*tasks)
+    special_stat = await upd_blazestat(personaId,'s5')
+    
     name = playerName
     tag = res_tag['result'][f'{personaId}']
     skill = res_stat['result']['basicStats']['skill']
@@ -491,15 +495,10 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 100))
     draw = ImageDraw.Draw(textbox3)
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
+    font_6 = ImageFont.truetype(font='Dengb.ttf', size=30, encoding='UTF-8')
     draw.text(xy=(80,150), text=f'{zhconv.convert(vehicles[0]["name"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
     kill1 = int(vehicles[0]['stats']['values']['kills'])
     star = kill1 // 100  #★{serverstar
-    if star < 50:
-        draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
-    elif star < 100:
-        draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-    else:
-        draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
 
     try:
         vkp = round(kill1*60/vehicles[0]['stats']['values']['seconds'],2)
@@ -511,7 +510,37 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     draw.text(xy=(380,225), text=f"摧毁:{int(vehicles[0]['stats']['values']['destroyed'])}", fill=(255, 255, 255, 255),font=font_5)
     draw.text(xy=(380,270), text=f"时间:{(int(vehicles[0]['stats']['values']['seconds'])/3600):.1f}h", fill=(255, 255, 255, 255),font=font_5)
     position3 = (100, 1070)
-    img.paste(textbox3, position3, textbox3)
+    
+    try:
+        skin_name,skin_url = getVehicleSkin(zhconv.convert(vehicles[0]["name"],"zh-cn"),res_pre)
+        text = zhconv.convert(skin_name,"zh-cn")
+
+        if star < 50:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+            draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_6)
+        elif star < 100:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+            draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(0, 255, 0, 255),font=font_6)
+        else:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+            draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_6)
+
+        img.paste(textbox3, position3, textbox3)
+        await paste_exchange(skin_url,img,(220, 1100),(400,100))
+    except:
+        if star < 50:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+        elif star < 100:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+        else:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
+                      
+        img.paste(textbox3, position3, textbox3)
+
+        vehicles_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{vehicles[0]["vehicles"][0]["imageUrl"].split("/")[-1]}'
+        img_vehicles = Image.open(vehicles_img).resize((400,100)).convert("RGBA")
+        img.paste(paste_img(img_vehicles), (220, 1100), img_vehicles)
+    
 
     for i in range(3):
         textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 100))
@@ -519,12 +548,6 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         draw.text(xy=(80,150), text=f'{zhconv.convert(weapons[i]["name"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
         kill1 = int(weapons[i]['stats']['values']['kills'])
         star = kill1 // 100 #★{serverstar
-        if star < 50:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
-        elif star < 100:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-        else:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
 
         try:
             acc = (weapons[i]['stats']['values']['hits']*100) / (weapons[i]['stats']['values']['shots'])
@@ -550,18 +573,38 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{((int(weapons[i]["stats"]["values"]["seconds"]))/3600):.1f}h', fill=(255, 255, 255, 255),font=font_5)
 
         position3 = (760, 380+i*345)
-        img.paste(textbox3, position3, textbox3)
+        try:
+            skin_name,skin_url = getWeaponSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+            text = zhconv.convert(skin_name,"zh-cn")
 
-        wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
-        img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
-        img.paste(paste_img(img_wp), (880, 345*i+410), img_wp)
+            if star < 50:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+                draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_6)
+            elif star < 100:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+                draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(0, 255, 0, 255),font=font_6)
+            else:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+                draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_6)
+
+            img.paste(textbox3, position3, textbox3)
+            await paste_exchange(skin_url,img,(880, 345*i+410),(400,100))
+        except:
+            if star < 50:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+            elif star < 100:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+            else:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
+                        
+            img.paste(textbox3, position3, textbox3)        
+
+            wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
+            img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
+            img.paste(paste_img(img_wp), (880, 345*i+410), img_wp)
 
     img_class = Image.open(BF1_SERVERS_DATA/f'Caches/Classes/{bestClass}.png').resize((45,45)).convert("RGBA")
     img.paste(paste_img(img_class), (415, 409), img_class)
-
-    vehicles_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{vehicles[0]["vehicles"][0]["imageUrl"].split("/")[-1]}'
-    img_vehicles = Image.open(vehicles_img).resize((400,100)).convert("RGBA")
-    img.paste(paste_img(img_vehicles), (220, 1100), img_vehicles)
     
     await paste_emb(emblem,img,(100,100))
 
@@ -588,7 +631,9 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
 
-    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag = await asyncio.gather(*tasks)
+    tasks.append(asyncio.create_task(upd_loadout(remid, sid, sessionID, personaId)))
+
+    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,res_pre = await asyncio.gather(*tasks)
     special_stat = await upd_blazestat(personaId,'s5')
     name = playerName
     tag = res_tag['result'][f'{personaId}']
@@ -635,6 +680,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     draw = ImageDraw.Draw(textbox)
     font_1 = ImageFont.truetype(font='msyhbd.ttc', size=50, encoding='UTF-8')
     font_2 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
+    font_4 = ImageFont.truetype(font='Dengb.ttf', size=30, encoding='UTF-8')
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=35, encoding='UTF-8')
     if tag == '':
         text=f'{name}'
@@ -826,17 +872,15 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
         weapons = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
     for i in range(min(row*col,len(weapons))):
+        textbox4 = Image.new("RGBA", (645,190), (255, 255, 255, 255))
+        position3 = (655*(i%col), 260+(i//col)*340)
+        #img.paste(textbox4, position3, textbox4)
+
         textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 100))
         draw = ImageDraw.Draw(textbox3)
 
         kill1 = int(weapons[i]['stats']['values']['kills'])
         star = kill1 // 100 #★{serverstar
-        if star < 50:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
-        elif star < 100:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-        else:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
 
         try:
             acc = (weapons[i]['stats']['values']['hits']*100) / (weapons[i]['stats']['values']['shots'])
@@ -872,12 +916,37 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
             draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{wkp:.2f}\n命中:{acc:.2f}%', fill=(255, 255, 255, 255),font=font_5)
             draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{wtime:.1f}h', fill=(255, 255, 255, 255),font=font_5)
 
-        position3 = (655*(i%col), 260+(i//col)*340)
-        img.paste(textbox3, position3, textbox3)
+        try:
+            if mode == 17:
+                skin_name,skin_url = getVehicleSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+            else:
+                skin_name,skin_url = getWeaponSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+            text = zhconv.convert(skin_name,"zh-cn")
 
-        wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
-        img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
-        img.paste(paste_img(img_wp), (130+650*(i%col), 340*(i//col)+300), img_wp)
+            if star < 50:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+                draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_4)
+            elif star < 100:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+                draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(0, 255, 0, 255),font=font_4)
+            else:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+                draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_4)
+
+            img.paste(textbox3, position3, textbox3)
+            await paste_exchange(skin_url,img,(130+650*(i%col), 340*(i//col)+300),(400,100))
+        except:
+            if star < 50:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+            elif star < 100:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+            else:
+                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
+                          
+            img.paste(textbox3, position3, textbox3)
+            wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
+            img_wp = Image.open(wp_img).resize((400,100)).convert("RGBA")
+            img.paste(paste_img(img_wp), (130+650*(i%col), 340*(i//col)+300), img_wp)
 
     await paste_emb(emblem,img,(0,0))
 
@@ -1778,7 +1847,7 @@ async def draw_exchange(remid, sid, sessionID):
                 draw.line((50+200*(i%7), 215+150*(i//7), 230+200*(i%7), 215+150*(i//7)), fill=(255, 1, 27, 120), width=4)
         except:
             pass
-        tasks.append(asyncio.create_task(paste_exchange(url,img,position)))
+        tasks.append(asyncio.create_task(paste_exchange(url,img,position,(180,45))))
 
     await asyncio.gather(*tasks)
     

@@ -110,6 +110,11 @@ BF2042_PLAYERS_DATA.mkdir(exist_ok=True)
 
 API_SITE = "https://api.gametools.network/"
 
+with open(CURRENT_FOLDER/"wp_guid.json","r",encoding="utf-8")as f:
+    wp_guid = json.load(f)
+with open(CURRENT_FOLDER/"skininfo.json","r",encoding="utf-8")as f:
+    skininfo = json.load(f)
+
 async def request_API(game, prop='stats', params={}):
     url = API_SITE+f'{game}/{prop}'
     async with httpx.AsyncClient() as client:
@@ -467,3 +472,44 @@ def getRank(spm,secondsPlayed):
         return 150
     else:
         return i
+    
+def getWeaponSkin(name,res_pre:dict):
+    try:
+        loadout = res_pre["result"]["weapons"]
+
+        guid = wp_guid[name]["guid"]
+        skinlist = wp_guid[name]["info"]
+
+        skin_guid = loadout[guid]["1"]
+        skin_name = skininfo["result"][skin_guid]["name"]
+
+        for i in skinlist:
+            if i["name"] == skin_name:
+                skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
+                break
+        
+        return skin_name,skin_url
+    except Exception as e:
+        return e
+    
+def getVehicleSkin(name,res_pre:dict):
+    try:
+        loadout = res_pre["result"]["kits"]
+
+        guid = wp_guid[name]["guid"]
+        skinlist = wp_guid[name]["info"]
+
+        skin_guid = loadout[guid][0]["1"]
+        skin_name = skininfo["result"][skin_guid]["name"]
+
+        for i in skinlist:
+            if i["name"] == skin_name:
+                skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
+            elif i["name"] == skin_name + " (極稀有)":
+                skin_name = skin_name + " (極稀有)"
+                skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
+                break
+
+        return skin_name,skin_url
+    except Exception as e:
+        return e

@@ -831,6 +831,27 @@ async def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
         )
     return response.json()
 
+async def upd_loadout(remid, sid, sessionID, personaId):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+	            "jsonrpc": "2.0",
+	            "method": "Loadout.getPresetsByPersonaId",
+	            "params": {
+		        "game": "tunguska",
+                "personaId": f"{personaId}"
+	            },
+                "id": str(uuid.uuid4())
+            },
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+            },
+            timeout=10
+        )
+    return response.json()    
+
 async def upd_servers(remid, sid, sessionID, serverName):
     async with httpx.AsyncClient() as client:
         response = await client.post(

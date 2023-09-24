@@ -3265,6 +3265,7 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
 
 
 async def start_vban(gids,vbans,draw_dict):
+    #pljson = await upd_blazeplforvban(gids)
     pljson = await upd_blazeplforvban(gids)
     await kick_vbanPlayer(pljson,vbans,draw_dict) 
 
@@ -3305,7 +3306,8 @@ async def upd_vbanPlayer(draw_dict:dict):
             gids.append(gameIds[i])
         else:
             print(gids)
-            await start_vban(gids,vbans,draw_dict) 
+            await start_vban(gids,vbans,draw_dict)
+            await asyncio.sleep(4) 
             gids = []
     
     if 0 < len(gids) < 10:
@@ -3386,10 +3388,21 @@ async def bf1_alarm():
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_4")
 async def bf1_upd_vbanPlayer():
-    
+    start_time = datetime.datetime.now()
     await upd_ping()
-    await asyncio.sleep(30)
+    await asyncio.sleep(10)
+
     await upd_vbanPlayer(draw_dict)
+    end_time = datetime.datetime.now()
+    thr_time = (end_time - start_time).total_seconds()
+    print(f"Vban用时：{thr_time}秒")
+
+    if thr_time % 60 < 30:
+        await asyncio.sleep(int(31-thr_time))
+        await upd_ping()
     
+    elif 30 <= thr_time % 60 < 60:
+        await upd_ping()
+
     
     
