@@ -515,6 +515,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         skin_name,skin_url = getVehicleSkin(zhconv.convert(vehicles[0]["name"],"zh-cn"),res_pre)
         text = zhconv.convert(skin_name,"zh-cn")
 
+<<<<<<< HEAD
         if star < 50:
             draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
             draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_6)
@@ -528,6 +529,14 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         img.paste(textbox3, position3, textbox3)
         await paste_exchange(skin_url,img,(220, 1100),(400,100))
     except:
+=======
+    for i in range(3):
+        textbox3 = Image.new("RGBA", (640,330), (0, 0, 0, 100))
+        draw = ImageDraw.Draw(textbox3)
+        draw.text(xy=(80,150), text=f'{zhconv.convert(weapons[i]["name"],"zh-cn")}', fill=(255, 255, 255, 255),font=font_5)
+        kill1 = int(weapons[i]['stats']['values']['kills'])
+        star = kill1 // 100 #★{serverstar
+>>>>>>> 49ae7b49aaa9def524498ec3e20e227fc07c91b4
         if star < 50:
             draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
         elif star < 100:
@@ -872,10 +881,13 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
         weapons = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True)
 
     for i in range(min(row*col,len(weapons))):
+<<<<<<< HEAD
         textbox4 = Image.new("RGBA", (645,190), (255, 255, 255, 255))
         position3 = (655*(i%col), 260+(i//col)*340)
         #img.paste(textbox4, position3, textbox4)
 
+=======
+>>>>>>> 49ae7b49aaa9def524498ec3e20e227fc07c91b4
         textbox3 = Image.new("RGBA", (645,330), (0, 0, 0, 100))
         draw = ImageDraw.Draw(textbox3)
 

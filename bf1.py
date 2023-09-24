@@ -3228,6 +3228,7 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
             if str(personaId) in vban_ids:
                 index = vban_ids.index(str(personaId))
                 reason = vban_reasons[index]
+<<<<<<< HEAD
                 personaIds.append(int(personaId))
                 report_list.append(
                     {
@@ -3237,6 +3238,10 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
                         "session": session
                         }
                     )
+=======
+                #bot = nonebot.get_bot("2703509964")
+                #await bot.send_group_msg(group_id=694884849, message=f'在')
+>>>>>>> 49ae7b49aaa9def524498ec3e20e227fc07c91b4
                 tasks.append(upd_kickPlayer(remid0,sid0,sessionID0,gameId,personaId,reason))
 
     res = await asyncio.gather(*tasks)
@@ -3268,6 +3273,10 @@ async def start_vban(gids,vbans,draw_dict):
     #pljson = await upd_blazeplforvban(gids)
     pljson = await upd_blazeplforvban(gids)
     await kick_vbanPlayer(pljson,vbans,draw_dict) 
+
+async def start_vban(gids,vbans):
+    pljson = await upd_blazeplforvban(gids)
+    await kick_vbanPlayer(pljson,vbans) 
 
 async def upd_vbanPlayer(draw_dict:dict):
     alive_servers = list(draw_dict.keys())
@@ -3306,13 +3315,21 @@ async def upd_vbanPlayer(draw_dict:dict):
             gids.append(gameIds[i])
         else:
             print(gids)
+<<<<<<< HEAD
             await start_vban(gids,vbans,draw_dict)
             await asyncio.sleep(4) 
+=======
+            await start_vban(gids,vbans) 
+>>>>>>> 49ae7b49aaa9def524498ec3e20e227fc07c91b4
             gids = []
     
     if 0 < len(gids) < 10:
         print(gids)
+<<<<<<< HEAD
         await start_vban(gids,vbans,draw_dict)
+=======
+        await start_vban(gids,vbans)
+>>>>>>> 49ae7b49aaa9def524498ec3e20e227fc07c91b4
 
  #   await asyncio.gather(*tasks)
 
@@ -3388,6 +3405,7 @@ async def bf1_alarm():
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_4")
 async def bf1_upd_vbanPlayer():
+<<<<<<< HEAD
     start_time = datetime.datetime.now()
     await upd_ping()
     await asyncio.sleep(10)
@@ -3400,6 +3418,12 @@ async def bf1_upd_vbanPlayer():
     if thr_time % 60 < 30:
         await asyncio.sleep(int(31-thr_time))
         await upd_ping()
+=======
+    await upd_vbanPlayer(draw_dict)
+
+    await asyncio.sleep(30)
+    await upd_ping()
+>>>>>>> 49ae7b49aaa9def524498ec3e20e227fc07c91b4
     
     elif 30 <= thr_time % 60 < 60:
         await upd_ping()
