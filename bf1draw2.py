@@ -170,7 +170,10 @@ def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
                             bbox_transform=ax.transAxes,
                             borderpad=0,
                             loc=3)
-        axes_new.imshow(map_img, alpha=0.8, aspect='auto', zorder=0)
+        try:
+            axes_new.imshow(map_img, alpha=0.8, aspect='auto', zorder=0)
+        except:
+            pass
         axes_new.set_axis_off()
 
     xfmt = mdates.DateFormatter('%H:%M')

@@ -507,6 +507,7 @@ def getVehicleSkin(name,res_pre:dict):
             if i["name"] == skin_name:
                 skin_rare = i["rarenessLevel"]
                 skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
+                break
             elif i["name"] == skin_name + " (極稀有)":
                 skin_name = skin_name + " (極稀有)"
                 skin_rare = i["rarenessLevel"]
