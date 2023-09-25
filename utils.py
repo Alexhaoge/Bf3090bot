@@ -485,10 +485,11 @@ def getWeaponSkin(name,res_pre:dict):
 
         for i in skinlist:
             if i["name"] == skin_name:
+                skin_rare = i["rarenessLevel"]
                 skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
                 break
         
-        return skin_name,skin_url
+        return skin_name,skin_url,skin_rare
     except Exception as e:
         return e
     
@@ -504,12 +505,14 @@ def getVehicleSkin(name,res_pre:dict):
 
         for i in skinlist:
             if i["name"] == skin_name:
+                skin_rare = i["rarenessLevel"]
                 skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
             elif i["name"] == skin_name + " (極稀有)":
                 skin_name = skin_name + " (極稀有)"
+                skin_rare = i["rarenessLevel"]
                 skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
                 break
 
-        return skin_name,skin_url
+        return skin_name,skin_url,skin_rare
     except Exception as e:
         return e

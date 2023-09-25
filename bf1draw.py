@@ -510,31 +510,28 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     draw.text(xy=(380,225), text=f"摧毁:{int(vehicles[0]['stats']['values']['destroyed'])}", fill=(255, 255, 255, 255),font=font_5)
     draw.text(xy=(380,270), text=f"时间:{(int(vehicles[0]['stats']['values']['seconds'])/3600):.1f}h", fill=(255, 255, 255, 255),font=font_5)
     position3 = (100, 1070)
-    
+ 
+    if star < 50:
+        draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+    elif star < 100:
+        draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+    else:
+        draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+   
     try:
-        skin_name,skin_url = getVehicleSkin(zhconv.convert(vehicles[0]["name"],"zh-cn"),res_pre)
+        skin_name,skin_url,skin_rare = getVehicleSkin(zhconv.convert(vehicles[0]["name"],"zh-cn"),res_pre)
         text = zhconv.convert(skin_name,"zh-cn")
 
-        if star < 50:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+        if skin_rare == 0:
             draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_6)
-        elif star < 100:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-            draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(0, 255, 0, 255),font=font_6)
-        else:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+        elif skin_rare == 1:
+            draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(0, 255, 255, 255),font=font_6)
+        elif skin_rare == 2:
             draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_6)
-
         img.paste(textbox3, position3, textbox3)
         await paste_exchange(skin_url,img,(220, 1100),(400,100))
+    
     except:
-        if star < 50:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
-        elif star < 100:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-        else:
-            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
-                      
         img.paste(textbox3, position3, textbox3)
 
         vehicles_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{vehicles[0]["vehicles"][0]["imageUrl"].split("/")[-1]}'
@@ -573,30 +570,29 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
         draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{((int(weapons[i]["stats"]["values"]["seconds"]))/3600):.1f}h', fill=(255, 255, 255, 255),font=font_5)
 
         position3 = (760, 380+i*345)
+        
+        if star < 50:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+        elif star < 100:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+        else:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
+
         try:
-            skin_name,skin_url = getWeaponSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+            skin_name,skin_url,skin_rare = getWeaponSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
             text = zhconv.convert(skin_name,"zh-cn")
 
-            if star < 50:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+            if skin_rare == 0:
                 draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_6)
-            elif star < 100:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-                draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(0, 255, 0, 255),font=font_6)
-            else:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+            elif skin_rare == 1:
+                draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(0, 255, 255, 255),font=font_6)
+            elif skin_rare == 2:
                 draw.text(xy=(630-font_6.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_6)
 
             img.paste(textbox3, position3, textbox3)
             await paste_exchange(skin_url,img,(880, 345*i+410),(400,100))
         except:
-            if star < 50:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
-            elif star < 100:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-            else:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
-                        
+              
             img.paste(textbox3, position3, textbox3)        
 
             wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
@@ -915,33 +911,32 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
             draw.text(xy=(10,177), text=f'----------------------------------', fill=(255, 255, 255, 150),font=font_5)
             draw.text(xy=(80,210), text=f'击杀:{kill1}\nKPM:{wkp:.2f}\n命中:{acc:.2f}%', fill=(255, 255, 255, 255),font=font_5)
             draw.text(xy=(380,210), text=f'效率:{eff:.2f}\n爆头:{whs:.2f}%\n时间:{wtime:.1f}h', fill=(255, 255, 255, 255),font=font_5)
-
+        
+        if star < 50:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+        elif star < 100:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
+        else:
+            draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
+        
         try:
             if mode == 17:
-                skin_name,skin_url = getVehicleSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+                skin_name,skin_url,skin_rare = getVehicleSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
             else:
-                skin_name,skin_url = getWeaponSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+                skin_name,skin_url,skin_rare = getWeaponSkin(zhconv.convert(weapons[i]["name"],"zh-cn"),res_pre)
+            
             text = zhconv.convert(skin_name,"zh-cn")
-
-            if star < 50:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
+            
+            if skin_rare == 0:
                 draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(255, 255, 255, 255),font=font_4)
-            elif star < 100:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-                draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(0, 255, 0, 255),font=font_4)
-            else:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5)
-                draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_4)
+            elif skin_rare == 1:
+                draw.text(xy=(635-font_4.getsize(text)[0],10), text=text, fill=(0, 255, 255, 255),font=font_4)
+            elif skin_rare == 2:
+                draw.text(xy=(630-font_4.getsize(text)[0],10), text=text, fill=(255, 255, 0, 255),font=font_4)
 
             img.paste(textbox3, position3, textbox3)
             await paste_exchange(skin_url,img,(130+650*(i%col), 340*(i//col)+300),(400,100))
-        except:
-            if star < 50:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 255, 255),font=font_5)
-            elif star < 100:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(0, 255, 0, 255),font=font_5)
-            else:
-                draw.text(xy=(10,10), text=f'★{star}', fill=(255, 255, 0, 255),font=font_5) 
+        except: 
                           
             img.paste(textbox3, position3, textbox3)
             wp_img = BF1_SERVERS_DATA/'Caches'/'Weapons'/f'{weapons[i]["imageUrl"].split("/")[-1]}'
