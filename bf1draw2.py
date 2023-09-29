@@ -125,6 +125,8 @@ def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
         times.append(ts_dt) # always append the time
         if gameid in ts_dict.keys():
             players.append(int(ts_dict[gameid]['serverAmount']))
+            if ts_dict[gameid]['map'] == '':
+                continue
             # record map change
             if len(maps):
                 if ts_dict[gameid]['map'] != maps[-1]:
