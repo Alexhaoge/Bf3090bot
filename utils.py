@@ -333,7 +333,7 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
-def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8,remid9,sid9,sessionId9):
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8,remid9,sid9,sessionId9,remid10,sid10,sessionId10,remid11,sid11,sessionId11):
     with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
         arg0 = f.read().split(',')
     with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
@@ -353,7 +353,12 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     with open(CURRENT_FOLDER/'8.json','r',encoding='UTF-8') as f:
         arg8 = f.read().split(',')  
     with open(CURRENT_FOLDER/'9.json','r',encoding='UTF-8') as f:
-        arg9 = f.read().split(',')                    
+        arg9 = f.read().split(',')    
+    with open(CURRENT_FOLDER/'10.json','r',encoding='UTF-8') as f:
+        arg10 = f.read().split(',') 
+    with open(CURRENT_FOLDER/'11.json','r',encoding='UTF-8') as f:
+        arg11 = f.read().split(',')          
+
     if gameId in arg1:
         return remid1,sid1,sessionId1
     elif gameId in arg0:
@@ -373,7 +378,12 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     elif gameId in arg8:
         return remid8,sid8,sessionId8   
     elif gameId in arg9:
-        return remid9,sid9,sessionId9       
+        return remid9,sid9,sessionId9    
+    elif gameId in arg10:
+        return remid10,sid10,sessionId10 
+    elif gameId in arg11:
+        return remid11,sid11,sessionId11      
+     
 def special_stat_to_dict1(special_stat):
     List_AS = special_stat['4']
     dict_AS = {
