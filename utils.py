@@ -97,6 +97,8 @@ global_config = get_driver().config
 config = Config(**global_config.dict())
 PREFIX = config.bfchat_prefix
 
+DATABASE_URL = config.database_url
+
 CURRENT_FOLDER = Path(config.bfchat_dir).resolve()
 CURRENT_FOLDER.mkdir(exist_ok=True)
 BFV_PLAYERS_DATA = CURRENT_FOLDER/'bfv_players'

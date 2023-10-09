@@ -1,6 +1,4 @@
 from nonebot import get_driver
-
-
 from nonebot import on_command
 from nonebot.rule import to_me
 from nonebot.matcher import Matcher
@@ -11,16 +9,28 @@ from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
 
-
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
-from pathlib import Path
+from .rdb import init_db, close_db, get_db_session
 
 from .utils import PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, CODE_FOLDER
 
 from .bf1 import bf1_bindserver, bf1_server_alarm, bf1_server_alarmoff, bf1_binding, bf1_handler, bf1_ls, bf1_server, bf1_status, bf1_mode, bf1_map, bf1_chooseLevel, bf1_initmap, bf1_admin, bf1_kick, bf1_ban, bf1_unban, bf1_move, bf1_vip, bf_status, bf_help, bf1_fuwuqi
 from .bfv import bfv_binding, bfv_handler, bfv_ls, bfv_server
 from .bf2042 import bf2042_binding, bf2042_handler, bf2042_ls
+
+################ Global Bot Hooks ##################
+driver = get_driver()
+
+# Write all the bot initialization tasks here
+@driver.on_startup()
+async def init_on_bot_startup():
+    await init_db()
+
+@driver.on_shutdown()
+async def close_on_bot_shutdown():
+    await close_db()
+
 
 BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
 BF_HELP = on_command(f"{PREFIX}bf help", block=True, priority=1)
