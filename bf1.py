@@ -1918,7 +1918,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
             elif arg[1] == "name":
                 name = arg[2]
-                if len(description) > 64:
+                if len(name) > 64 or len(name.encode('utf-8')) > 64:
                     await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '名称过长')
                 await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
