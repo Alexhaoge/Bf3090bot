@@ -104,6 +104,16 @@ with open(BF1_SERVERS_DATA/'Caches'/'id11.txt','r' ,encoding='UTF-8') as f:
     remid11 = id_list[0]
     sid11 = id_list[1]
 
+with open(BF1_SERVERS_DATA/'Caches'/'id12.txt','r' ,encoding='UTF-8') as f:
+    id_list = f.read().split(',')
+    remid12 = id_list[0]
+    sid12 = id_list[1]
+
+with open(BF1_SERVERS_DATA/'Caches'/'id13.txt','r' ,encoding='UTF-8') as f:
+    id_list = f.read().split(',')
+    remid13 = id_list[0]
+    sid13 = id_list[1]
+
 async def init_token():
     global access_token,res_access_token,remid,sid
     global access_token1,res_access_token1,remid1,sid1
@@ -117,6 +127,8 @@ async def init_token():
     global access_token9,res_access_token9,remid9,sid9
     global access_token10,res_access_token10,remid10,sid10
     global access_token11,res_access_token11,remid11,sid11
+    global access_token12,res_access_token12,remid12,sid12
+    global access_token13,res_access_token13,remid13,sid13
 
     tasks_token = []
 
@@ -132,8 +144,10 @@ async def init_token():
     tasks_token.append(upd_token(remid9, sid9))
     tasks_token.append(upd_token(remid10, sid10))
     tasks_token.append(upd_token(remid11, sid11))
+    tasks_token.append(upd_token(remid12, sid12))
+    tasks_token.append(upd_token(remid13, sid13))
 
-    [res_access_token,access_token],[res_access_token1,access_token1],[res_access_token2,access_token2],[res_access_token3,access_token3],[res_access_token4,access_token4],[res_access_token5,access_token5],[res_access_token6,access_token6],[res_access_token7,access_token7],[res_access_token8,access_token8],[res_access_token9,access_token9],[res_access_token10,access_token10],[res_access_token11,access_token11] = await asyncio.gather(*tasks_token)
+    [res_access_token,access_token],[res_access_token1,access_token1],[res_access_token2,access_token2],[res_access_token3,access_token3],[res_access_token4,access_token4],[res_access_token5,access_token5],[res_access_token6,access_token6],[res_access_token7,access_token7],[res_access_token8,access_token8],[res_access_token9,access_token9],[res_access_token10,access_token10],[res_access_token11,access_token11],[res_access_token12,access_token12],[res_access_token13,access_token13] = await asyncio.gather(*tasks_token)
 
 async def init_session():
     global sessionID,access_token,res_access_token,remid,sid
@@ -148,6 +162,8 @@ async def init_session():
     global sessionID9,access_token9,res_access_token9,remid9,sid9
     global sessionID10,access_token10,res_access_token10,remid10,sid10
     global sessionID11,access_token11,res_access_token11,remid11,sid11
+    global sessionID12,access_token12,res_access_token12,remid12,sid12
+    global sessionID13,access_token13,res_access_token13,remid13,sid13
 
     tasks_session = []
 
@@ -163,8 +179,10 @@ async def init_session():
     tasks_session.append(upd_sessionId(res_access_token9, remid9, sid9, 9))
     tasks_session.append(upd_sessionId(res_access_token10, remid10, sid10, 10))
     tasks_session.append(upd_sessionId(res_access_token11, remid11, sid11, 11))
+    tasks_session.append(upd_sessionId(res_access_token12, remid12, sid12, 12))
+    tasks_session.append(upd_sessionId(res_access_token13, remid13, sid13, 13))
 
-    [remid,sid,sessionID],[remid1,sid1,sessionID1],[remid2,sid2,sessionID2],[remid3,sid3,sessionID3],[remid4,sid4,sessionID4],[remid5,sid5,sessionID5],[remid6,sid6,sessionID6],[remid7,sid7,sessionID7],[remid8,sid8,sessionID8],[remid9,sid9,sessionID9],[remid10,sid10,sessionID10],[remid11,sid11,sessionID11] = await asyncio.gather(*tasks_session)
+    [remid,sid,sessionID],[remid1,sid1,sessionID1],[remid2,sid2,sessionID2],[remid3,sid3,sessionID3],[remid4,sid4,sessionID4],[remid5,sid5,sessionID5],[remid6,sid6,sessionID6],[remid7,sid7,sessionID7],[remid8,sid8,sessionID8],[remid9,sid9,sessionID9],[remid10,sid10,sessionID10],[remid11,sid11,sessionID11],[remid12,sid12,sessionID12],[remid13,sid13,sessionID13] = await asyncio.gather(*tasks_session)
     print(sessionID)
     print(sessionID1)
     print(sessionID2)
@@ -177,6 +195,8 @@ async def init_session():
     print(sessionID9)
     print(sessionID10)
     print(sessionID11)
+    print(sessionID12)
+    print(sessionID13)
 
 asyncio.run(init_token())
 asyncio.run(init_session())
@@ -442,7 +462,7 @@ async def bf_faq(event:MessageEvent, state:T_State):
 async def bf1_init(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     
-    personaIds = [994371625,1005935009564,1006896769855,1006306480221,1006197884886,1007408722331,1007565122039,1005349638963,1005440313535,1005430659208,1005531036893,338899212]
+    personaIds = [994371625,1005935009564,1006896769855,1006306480221,1006197884886,1007408722331,1007565122039,1005349638963,1005440313535,1005430659208,1005531036893,338899212,1006562566348,1007705995943]
     res = await upd_getPersonasByIds(remid,sid,sessionID,personaIds)
     names = []
     nums = []
@@ -705,7 +725,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
         
         gameId = serverBL['result']['serverInfo']['gameId']
         try:
-            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
         except:
             await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         persistedGameId = serverBL['result']['serverInfo']['guid']
@@ -785,7 +805,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 serverBL = json.load(f)
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
             except:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'bot没有权限，输入.bot查询服管情况。')
             
@@ -817,7 +837,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                     serverBL = json.load(f)
                     gameId = serverBL['result']['serverInfo']['gameId']
                 try:
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 except:
                     await BF1_KICK.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
 
@@ -932,7 +952,7 @@ async def get_kickall(bot: Bot, event: GroupMessageEvent, state: T_State, msg: M
         gameId = state["gameId"]
         reason = state["reason"]
         try:
-            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
         except:
             await BF1_KICKALL.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         for i in pl['1']:
@@ -969,7 +989,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
                 try:
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 except:
                     await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 try:
@@ -1013,7 +1033,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                         personaIds.append(personaId)
                         break
                 try:  
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 except:
                     await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 res = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
@@ -1059,7 +1079,7 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:    
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 tasks.append(asyncio.create_task(upd_banPlayer(remid0, sid0, sessionID0, serverId, personaId)))
             except:
                 continue
@@ -1091,7 +1111,7 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:                 
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 tasks.append(asyncio.create_task(upd_unbanPlayer(remid0, sid0, sessionID0, serverId, personaId)))
             except:
                 continue
@@ -1118,7 +1138,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
             serverId = serverBL['result']['rspInfo']['server']['serverId']
             gameId = serverBL['result']['serverInfo']['gameId']
             try:
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
             except:
                 await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -1160,7 +1180,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
                 try:
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 except:
                     await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 try:
@@ -1197,7 +1217,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                         personaIds.append(personaId)
                         break
                 try:  
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 except:
                     await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 res = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
@@ -1238,7 +1258,7 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:    
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 add_vban(personaId,session,server_id,reason,user_id)
             except:
                 continue
@@ -1271,7 +1291,7 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
                 serverId = serverBL['result']['rspInfo']['server']['serverId']
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:                 
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 del_vban(personaId,session,server_id)
             except:
                 continue
@@ -1298,7 +1318,7 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
             serverId = serverBL['result']['rspInfo']['server']['serverId']
             gameId = serverBL['result']['serverInfo']['gameId']
             try:
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
             except:
                 await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -1328,7 +1348,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 serverBL = json.load(f)
                 gameId = serverBL['result']['serverInfo']['gameId']     
                 try:
-                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                    remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                 except:
                     await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 try:
@@ -1392,7 +1412,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                     serverBL = json.load(f)
                     gameId = serverBL['result']['serverInfo']['gameId']
                     try:
-                        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                     except:
                         await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 for i in range(len(personaIds)):
@@ -1460,7 +1480,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     serverId = serverBL['result']['rspInfo']['server']['serverId']
                     gameId = serverBL['result']['serverInfo']['gameId']
                     try:
-                        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                        remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                     except:
                         await BF1_VIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 if serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge':
@@ -1538,7 +1558,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         serverId = serverBL['result']['rspInfo']['server']['serverId']
                         gameId = serverBL['result']['serverInfo']['gameId']
                         try:
-                            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
                         except:
                             await BF1_VIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                     if serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge':
@@ -1616,7 +1636,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
         serverId = serverBL['result']['rspInfo']['server']['serverId']
         gameId = serverBL['result']['serverInfo']['gameId']
         try:
-            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
         except:
             await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         tasks = []
@@ -1674,7 +1694,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
             serverId = serverBL['result']['rspInfo']['server']['serverId']
             gameId = serverBL['result']['serverInfo']['gameId']
             try:
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
             except:
                 await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 
@@ -1849,6 +1869,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             maps = rspInfo['mapRotations'][0]['maps']
             name = rspInfo['serverSettings']['name']
             description = rspInfo['serverSettings']['description']
+            settings = rspInfo['serverSettings']['customGameSettings']
 
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                 zh_cn = json.load(f)
@@ -1860,18 +1881,22 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
 
                 map += f'{UpdateDict_1[map0]}{UpdateDict_1[mode]} '
 
-            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'                
-            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n" + MessageSegment.image(file_dir))
-        elif len(arg) < 3 or arg[1] not in ["name","desc","map"]:
+            sets = getSettings(settings)
+
+            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png' 
+            file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'               
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n配置: {sets}\n" + MessageSegment.image(file_dir) + MessageSegment.image(file_dir1))
+        elif len(arg) < 3 or arg[1] not in ["name","desc","map","set"]:
             file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'
-            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n" + MessageSegment.image(file_dir))
+            file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n.配置 <服务器> set <设置>\n示例: \n1).配置 1 map 1z 2z 3z 15z 21z\n2).配置 1 set 1-off 2-off 40-50%\n3).配置 1 set 默认值\n详细配置图请输入.配置 <服务器> info查询\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n为避免混淆，服务器设置均按默认值为基础来修改，与服务器现有配置无关。")
         else:
             server_id = arg[0]
             with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
                 serverBL = json.load(f)
                 gameId = serverBL['result']['serverInfo']['gameId']
             try:
-                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+                remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
             except:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             res = await upd_detailedServer(remid0, sid0, sessionID0, gameId)
@@ -1880,6 +1905,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             maps = rspInfo['mapRotations'][0]['maps']
             name = rspInfo['serverSettings']['name']
             description = rspInfo['serverSettings']['description']
+            settings = rspInfo['serverSettings']['customGameSettings']
 
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                 zh_cn = json.load(f)
@@ -1888,13 +1914,13 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                 description = zhconvert(arg[2])
                 if len(description) > 256 or len(description.encode('utf-8')) > 512:
                     await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '简介过长')
-                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description)
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
             elif arg[1] == "name":
                 name = arg[2]
                 if len(description) > 64:
                     await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '名称过长')
-                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description)
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
             elif arg[1] == "map":
                 map = arg[2].split(" ")
@@ -1913,8 +1939,14 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                         )
                     except:
                         continue
-                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description)
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置图池:\n'+ msg.rstrip())
+            elif arg[1] == "set":
+                setstrlist = arg[2].split(" ")
+                print(setstrlist)
+                settings = ToSettings(setstrlist)
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
     else:
         await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
 
@@ -1972,7 +2004,7 @@ async def user_add(event: GroupMessageEvent):
         for bot in bots.values():
             botlist = await bot.get_group_list()
             for i in botlist:
-                if i["group_id"] == session:
+                if i["group_id"] == event.group_id:
                     sign = 1
                     break
             if sign == 1:
@@ -3216,9 +3248,12 @@ async def get_server_status(session:int,num,X,i,bot,draw_dict):
         map = zh_cn[status['map']]
         #print(playerAmount,maxPlayers,map)
         #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
-        if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
-            await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{serverName}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
-            alarm_amount[X][i] = alarm_amount[X][i] + 1
+        try:
+            if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
+                await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{serverName}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+                alarm_amount[X][i] = alarm_amount[X][i] + 1
+        except:
+            pass
 
 
 async def kick_vbanPlayer(pljson,vbans,draw_dict):
@@ -3234,7 +3269,7 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
         pl_ids = []
 
         try:
-            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11)
+            remid0,sid0,sessionID0 = getsid(gameId,remid,remid1,sid,sid1,sessionID,sessionID1,remid2,sid2,sessionID2,remid3,sid3,sessionID3,remid4,sid4,sessionID4,remid5,sid5,sessionID5,remid6,sid6,sessionID6,remid7,sid7,sessionID7,remid8,sid8,sessionID8,remid9,sid9,sessionID9,remid10,sid10,sessionID10,remid11,sid11,sessionID11,remid12,sid12,sessionID12,remid13,sid13,sessionID13)
         except:
             continue
 
@@ -3242,6 +3277,21 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
             pl_ids.append(stats["id"])
         for stats in pl["2"]:
             pl_ids.append(stats["id"])
+
+        bfeac_ids = await bfeac_checkBanMulti(pl_ids)
+        if bfeac_ids != []:
+            reason = "Banned by bfeac.com"
+            for personaId in bfeac_ids:
+                tasks.append(upd_kickPlayer(remid0,sid0,sessionID0,gameId,personaId,reason))
+                # personaIds.append(int(personaId))
+                # report_list.append(
+                #     {
+                #         "gameId": gameId,
+                #         "personaId": personaId,
+                #         "reason": reason, 
+                #         "session": session
+                #         }
+                #     )                
 
         for personaId in pl_ids:
             if str(personaId) in vban_ids:
@@ -3275,6 +3325,7 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
                 name = draw_dict[f"{gameId}"]["server_name"]
                 eaid = res_pid['result'][f'{personaId}']['displayName']
                 report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
+                print(report_msg)
                 bot = await getbotforAps(bots,session)
                 reply = await bot.send_group_msg(group_id=session, message=report_msg.rstrip())
                 print(reply)
@@ -3284,12 +3335,12 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
 
 
 async def start_vban(gids,vbans,draw_dict):
-    pljson = await Blaze2788Pro(gids)
+    #pljson = await Blaze2788Pro(gids)
     # gid_str = ""
     # for gid in gids:
     #     gid_str += f"{gid},"
 
-    # pljson = await upd_blazeplforvban(gid_str.rstrip(","))
+    pljson = await upd_blazeplforvban(gids)
     await kick_vbanPlayer(pljson,vbans,draw_dict) 
 
 async def upd_vbanPlayer(draw_dict:dict):
@@ -3362,6 +3413,8 @@ async def bf1_init_token():
     global sessionID9,access_token9,res_access_token9,remid9,sid9
     global sessionID10,access_token10,res_access_token10,remid10,sid10
     global sessionID11,access_token11,res_access_token11,remid11,sid11
+    global sessionID12,access_token12,res_access_token12,remid12,sid12
+    global sessionID13,access_token13,res_access_token13,remid13,sid13
 
     await init_token()
 
@@ -3380,10 +3433,12 @@ async def bf1_init_session():
     global sessionID9,access_token9,res_access_token9,remid9,sid9
     global sessionID10,access_token10,res_access_token10,remid10,sid10
     global sessionID11,access_token11,res_access_token11,remid11,sid11
+    global sessionID12,access_token12,res_access_token12,remid12,sid12
+    global sessionID13,access_token13,res_access_token13,remid13,sid13
 
     await init_session()
 
-@scheduler.scheduled_job("cron", second=1, id=f"job_0")
+@scheduler.scheduled_job("cron", second=1, id=f"job_0",max_instances=4)
 async def bf1_alarm():
     global draw_dict
     global alarm_amount
@@ -3413,7 +3468,7 @@ async def bf1_alarm():
     if len(tasks) != 0:
         await asyncio.wait(tasks)
 
-@scheduler.scheduled_job("cron", second=20, id=f"job_4")
+@scheduler.scheduled_job("interval", minutes=2, id=f"job_4",max_instances=2)
 async def bf1_upd_vbanPlayer():
     start_time = datetime.datetime.now()
     # await upd_ping()
