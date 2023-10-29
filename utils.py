@@ -327,7 +327,7 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
-def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8,remid9,sid9,sessionId9,remid10,sid10,sessionId10,remid11,sid11,sessionId11):
+def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,sessionId2,remid3,sid3,sessionId3,remid4,sid4,sessionId4,remid5,sid5,sessionId5,remid6,sid6,sessionId6,remid7,sid7,sessionId7,remid8,sid8,sessionId8,remid9,sid9,sessionId9,remid10,sid10,sessionId10,remid11,sid11,sessionId11,remid12,sid12,sessionId12,remid13,sid13,sessionId13):
     with open(CURRENT_FOLDER/'0.json','r',encoding='UTF-8') as f:
         arg0 = f.read().split(',')
     with open(CURRENT_FOLDER/'1.json','r',encoding='UTF-8') as f:
@@ -351,7 +351,11 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     with open(CURRENT_FOLDER/'10.json','r',encoding='UTF-8') as f:
         arg10 = f.read().split(',') 
     with open(CURRENT_FOLDER/'11.json','r',encoding='UTF-8') as f:
-        arg11 = f.read().split(',')          
+        arg11 = f.read().split(',')   
+    with open(CURRENT_FOLDER/'12.json','r',encoding='UTF-8') as f:
+        arg12 = f.read().split(',')         
+    with open(CURRENT_FOLDER/'13.json','r',encoding='UTF-8') as f:
+        arg13 = f.read().split(',')     
 
     if gameId in arg1:
         return remid1,sid1,sessionId1
@@ -376,8 +380,12 @@ def getsid(gameId,remid,remid1,sid,sid1,sessionId,sessionId1,remid2,sid2,session
     elif gameId in arg10:
         return remid10,sid10,sessionId10 
     elif gameId in arg11:
-        return remid11,sid11,sessionId11      
-     
+        return remid11,sid11,sessionId11 
+    elif gameId in arg12:
+        return remid12,sid12,sessionId12    
+    elif gameId in arg13:
+        return remid13,sid13,sessionId13
+         
 def special_stat_to_dict1(special_stat):
     List_AS = special_stat['4']
     dict_AS = {
@@ -492,7 +500,11 @@ def getWeaponSkin(name,res_pre:dict):
                 skin_rare = i["rarenessLevel"]
                 skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
                 break
-        
+            elif i["name"] == skin_name + " (極稀有)":
+                skin_name = skin_name + " (極稀有)"
+                skin_rare = i["rarenessLevel"]
+                skin_url = i["images"]["Png300xANY"].replace("[BB_PREFIX]","https://eaassets-a.akamaihd.net/battlelog/battlebinary")
+                break
         return skin_name,skin_url,skin_rare
     except Exception as e:
         return e
@@ -532,3 +544,252 @@ def is_contain_chinese(check_str):
         if u'\u4e00' <= ch <= u'\u9fff':
             return True
     return False
+
+def getSettings(settings):
+    set = json.loads(settings)
+    setstr = ""
+    if set["kits"]["1"] == "off":
+        setstr += "1-off "
+    if set["kits"]["2"] == "off":
+        setstr += "2-off "
+    if set["kits"]["3"] == "off":
+        setstr += "3-off "
+    if set["kits"]["4"] == "off":
+        setstr += "4-off "
+    if set["kits"]["HERO"] == "off":
+        setstr += "5-off " 
+    if set["vehicles"]["L"] == "off":
+        setstr += "6-off "
+    if set["vehicles"]["A"] == "off":
+        setstr += "7-off "
+    if set["weaponClasses"]["E"] == "off":
+        setstr += "8-off "
+    if set["weaponClasses"]["SIR"] == "on":
+        setstr += "9-on "
+    if set["weaponClasses"]["SAR"] == "off":
+        setstr += "10-off "  
+    if set["weaponClasses"]["KG"] == "off":
+        setstr += "11-off " 
+    if set["weaponClasses"]["M"] == "off":
+        setstr += "12-off " 
+    if set["weaponClasses"]["LMG"] == "off":
+        setstr += "13-off " 
+    if set["weaponClasses"]["SMG"] == "off":
+        setstr += "14-off " 
+    if set["weaponClasses"]["H"] == "off":
+        setstr += "15-off "
+    if set["weaponClasses"]["S"] == "off":
+        setstr += "16-off "
+    if set["weaponClasses"]["SR"] == "off":
+        setstr += "17-off "
+    if set["misc"]["RWM"] == "on":
+        setstr += "18-on "
+    if set["misc"]["UM"] == "on":
+        setstr += "19-on "
+    if set["misc"]["LL"] == "on":
+        setstr += "20-on "
+    if set["misc"]["AAS"] == "off":
+        setstr += "21-off "
+    if set["misc"]["LNL"] == "on":
+        setstr += "22-on "
+    if set["misc"]["3S"] == "off":
+        setstr += "23-off "
+    if set["misc"]["KC"] == "off":
+        setstr += "24-off "
+    if set["misc"]["MV"] == "off":
+        setstr += "25-off "
+    if set["misc"]["BH"] == "off":
+        setstr += "26-off "
+    if set["misc"]["F"] == "on":
+        setstr += "27-on "
+    if set["misc"]["MM"] == "off":
+        setstr += "28-off "
+    if set["misc"]["DTB"] == "on":
+        setstr += "29-on "
+    if set["misc"]["FF"] == "on":
+        setstr += "30-on "
+    if set["misc"]["RH"] == "off":
+        setstr += "31-off "
+    if set["misc"]["3VC"] == "off":
+        setstr += "32-off "
+    if set["misc"]["SLSO"] == "on":
+        setstr += "33-on "  
+    if set["misc"]["DSD"] == "on":
+        setstr += "34-on "
+    if set["misc"]["AAR"] == "off":
+        setstr += "35-off "
+    if set["misc"]["NT"] == "off":
+        setstr += "36-off "
+    if set["misc"]["BPL"] == "on":
+        setstr += "37-on "
+    if set["misc"]["MS"] == "off":
+        setstr += "38-off "
+    if set["scales"]["RT2"] == "on":
+        setstr += "39-50% "
+    if set["scales"]["RT3"] == "on":
+        setstr += "39-100% "
+    if set["scales"]["RT4"] == "on":
+        setstr += "39-200% "
+    if set["scales"]["RT5"] == "on":
+        setstr += "39-500% "
+    if set["scales"]["BD1"] == "on":
+        setstr += "40-50% "    
+    if set["scales"]["BD3"] == "on":
+        setstr += "40-200% " 
+    if set["scales"]["BD4"] == "on":
+        setstr += "40-125% " 
+    if set["scales"]["VR1"] == "on":
+        setstr += "41-50% " 
+    if set["scales"]["VR3"] == "on":
+        setstr += "41-200% " 
+    if set["scales"]["TC1"] == "on":
+        setstr += "42-50% " 
+    if set["scales"]["TC3"] == "on":
+        setstr += "42-200% "
+    if set["scales"]["SR1"] == "on":
+        setstr += "43-50% " 
+    if set["scales"]["SR3"] == "on":
+        setstr += "43-200% "
+
+    if setstr == "":
+        return "默认值"
+    else:
+        return setstr.rstrip()
+
+def ToSettings(setstrlist:list):
+    
+    settings = "{\"version\":10,\"kits\":{\"8\":\"off\",\"4\":\"on\",\"9\":\"off\",\"5\":\"off\",\"6\":\"off\",\"HERO\":\"on\",\"1\":\"on\",\"2\":\"on\",\"7\":\"off\",\"3\":\"on\"},\"vehicles\":{\"L\":\"on\",\"A\":\"on\"},\"weaponClasses\":{\"E\":\"on\",\"SIR\":\"off\",\"SAR\":\"on\",\"KG\":\"on\",\"M\":\"on\",\"LMG\":\"on\",\"SMG\":\"on\",\"H\":\"on\",\"S\":\"on\",\"SR\":\"on\"},\"serverType\":{\"SERVER_TYPE_RANKED\":\"on\"},\"misc\":{\"RWM\":\"off\",\"UM\":\"off\",\"LL\":\"off\",\"AAS\":\"on\",\"LNL\":\"off\",\"3S\":\"on\",\"KC\":\"on\",\"MV\":\"on\",\"BH\":\"on\",\"F\":\"off\",\"MM\":\"on\",\"DTB\":\"off\",\"FF\":\"off\",\"RH\":\"on\",\"3VC\":\"on\",\"SLSO\":\"off\",\"DSD\":\"off\",\"AAR\":\"on\",\"NT\":\"on\",\"BPL\":\"off\",\"MS\":\"on\"},\"scales\":{\"RT3\":\"off\",\"BD3\":\"off\",\"VR3\":\"off\",\"BD4\":\"off\",\"BD2\":\"on\",\"TC1\":\"off\",\"SR1\":\"off\",\"SR2\":\"on\",\"VR2\":\"on\",\"RT1\":\"on\",\"BD1\":\"off\",\"RT5\":\"off\",\"RT2\":\"off\",\"TC2\":\"on\",\"TC3\":\"off\",\"SR3\":\"off\",\"RT4\":\"off\",\"VR1\":\"off\"}}"
+            
+    if "默认值" in setstrlist:
+        return settings
+    
+    set = json.loads(settings)
+
+    if "1-off" in setstrlist:
+        set["kits"]["1"] = "off"
+    if "2-off" in setstrlist:
+        set["kits"]["2"] = "off"
+    if "3-off" in setstrlist:
+        set["kits"]["3"] = "off"
+    if "4-off" in setstrlist:
+        set["kits"]["4"] = "off"
+    if "5-off" in setstrlist:
+        set["kits"]["HERO"] = "off"
+    if "6-off" in setstrlist:
+        print(set["vehicles"]["L"])
+        set["vehicles"]["L"] = "off"
+    if "7-off" in setstrlist:
+        print(set["vehicles"]["A"])
+        set["vehicles"]["A"] = "off"
+    if "8-off" in setstrlist:
+        set["weaponClasses"]["E"] ="off"
+    if "9-on" in setstrlist:
+        set["weaponClasses"]["SIR"] = "on"
+    if "10-off" in setstrlist:
+        set["weaponClasses"]["SAR"] = "off"
+    if "11-off" in setstrlist:
+        set["weaponClasses"]["KG"] = "off"  
+    if "12-off" in setstrlist:
+        set["weaponClasses"]["M"] = "off"  
+    if "13-off" in setstrlist:
+        set["weaponClasses"]["LMG"] = "off" 
+    if "14-off" in setstrlist:
+        set["weaponClasses"]["SMG"] = "off" 
+    if "15-off" in setstrlist:
+        set["weaponClasses"]["H"] = "off"  
+    if "16-off" in setstrlist:
+        set["weaponClasses"]["S"] = "off"  
+    if "17-off" in setstrlist:
+        set["weaponClasses"]["SR"] = "off"  
+    if "18-on" in setstrlist:
+        set["misc"]["RWM"] = "on"
+    if "19-on" in setstrlist:
+        set["misc"]["UM"] = "on"
+    if "20-on" in setstrlist:
+        set["misc"]["LL"] = "on"
+    if "21-off" in setstrlist:
+        set["misc"]["AAS"] = "off"
+    if "22-on" in setstrlist:
+        set["misc"]["LNL"] = "on"
+    if "23-off" in setstrlist:
+        set["misc"]["3S"] = "off"
+    if "24-off" in setstrlist:
+        set["misc"]["KC"] = "off"
+    if "25-off" in setstrlist:
+        set["misc"]["MV"] = "off"
+    if "26-off" in setstrlist:
+        set["misc"]["BH"] = "off"
+    if "27-on" in setstrlist:
+        set["misc"]["F"] = "on"
+    if "28-off" in setstrlist:
+        set["misc"]["MM"] = "off"
+    if "29-on" in setstrlist:
+        set["misc"]["DTB"] = "on"
+    if "30-on" in setstrlist:
+        set["misc"]["FF"] = "on"
+    if "31-off" in setstrlist:
+        set["misc"]["RH"] = "off"
+    if "32-off" in setstrlist:
+        set["misc"]["3VC"] = "off"
+    if "33-on" in setstrlist:
+        set["misc"]["SLSO"] = "on"
+    if "34-on" in setstrlist:
+        set["misc"]["DSD"] = "on"
+    if "35-off" in setstrlist:
+        set["misc"]["AAR"] = "off"
+    if "36-off" in setstrlist:
+        set["misc"]["NT"] = "off"
+    if "37-on" in setstrlist:
+        set["misc"]["BPL"] = "on"
+    if "38-off" in setstrlist:
+        set["misc"]["MS"] = "off"
+
+    if "39-50%" in setstrlist:
+        set["scales"]["RT2"] = "on"
+        set["scales"]["RT1"] = "off"
+    elif "39-100%" in setstrlist:
+        set["scales"]["RT3"] = "on"
+        set["scales"]["RT1"] = "off"
+    elif "39-200%" in setstrlist:
+        set["scales"]["RT4"] = "on"
+        set["scales"]["RT1"] = "off"
+    elif "39-500%" in setstrlist:
+        set["scales"]["RT5"] = "on"
+        set["scales"]["RT1"] = "off"
+
+    if "40-50%" in setstrlist:
+        set["scales"]["BD1"] = "on"
+        set["scales"]["BD2"] = "off"
+    elif "40-200%" in setstrlist:
+        set["scales"]["BD3"] = "on"
+        set["scales"]["BD2"] = "off"
+    elif "40-125%" in setstrlist:
+        set["scales"]["BD4"] = "on"
+        set["scales"]["BD2"] = "off"
+
+    if "41-50%" in setstrlist:
+        set["scales"]["VR1"] = "on"
+        set["scales"]["VR2"] = "off"
+    elif "41-200%" in setstrlist:
+        set["scales"]["VR3"] = "on"
+        set["scales"]["VR2"] = "off"
+
+    if "42-50%" in setstrlist:
+        set["scales"]["TC1"] = "on"
+        set["scales"]["TC2"] = "off"
+    elif "42-200%" in setstrlist:
+        set["scales"]["TC3"] = "on"
+        set["scales"]["TC2"] = "off"
+
+    if "43-50%" in setstrlist:
+        set["scales"]["SR1"] = "on"
+        set["scales"]["SR2"] = "off"
+    elif "43-200%" in setstrlist:
+        set["scales"]["SR3"] = "on"
+        set["scales"]["SR2"] = "off"
+
+    settings = json.dumps(set)
+    
+    return settings
+
+

@@ -1647,6 +1647,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             maps = rspInfo['mapRotations'][0]['maps']
             name = rspInfo['serverSettings']['name']
             description = rspInfo['serverSettings']['description']
+            settings = rspInfo['serverSettings']['customGameSettings']
 
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                 zh_cn = json.load(f)
@@ -1658,11 +1659,15 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
 
                 map += f'{UpdateDict_1[map0]}{UpdateDict_1[mode]} '
 
-            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'                
-            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n" + MessageSegment.image(file_dir))
-        elif len(arg) < 3 or arg[1] not in ["name","desc","map"]:
+            sets = getSettings(settings)
+
+            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png' 
+            file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'               
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n配置: {sets}\n" + MessageSegment.image(file_dir) + MessageSegment.image(file_dir1))
+        elif len(arg) < 3 or arg[1] not in ["name","desc","map","set"]:
             file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'
-            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n" + MessageSegment.image(file_dir))
+            file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n.配置 <服务器> set <设置>\n示例: \n1).配置 1 map 1z 2z 3z 15z 21z\n2).配置 1 set 1-off 2-off 40-50%\n3).配置 1 set 默认值\n详细配置图请输入.配置 <服务器> info查询\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n为避免混淆，服务器设置均按默认值为基础来修改，与服务器现有配置无关。")
         else:
             server_ind, server_id = check_server_id(groupqq,arg[0])
             if not server_ind:
@@ -1678,6 +1683,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             maps = rspInfo['mapRotations'][0]['maps']
             name = rspInfo['serverSettings']['name']
             description = rspInfo['serverSettings']['description']
+            settings = rspInfo['serverSettings']['customGameSettings']
 
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                 zh_cn = json.load(f)
@@ -1690,7 +1696,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
             elif arg[1] == "name":
                 name = arg[2]
-                if len(description) > 64:
+                if len(name) > 64 or len(name.encode('utf-8')) > 64:
                     await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '名称过长')
                 await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
@@ -1713,6 +1719,12 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                         continue
                 await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置图池:\n'+ msg.rstrip())
+            elif arg[1] == "set":
+                setstrlist = arg[2].split(" ")
+                print(setstrlist)
+                settings = ToSettings(setstrlist)
+                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
     else:
         await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
 
@@ -2601,9 +2613,12 @@ async def get_server_status(groupqq:int, num,X,i,bot,draw_dict):
         map = zh_cn[status['map']]
         #print(playerAmount,maxPlayers,map)
         #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
-        if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
-            await bot.send_group_msg(group_id=groupqq, message=f'第{int(alarm_amount[X][i]+1)}次警告：{server_ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
-            alarm_amount[X][i] = alarm_amount[X][i] + 1
+        try:
+            if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
+                await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{serverName}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+                alarm_amount[X][i] = alarm_amount[X][i] + 1
+        except:
+            pass
 
 async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dict):
     tasks = []
@@ -2621,6 +2636,12 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
             continue
 
         pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
+        bfeac_ids = await bfeac_checkBanMulti(pl_ids)
+        if bfeac_ids != []:
+            reason = "Banned by bfeac.com"
+            for personaId in bfeac_ids:
+                tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason))
+
         for personaId in pl_ids:
             if personaId in vban_ids:
                 index = vban_ids.index(personaId)
@@ -2654,6 +2675,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                 name = draw_dict[f"{gameId}"]["server_name"]
                 eaid = res_pid['result'][f'{personaId}']['displayName']
                 report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
+                logging.info(report_msg)
                 bot = await getbotforAps(bots,groupqq)
                 reply = await bot.send_group_msg(group_id=groupqq, message=report_msg.rstrip())
                 logging.info(reply)
@@ -2663,13 +2685,12 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
 
 
 async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
-    pljson = await Blaze2788Pro([t[1] for t in sgids])
+    #pljson = await Blaze2788Pro(gids)
     # gid_str = ""
     # for gid in gids:
     #     gid_str += f"{gid},"
-
-    # pljson = await upd_blazeplforvban(gid_str.rstrip(","))
-    await kick_vbanPlayer(pljson, sgids, vbans, draw_dict) 
+    pljson = await upd_blazeplforvban([t[1] for t in sgids])
+    await kick_vbanPlayer(pljson, sgids,vbans,draw_dict) 
 
 async def upd_vbanPlayer(draw_dict:dict):
     alive_servers = list(draw_dict.keys())
@@ -2754,7 +2775,7 @@ async def bf1_alarm():
     if len(tasks) != 0:
         await asyncio.wait(tasks)
 
-@scheduler.scheduled_job("interval", minutes=1, id=f"job_4")
+@scheduler.scheduled_job("interval", minutes=2, id=f"job_4",max_instances=2)
 async def bf1_upd_vbanPlayer():
     start_time = datetime.datetime.now()
     # await upd_ping()

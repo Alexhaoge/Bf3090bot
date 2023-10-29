@@ -1263,7 +1263,7 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
 
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
-    text = f'普通玩家  群友  vip  白名单  管理  65-67为观战玩家  68-77为排队玩家  Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+    text = f'普通玩家  群友  vip  白名单  管理  65-67为观战玩家  69-78为排队玩家  Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
     x = (img.width-font_0.getsize(text)[0])/2
 
     draw.text(xy=((img.width-font_1.getsize(serverName)[0])/2,30), text=serverName ,fill=(255, 255, 255, 255),font=font_1)
@@ -1272,9 +1272,9 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
     draw.text(xy=(x+200,h-40), text='vip' ,fill=(255, 125, 125, 255),font=font_0)
     draw.text(xy=(x+262.5,h-40), text='白名单' ,fill=(0, 255, 0, 255),font=font_0)
     draw.text(xy=(x+362.5,h-40), text='管理' ,fill=(255, 255, 0, 255),font=font_0)
-    draw.text(xy=(x+437.5,h-40), text='65-67为观战玩家' ,fill=(255, 125, 0, 255),font=font_0)
-    draw.text(xy=(x+460+font_0.getsize('65-67为观战玩家')[0],h-40), text='68-77为排队玩家' ,fill=(255, 100, 255, 255),font=font_0)
-    draw.text(xy=(x+470+font_0.getsize('68-77为排队玩家  68-77为排队玩家')[0],h-40), text= f'Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',fill=(125, 125, 255, 255),font=font_0)
+    draw.text(xy=(x+437.5,h-40), text='65-68为观战玩家' ,fill=(255, 125, 0, 255),font=font_0)
+    draw.text(xy=(x+460+font_0.getsize('65-68为观战玩家')[0],h-40), text='69-78为排队玩家' ,fill=(255, 100, 255, 255),font=font_0)
+    draw.text(xy=(x+470+font_0.getsize('69-78为排队玩家  69-78为排队玩家')[0],h-40), text= f'Update Time:{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',fill=(125, 125, 255, 255),font=font_0)
     
     draw.line((60, 190, 1860, 190), fill=(128, 128, 128, 120), width=4)
     draw.line((60, 1165, 1860, 1165), fill=(128, 128, 128, 120), width=4)
@@ -1378,7 +1378,7 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
         textbox2 = Image.new("RGBA", (1800,40+30*(len(stat4)//2)), (0, 0, 0, 0))
         draw = ImageDraw.Draw(textbox2)
         for i in range(len(stat4)):
-            draw.text(xy=(22.5-font_2.getsize(f'{i+68}')[0]/2+900*(i%2),30*(i//2)), text=f'{i+68}' , fill =(255, 255,255, 255),font=font_2)
+            draw.text(xy=(22.5-font_2.getsize(f'{i+69}')[0]/2+900*(i%2),30*(i//2)), text=f'{i+69}' , fill =(255, 255,255, 255),font=font_2)
             if stat4[i]['rank'] < 50:
                 draw.rectangle([(60+900*(i%2), 4+30*(i//2)), (100+900*(i%2), 22+30*(i//2))], fill=(0, 255, 255, 100))
             elif stat4[i]['rank'] < 100:
@@ -1458,7 +1458,7 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
             draw.text(xy=(800+900*(i%2),30*(i//2)), text=f'{int(stat4[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
             draw.text(xy=(865+900*(i%2),30*(i//2)), text=f'{stat4[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
             
-            f['pl'].append({'slot': i+68, 'rank': stat4[i]['rank'], 'kd': stat4[i]['killDeath'], 'kp': stat4[i]['killsPerMinute'], 'id': stat4[i]['id']})
+            f['pl'].append({'slot': i+69, 'rank': stat4[i]['rank'], 'kd': stat4[i]['killDeath'], 'kp': stat4[i]['killsPerMinute'], 'id': stat4[i]['id']})
         
         draw.line((0, 32+30*(i//2), 1860, 32+30*(i//2)), fill=(128, 128, 128, 255), width=4)
         img.paste(textbox2, (60,1176 if len(stat3)==0 else 1176+10+30*((len(stat3)+1)//2)), textbox2)
