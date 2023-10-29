@@ -24,16 +24,15 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 ###################### Data Model #########################
 Base = declarative_base()
 
-# Write your data tables here
 class Bf1Admins(Base):
     __tablename__ = 'bf1admins'
     __table_args__ = ({'sqlite_autoincrement': True})
     id = Column(Integer, primary_key=True, autoincrement=True)
     pid = Column(BigInteger, unique=True, nullable=False)
     # originid = Column(String, nullable=False)
-    # Affordable to update frequently since this table is very small
     remid = Column(String, nullable=False)
     sid = Column(String, nullable=False)
+    token = Column(String, default=None, nullable=True)
     sessionid = Column(String, default=None, nullable=True)
     managed_server = relationship('Servers', back_populates='bf1admin')
 
@@ -57,23 +56,17 @@ class Players(Base):
 
 
 class ChatGroups(Base):
-    """
-    Some groups are bound to others, we call the latter as primary group and former as non-primary. 
-    Non-primary groups will use the server, admin, and group member information from their bound primary groups.
-    """
     __tablename__ = 'groups'
     groupqq = Column(BigInteger, primary_key=True)
     owner = Column(BigInteger, nullable=True)
     bind_to_group = Column(BigInteger, ForeignKey(groupqq)) # Primary group qq
+    welcome = Column(String, nullable=True)
     members = relationship("GroupMembers")
     admins = relationship("GroupAdmins")
-    servers = relationship("GroupServers")
+    servers = relationship("GroupServerBind")
 
 
 class GroupMembers(Base):
-    """
-    We do group member and player binding together in this table.
-    """
     __tablename__ = 'groupmembers'
     qq = Column(BigInteger, nullable=False)
     groupqq = Column(BigInteger, ForeignKey('groups.groupqq'))
@@ -102,6 +95,7 @@ class GroupServerBind(Base):
     ind = Column(String, nullable=False)
     alias = Column(String, nullable=True)
     whitelist = Column(String, nullable=True)
+    perm = Column(Integer, nullable=True, default=1)
     __table_args__ = (
         PrimaryKeyConstraint(groupqq, ind),
         {}
@@ -112,8 +106,8 @@ class ServerVips(Base):
     __tablename__ = "servervips"
     serverid = Column(Integer, ForeignKey('servers.serverid'))
     pid = Column(BigInteger, ForeignKey('players.pid'))
+    originid = Column(String)
     expire = Column(DateTime, nullable=True) # Null can mean a permanent vip
-    # Enabled mark for opeation server vip. Set to False for every vip update and set to True after checkvip
     enabled = Column(Boolean, default=False, nullable=False) 
     __table_args__ = (
         PrimaryKeyConstraint(serverid, pid),
@@ -128,12 +122,12 @@ class ServerVBans(Base):
     reason = Column(String, default="Virtual Banned")
     processor = Column(BigInteger, nullable=False)
     time = Column(DateTime, nullable=True)
+    notify_group = Column(BigInteger, ForeignKey('groups.groupqq'))
     __table_args__ = (
         PrimaryKeyConstraint(serverid, pid),
         {}
     )
 
-###################### Table Ends ##########################
 
 ###################### DB Helper ###########################
 engine = create_async_engine(f"sqlite+aiosqlite:///{path_to_bfchat_data}/bot.db", echo=True)
@@ -166,6 +160,7 @@ def db_op_many(sql: str, params: list):
     cur.close()
     return res    
 
+###################### Migration ###########################
 # Admin accounts
 bf1admin_pid = [
     994371625, 1005935009564, 1006896769855, 1006306480221, 1006197884886, 
@@ -207,7 +202,7 @@ for f in os.listdir(BF1_SERVERS_DATA):
             bind_to_group = int(fs_group.read())
             db_op("INSERT INTO groups (groupqq, bind_to_group) VALUES (?, ?);", [groupqq, bind_to_group])
 
-db_op_many('INSERT INTO groupservers (groupqq, serverid, ind) VALUES (?,?,?);', group_servers)
+db_op_many('INSERT INTO groupservers (groupqq, serverid, ind, perm) VALUES (?,?,?,1);', group_servers)
 
 wait = input("servers, groups, server_group_bind finished. Press Enter to continue.")
 
@@ -246,14 +241,6 @@ db_op_many('INSERT INTO groupmembers (qq, groupqq, pid) VALUES (?,?,?);', group_
 wait = input("Players and group_members finished. Press Enter to continue.")
 
 # group admin, group server bind alias
-for f in os.listdir(BF1_SERVERS_DATA):
-    if f.endswith('admin.txt'):
-        groupqq = int(f.split('_')[0])
-        with open(BF1_SERVERS_DATA/f,'r' ,encoding='UTF-8') as fs_admin:
-            for qq in fs_admin.read().split(','):
-                if qq.isdigit():
-                    db_op("INSERT OR IGNORE INTO groupadmins (qq, groupqq) VALUES (?, ?);", [qq, groupqq])
-
 for g in os.listdir(BF1_SERVERS_DATA):
     if g.isdigit():
         for f in os.listdir(BF1_SERVERS_DATA/g):
@@ -264,6 +251,15 @@ for g in os.listdir(BF1_SERVERS_DATA):
                 with open(BF1_SERVERS_DATA/g/f,'r' ,encoding='UTF-8') as fs_alias:
                     true_index = fs_alias.read()
                     db_op("UPDATE groupservers SET alias=? WHERE groupqq=? AND ind=?;", [str(index), int(groupqq), str(true_index)])
+
+for f in os.listdir(BF1_SERVERS_DATA):
+    if f.endswith('admin.txt'):
+        groupqq = int(f.split('_')[0])
+        main_groupqq = db_op("SELECT bind_to_group FROM groups WHERE groupqq=?", [groupqq])[0][0]
+        with open(BF1_SERVERS_DATA/f,'r' ,encoding='UTF-8') as fs_admin:
+            for qq in fs_admin.read().split(','):
+                if qq.isdigit():
+                    db_op("INSERT OR IGNORE INTO groupadmins (qq, groupqq) VALUES (?, ?);", [qq, main_groupqq])
 
 wait = input("group admins and grouperver alias finished. Press Enter to continue.")
 
@@ -293,8 +289,8 @@ for s in os.listdir(BF1_SERVERS_DATA/'vban'):
         for pid in data:
             ban = data[pid]
             time = datetime.datetime.fromisoformat(ban['time'])
-            db_op("INSERT OR IGNORE INTO servervbans (serverid, pid, time, reason, processor) VALUES (?, ?, ?, ?, ?);",
-                  [int(serverid), int(pid), time, ban['reason'], ban['qq']])
+            db_op("INSERT OR IGNORE INTO servervbans (serverid, pid, time, reason, processor, notify_group) VALUES (?, ?, ?, ?, ?, ?);",
+                  [int(serverid), int(pid), time, ban['reason'], ban['qq'], groupqq])
             
 for s in os.listdir(BF1_PLAYERS_DATA/'whitelist'):
     groupqq, index = re.split("\_|\.", s)[:-1]
@@ -303,5 +299,11 @@ for s in os.listdir(BF1_PLAYERS_DATA/'whitelist'):
         db_op("UPDATE groupservers SET whitelist=? WHERE groupqq=? AND ind=?;", [white, int(groupqq), str(index)])        
             
 wait = input("group whitelist, ban and vip finished. Press Enter to continue.")
+
+# TODO: server_bf1admin group_welcome_messaage, vip add originid, is_operationserver
+# for f in [f'{i}.json' for i in list(range(0, len(bf1admin_pid)))]:
+#     with open(CURRENT_FOLDER/f, 'r', encoding='UTF-8') as fs_server_admin:
+#         admin_servers = fs_server_admin.read().split(',')
+#         db_op_many("UPDATE servers SET bf1admin_pid=? WHERE server IN ()")
 
 conn.close()

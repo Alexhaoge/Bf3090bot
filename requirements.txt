@@ -1,4 +1,5 @@
 sqlalchemy>=1.4,<=2.0
+redis
 nb-cli
 aiosqlite
 requests
@@ -9,3 +10,4 @@ zhconv
 aiohttp
 beautifulsoup4
 nonebot_plugin_htmlrender
+nonebot_plugin_apscheduler

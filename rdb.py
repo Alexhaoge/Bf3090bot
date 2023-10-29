@@ -1,8 +1,9 @@
 from sqlalchemy import (
-    Column, Integer, BigInteger, DateTime, String, Boolean,
+    Column, Integer, BigInteger, DateTime, String, Boolean, Index,
     func, ForeignKey, PrimaryKeyConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship, selectinload, sessionmaker 
+from sqlalchemy.sql.base import Executable
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
@@ -14,13 +15,14 @@ Base = declarative_base()
 # Write your data tables here
 class Bf1Admins(Base):
     __tablename__ = 'bf1admins'
-    __table_args__ = ({'sqlite_autoincrement': True})
+    __table_args__ = ({'sqlite_autoincrement': True}, )
     id = Column(Integer, primary_key=True, autoincrement=True)
     pid = Column(BigInteger, unique=True, nullable=False)
     # originid = Column(String, nullable=False)
     # Affordable to update frequently since this table is very small
     remid = Column(String, nullable=False)
     sid = Column(String, nullable=False)
+    token = Column(String, default=None, nullable=True)
     sessionid = Column(String, default=None, nullable=True)
     managed_server = relationship('Servers', back_populates='bf1admin')
 
@@ -32,15 +34,16 @@ class Servers(Base):
     serverid = Column(Integer, primary_key=True)
     name = Column(String, nullable=True)
     keyword = Column(String, nullable=True)
+    opserver = Column(Boolean, nullable=True)
     bf1admin_pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=True)
     bf1admin = relationship('Bf1Admins', back_populates='managed_server')
 
 
 class Players(Base):
     __tablename__ = 'players'
-    pid = Column(BigInteger, primary_key=True)
+    pid = Column(BigInteger, nullable=False)
     originid = Column(String, unique=True, nullable=True)
-    qq = Column(BigInteger, nullable=True)
+    qq = Column(BigInteger, primary_key=True)
 
 
 class ChatGroups(Base):
@@ -52,9 +55,10 @@ class ChatGroups(Base):
     groupqq = Column(BigInteger, primary_key=True)
     owner = Column(BigInteger, nullable=True)
     bind_to_group = Column(BigInteger, ForeignKey(groupqq)) # Primary group qq
+    welcome = Column(String, default='', nullable=True)
     members = relationship("GroupMembers")
     admins = relationship("GroupAdmins")
-    servers = relationship("GroupServers")
+    servers = relationship("GroupServersBinds")
 
 
 class GroupMembers(Base):
@@ -89,6 +93,10 @@ class GroupServerBind(Base):
     ind = Column(String, nullable=False)
     alias = Column(String, nullable=True)
     whitelist = Column(String, nullable=True)
+    # Reserved column for access control group server bind
+    # purpose: restrict admin access to a server that does not belong
+    # to this chat group yet bind to monitor
+    perm = Column(Integer, nullable=True, default=1)
     __table_args__ = (
         PrimaryKeyConstraint(groupqq, ind),
         {}
@@ -99,6 +107,7 @@ class ServerVips(Base):
     __tablename__ = "servervips"
     serverid = Column(Integer, ForeignKey('servers.serverid'))
     pid = Column(BigInteger, ForeignKey('players.pid'))
+    originid = Column(String)
     expire = Column(DateTime, nullable=True) # Null can mean a permanent vip
     # Enabled mark for opeation server vip. Set to False for every vip update and set to True after checkvip
     enabled = Column(Boolean, default=False, nullable=False) 
@@ -115,6 +124,7 @@ class ServerVBans(Base):
     reason = Column(String, default="Virtual Banned")
     processor = Column(BigInteger, nullable=False)
     time = Column(DateTime, nullable=True)
+    notify_group = Column(BigInteger, ForeignKey('groups.groupqq'))
     __table_args__ = (
         PrimaryKeyConstraint(serverid, pid),
         {}
@@ -133,9 +143,24 @@ async def init_db():
 async def close_db():
     await engine.dispose()
 
+async_db_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
+
 async def get_db_session() -> AsyncSession:
-    async_session = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
-    async with async_session() as session:
+    async with async_db_session() as session:
         yield session
+
+async def async_db_op(stmt: Executable):
+    async with async_db_session() as session:
+        result = await session.execute(stmt)
+        return result
+
+
+__all__ = [
+    'Bf1Admins', 'Servers', 'ChatGroups', 'Players', 
+    'GroupServerBind', 'GroupAdmins', 'GroupMembers', 
+    'ServerVips', 'ServerVBans',
+    'engine', 'init_db', 'close_db',
+    'async_db_session', 'get_db_session', 'async_db_op'
+]

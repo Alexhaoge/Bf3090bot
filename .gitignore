@@ -180,3 +180,5 @@ secret.py
 image.py
 
 .vscode/
+
+testdb.ipynb

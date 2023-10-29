@@ -6,5 +6,6 @@ class Config(BaseSettings):
     bfchat_prefix: str = '.'
     bfchat_dir: str = './bfchat_data/'
     database_url: str = 'sqlite+aiosqlite:///./bfchat_data/bot.db'
+    redis_url: str = 'redis://localhost'
     class Config:
         extra = "ignore"

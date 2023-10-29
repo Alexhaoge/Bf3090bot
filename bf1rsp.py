@@ -12,13 +12,12 @@ import asyncio
 import bs4
 import re
 import os
-import IPy
-import geoip2.database
+#import geoip2.database
 from typing import Union
 
-reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
+#reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
 
-async def getPersonasByName(access_token, player_name) -> dict:
+async def getPersonasByName(access_token, player_name) -> tuple | Exception:
         """
         根据名字获取Personas
         :param player_name:
@@ -218,7 +217,7 @@ error_code_dict = {
     # -32858: "服务器未开启!"
 }
 
-async def upd_remid_sid(res: httpx.Response, remid, sid):
+def upd_remid_sid(res: httpx.Response, remid, sid):
     res_cookies = httpx.Cookies.extract_cookies(res.cookies,res)
     res_cookies = json.dumps(res_cookies)
     if 'sid' in res_cookies:
@@ -246,11 +245,10 @@ async def upd_token(remid, sid):
         )
 
     access_token = res_access_token.json()['access_token']
-    return res_access_token,access_token
+    remid, sid = upd_remid_sid(access_token, remid, sid)
+    return remid, sid, access_token
 
-async def upd_sessionId(res_access_token, remid, sid, num):
-    remid, sid = await upd_remid_sid(res_access_token, remid, sid)
-
+async def upd_sessionId(remid, sid):
     async with httpx.AsyncClient() as client:
         res_authcode = await client.get(       
             url="https://accounts.ea.com/connect/auth",
@@ -266,14 +264,7 @@ async def upd_sessionId(res_access_token, remid, sid, num):
         )
     # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
     authcode = str.split(res_authcode.headers.get("location"), "=")[1]
-    remid, sid = await upd_remid_sid(res_authcode, remid, sid)
-    
-    if num == 0:
-        with open(BF1_SERVERS_DATA/'Caches'/'id.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
-    else:
-        with open(BF1_SERVERS_DATA/'Caches'/f'id{num}.txt','w' ,encoding='UTF-8') as f:
-            f.write(f'{remid},{sid}')
+    remid, sid = upd_remid_sid(res_authcode, remid, sid)
 
     async with httpx.AsyncClient() as client:
         res_session = await client.post( 

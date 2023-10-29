@@ -12,12 +12,11 @@ from nonebot.permission import SUPERUSER
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from .rdb import init_db, close_db, get_db_session
+from .redis_helper import redis_client
 
-from .utils import PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, CODE_FOLDER
+from .utils import PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, CODE_FOLDER, ASSETS_FOLDER
 
-from .bf1 import bf1_bindserver, bf1_server_alarm, bf1_server_alarmoff, bf1_binding, bf1_handler, bf1_ls, bf1_server, bf1_status, bf1_mode, bf1_map, bf1_chooseLevel, bf1_initmap, bf1_admin, bf1_kick, bf1_ban, bf1_unban, bf1_move, bf1_vip, bf_status, bf_help, bf1_fuwuqi
-from .bfv import bfv_binding, bfv_handler, bfv_ls, bfv_server
-from .bf2042 import bf2042_binding, bf2042_handler, bf2042_ls
+from . import bf1, bfv, bf2042
 
 ################ Global Bot Hooks ##################
 driver = get_driver()
@@ -26,10 +25,13 @@ driver = get_driver()
 @driver.on_startup()
 async def init_on_bot_startup():
     await init_db()
+    await bf1.token_helper()
+    await bf1.session_helper()
 
 @driver.on_shutdown()
 async def close_on_bot_shutdown():
     await close_db()
+    await redis_client.close()
 
 
 BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
@@ -49,20 +51,14 @@ async def bf_init(event:MessageEvent, state:T_State):
 
 @BF_HELP.handle()
 async def bf_help(event:MessageEvent, state:T_State):
-    with open(CODE_FOLDER/'help.md',encoding='utf-8') as f:
+    with open(ASSETS_FOLDER/'help.md',encoding='utf-8') as f:
         md_help = f.read()
     
     md_help = md_help.format(p=PREFIX)
 
-    pic = await md_to_pic(md_help, css_path=CODE_FOLDER/"github-markdown-dark.css",width=1200)
+    pic = await md_to_pic(md_help, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=1200)
 
     await BF_HELP.send(MessageSegment.image(pic))
-
-all = [
-    "bf1_bindserver", "bf1_server_alarm", "bf1_server_alarmoff", "bf1_binding", "bf1_handler", "bf1_ls", "bf1_server", "bf1_status", "bf1_mode", "bf1_map", "bf1_chooseLevel", "bf1_initmap", "bf1_admin", "bf1_kick", "bf1_ban", "bf1_unban", "bf1_move", "bf1_vip", "bf_status", "bf_help", "bf1_fuwuqi",
-    "bfv_binding", "bfv_handler", "bfv_ls", "bfv_server",
-    "bf2042_binding", "bf2042_handler", "bf2042_ls"
-]
 
 
 
