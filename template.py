@@ -3,6 +3,7 @@ import time
 import json
 
 CURRENT_FOLDER = Path(__file__).parent.resolve()
+ASSETS_FOLDER = CURRENT_FOLDER / 'assets'
 
 BFV_BANNER = 'https://s1.ax1x.com/2022/12/14/z54oIs.jpg'
 BF1_BANNER = "https://s1.ax1x.com/2022/12/15/zoMaxe.jpg"
@@ -10,25 +11,25 @@ BF2042_BANNER = "https://s1.ax1x.com/2023/01/24/pSYXS3Q.jpg"
 
 BANNERS = {"bfv": BFV_BANNER, "bf1": BF1_BANNER, "bf2042": BF2042_BANNER}
 
-with open(CURRENT_FOLDER / 'template.html', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'template.html', encoding='utf-8') as f:
     MAIN_TEMPLATE = f.read()
 
-with open(CURRENT_FOLDER / 'template2042.html', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'template2042.html', encoding='utf-8') as f:
     MAIN2042_TEMPLATE = f.read()
 
-with open(CURRENT_FOLDER / 'weapon_card.html', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'weapon_card.html', encoding='utf-8') as f:
     WEAPON_CARD = f.read()
 
-with open(CURRENT_FOLDER / 'vehicle_card.html', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'vehicle_card.html', encoding='utf-8') as f:
     VEHICLE_CARD = f.read()
 
-with open(CURRENT_FOLDER / 'classes_card.html', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'classes_card.html', encoding='utf-8') as f:
     CLASSES_CARD = f.read()
 
-with open(CURRENT_FOLDER / 'src.js', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'src.js', encoding='utf-8') as f:
     SRC = f.read()
 
-with open(CURRENT_FOLDER / 'style.css', encoding='utf-8') as f:
+with open(ASSETS_FOLDER / 'style.css', encoding='utf-8') as f:
     STYLE = f.read()
 
 

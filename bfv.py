@@ -18,7 +18,7 @@ import time
 
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md
-from .utils import PREFIX, BFV_PLAYERS_DATA, CODE_FOLDER, request_API
+from .utils import PREFIX, BFV_PLAYERS_DATA, ASSETS_FOLDER, CODE_FOLDER, request_API
 
 GAME = 'bfv'
 LANG = 'zh-cn'
@@ -77,7 +77,7 @@ async def bfv_ls(event:GroupMessageEvent, state:T_State):
 
 {get_group_list(dlist)}"""
 
-    pic = await md_to_pic(md_result, css_path=CODE_FOLDER/"github-markdown-dark.css",width=700)
+    pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=700)
     await BFVF.send(MessageSegment.image(pic))
     
 @BFV_SERVER.handle()
@@ -90,7 +90,7 @@ async def bfv_server(event:MessageEvent, state:T_State):
 已找到符合要求的服务器 {len(server_data['servers'])} 个，最多显示20个
 {get_server_md(server_data)}"""
 
-    pic = await md_to_pic(md_result, css_path=CODE_FOLDER/"github-markdown-dark.css",width=700)
+    pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=700)
     await BFVF.send(MessageSegment.image(pic))
 
 
@@ -138,7 +138,7 @@ async def bfv_handler(event:MessageEvent, state:T_State):
 仅展示击杀数前50数据
 
 {get_weapons_data_md(result,50)}"""
-        pic = await md_to_pic(md_result, css_path=CODE_FOLDER/"github-markdown-dark.css",width=700)
+        pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=700)
     elif args[1] == 'vehicles':
         md_result = f"""## {player} 载具数据
 
@@ -147,7 +147,7 @@ async def bfv_handler(event:MessageEvent, state:T_State):
 {get_vehicles_data_md(result,50)}"""        
 
 
-        pic = await md_to_pic(md_result, css_path=CODE_FOLDER/"github-markdown-dark.css",width=700)
+        pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=700)
     
 
     await BFVF.send(MessageSegment.image(pic))

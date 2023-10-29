@@ -17,7 +17,7 @@ import time
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, \
     get_classes_data_md
-from .utils import PREFIX, BF2042_PLAYERS_DATA, CODE_FOLDER, request_API
+from .utils import PREFIX, BF2042_PLAYERS_DATA, CODE_FOLDER, ASSETS_FOLDER, request_API
 
 GAME = 'bf2042'
 LANG = 'zh-cn'
@@ -72,7 +72,7 @@ async def bf2042_ls(event: GroupMessageEvent, state: T_State):
 
 {get_group_list(dlist)}"""
 
-    pic = await md_to_pic(md_result, css_path=CODE_FOLDER / "github-markdown-dark.css", width=700)
+    pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER / "github-markdown-dark.css", width=700)
     await BF2042F.send(MessageSegment.image(pic))
 
 
@@ -115,20 +115,20 @@ async def bf2042_handler(event: MessageEvent, state: T_State):
 仅展示击杀数前50数据
 
 {get_weapons_data_md(result, 50)}"""
-        pic = await md_to_pic(md_result, css_path=CODE_FOLDER / "github-markdown-dark.css", width=700)
+        pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER / "github-markdown-dark.css", width=700)
     elif args[1] == 'vehicles':
         md_result = f"""## {player} 载具数据
 
 仅展示击杀数前50数据
 
 {get_vehicles_data_md(result, 50)}"""
-        pic = await md_to_pic(md_result, css_path=CODE_FOLDER / "github-markdown-dark.css", width=700)
+        pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER / "github-markdown-dark.css", width=700)
     elif args[1] == 'classes':
         md_result = f"""## {player} 专家数据
 
 仅展示击杀数前50数据
 
 {get_classes_data_md(result, 50)}"""
-        pic = await md_to_pic(md_result, css_path=CODE_FOLDER / "github-markdown-dark.css", width=700)
+        pic = await md_to_pic(md_result, css_path=ASSETS_FOLDER / "github-markdown-dark.css", width=700)
 
     await BF2042F.send(MessageSegment.image(pic))
