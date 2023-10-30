@@ -544,7 +544,7 @@ async def cmd_receive_report(event: GroupMessageEvent, state: T_State, pic: Mess
         state['case_num'] = 0
         state['target_EAID'] = name
         state['txturl'] = []
-        await BF1_REPORT.send(f'开始举报: {name}\n可以发送图片/文字/链接\n图片和文字请分开发送\n共计可以接收5次举报消息\n声明: 每次举报都会在后台记录举报者的qq号码，仅作为留档用。恶意举报将永久封停你的bot使用权限，情节严重者将封停群内所有成员的bot使用权。')
+        await BF1_REPORT.send(f'开始举报: {name}\n可以发送图片/文字/链接\n图片和文字请分开发送\n共计可以接收5次举报消息\n声明: 每次举报都会在后台记录举报者的qq号码，仅作为留档用。恶意举报将永久封停你的bot使用权限，情节严重者将封停群内所有成员的bot使用权。\n学习如何鉴挂: https://bitly.ws/YQAg')
     elif bfeac['stat'] == '已封禁':
         await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家已被bfeac封禁，案件链接: {bfeac["url"]}')
     else:
@@ -3222,7 +3222,7 @@ async def bf1_handler(event:MessageEvent, state:T_State):
 
     await BF1F.send(MessageSegment.image(pic))
 
-alarm_amount = numpy.zeros((100,100))
+alarm_amount = numpy.zeros((200,200))
 
 #@scheduler.scheduled_job("interval", minutes=5, id=f"job_1")
 def check_alarm():
@@ -3335,12 +3335,12 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
 
 
 async def start_vban(gids,vbans,draw_dict):
-    #pljson = await Blaze2788Pro(gids)
+    pljson = await Blaze2788Pro(gids)
     # gid_str = ""
     # for gid in gids:
     #     gid_str += f"{gid},"
 
-    pljson = await upd_blazeplforvban(gids)
+    #pljson = await upd_blazeplforvban(gids)
     await kick_vbanPlayer(pljson,vbans,draw_dict) 
 
 async def upd_vbanPlayer(draw_dict:dict):
