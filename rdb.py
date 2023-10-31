@@ -18,14 +18,11 @@ class Bf1Admins(Base):
     __table_args__ = ({'sqlite_autoincrement': True}, )
     id = Column(Integer, primary_key=True, autoincrement=True)
     pid = Column(BigInteger, unique=True, nullable=False)
-    # originid = Column(String, nullable=False)
     # Affordable to update frequently since this table is very small
     remid = Column(String, nullable=False)
     sid = Column(String, nullable=False)
     token = Column(String, default=None, nullable=True)
     sessionid = Column(String, default=None, nullable=True)
-    managed_server = relationship('Servers', back_populates='bf1admin')
-
 
 class Servers(Base):
     __tablename__ = 'servers'
@@ -35,8 +32,11 @@ class Servers(Base):
     name = Column(String, nullable=True)
     keyword = Column(String, nullable=True)
     opserver = Column(Boolean, nullable=True)
-    bf1admin_pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=True)
-    bf1admin = relationship('Bf1Admins', back_populates='managed_server')
+    
+class ServerBf1Admins(Base):
+    __tablename__ = 'serverbf1admins'
+    serverid = Column(Integer, primary_key=True)
+    pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=False)
 
 
 class Players(Base):

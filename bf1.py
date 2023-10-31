@@ -23,7 +23,6 @@ import numpy
 import zhconv
 import asyncio
 import logging
-import time
 import random
 import datetime
 import traceback
@@ -93,8 +92,9 @@ async def get_one_random_bf1admin() -> Tuple[str, str, str, str]:
 
 async def get_bf1admin_by_serverid(serverid: int) -> Tuple[str, str, str, str] | None:
     async with async_db_session() as session:
-        admin_pid = (await session.execute(select(Servers).filter_by(serverid=serverid))).first()
-        if admin_pid:
+        server_admin = (await session.execute(select(ServerBf1Admins).filter_by(serverid=serverid))).first()
+        if server_admin:
+            admin_pid = server_admin[0].pid
             admin = (await session.execute(select(Bf1Admins).filter_by(pid=admin_pid))).first()
             return admin.remid, admin.sid, admin.sessionid, admin.token
         else:
@@ -405,14 +405,14 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
         bf1admins = [row[0] for row in (await session.execute(select(Bf1Admins).order_by(Bf1Admins.id))).all()]
         pids = [admin.pid for admin in bf1admins]
         tmpid = choice(range(len(bf1admins)))
-        res = await upd_getPersonasByIds(
+        userName_res = await upd_getPersonasByIds(
             bf1admins[tmpid].remid, bf1admins[tmpid].sid, bf1admins[tmpid].sessionid, pids)
-        names = [res['result'][str(pid)]['displayName'] for pid in pids]
-        nums = [len(admin.managed_server) for admin in bf1admins]
-    
+        names = [userName_res['result'][str(pid)]['displayName'] for pid in pids]
+        num_res = (await session.execute(select(ServerBf1Admins, func.count()).group_by(ServerBf1Admins.pid))).all()
+        nums = {r[0].pid:r[1] for r in num_res}
     msg = ''
     for i in range(len(bf1admins)):
-        msg = msg + f'{bf1admins[i].id}. {names[i]}: {nums[i]}/20 \n'
+        msg = msg + f'{bf1admins[i].id}. {names[i]}: {nums[bf1admins[i].pid] if bf1admins[i].pid else 0}/20 \n'
     msg.rstrip()
     await BF1_BOT.send(MessageSegment.reply(event.message_id) + f'请选择未满的eaid添加服管：\n{msg}') 
 
@@ -1723,7 +1723,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                 setstrlist = arg[2].split(" ")
                 print(setstrlist)
                 settings = ToSettings(setstrlist)
-                await upd_updateServer(remid0,sid0,sessionID0,rspInfo,maps,name,description,settings)
+                await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
     else:
         await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
@@ -2615,7 +2615,7 @@ async def get_server_status(groupqq:int, num,X,i,bot,draw_dict):
         #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
         try:
             if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
-                await bot.send_group_msg(group_id=session, message=f'第{int(alarm_amount[X][i]+1)}次警告：{serverName}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+                await bot.send_group_msg(group_id=groupqq, message=f'第{int(alarm_amount[X][i]+1)}次警告：{server_ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
                 alarm_amount[X][i] = alarm_amount[X][i] + 1
         except:
             pass
@@ -2659,7 +2659,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                 tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason))
 
     res = await asyncio.gather(*tasks)
-    print(res)
+    logging.debug(res)
     remid2, sid2, sessionID2, access_token2  = await get_one_random_bf1admin()
     res_pid = await upd_getPersonasByIds(remid,sid,sessionID,personaIds)
 
@@ -2784,7 +2784,7 @@ async def bf1_upd_vbanPlayer():
     await upd_vbanPlayer(draw_dict)
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
-    print(f"Vban用时：{thr_time}秒")
+    logging.info(f"Vban用时：{thr_time}秒")
 
     # if thr_time % 60 < 30:
     #     await asyncio.sleep(int(31-thr_time))

@@ -7,7 +7,12 @@ import re
 import datetime
 from pathlib import Path
 
-path_to_bfchat_data = "../bfchat_data" # Change this!
+# Change these!
+path_to_bfchat_data = "../bfchat_data" 
+bf1admin_pid = [
+    994371625, 1005935009564, 1006896769855, 1006306480221, 1006197884886, 
+    1007408722331, 1007565122039, 1005349638963, 1005440313535, 1005430659208
+]
 
 CURRENT_FOLDER = Path(path_to_bfchat_data).resolve()
 BF1_PLAYERS_DATA = CURRENT_FOLDER/'bf1_players'
@@ -26,16 +31,13 @@ Base = declarative_base()
 
 class Bf1Admins(Base):
     __tablename__ = 'bf1admins'
-    __table_args__ = ({'sqlite_autoincrement': True})
+    __table_args__ = ({'sqlite_autoincrement': True}, )
     id = Column(Integer, primary_key=True, autoincrement=True)
     pid = Column(BigInteger, unique=True, nullable=False)
-    # originid = Column(String, nullable=False)
     remid = Column(String, nullable=False)
     sid = Column(String, nullable=False)
     token = Column(String, default=None, nullable=True)
     sessionid = Column(String, default=None, nullable=True)
-    managed_server = relationship('Servers', back_populates='bf1admin')
-
 
 class Servers(Base):
     __tablename__ = 'servers'
@@ -44,15 +46,19 @@ class Servers(Base):
     serverid = Column(Integer, primary_key=True)
     name = Column(String, nullable=True)
     keyword = Column(String, nullable=True)
-    bf1admin_pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=True)
-    bf1admin = relationship('Bf1Admins', back_populates='managed_server')
+    opserver = Column(Boolean, nullable=True)
+
+class ServerBf1Admins(Base):
+    __tablename__ = 'serverbf1admins'
+    serverid = Column(Integer, primary_key=True)
+    pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=False)
 
 
 class Players(Base):
     __tablename__ = 'players'
-    pid = Column(BigInteger, primary_key=True)
+    pid = Column(BigInteger, nullable=False)
     originid = Column(String, unique=True, nullable=True)
-    qq = Column(BigInteger, nullable=True)
+    qq = Column(BigInteger, primary_key=True)
 
 
 class ChatGroups(Base):
@@ -60,7 +66,7 @@ class ChatGroups(Base):
     groupqq = Column(BigInteger, primary_key=True)
     owner = Column(BigInteger, nullable=True)
     bind_to_group = Column(BigInteger, ForeignKey(groupqq)) # Primary group qq
-    welcome = Column(String, nullable=True)
+    welcome = Column(String, default='', nullable=True)
     members = relationship("GroupMembers")
     admins = relationship("GroupAdmins")
     servers = relationship("GroupServerBind")
@@ -161,12 +167,6 @@ def db_op_many(sql: str, params: list):
     return res    
 
 ###################### Migration ###########################
-# Admin accounts
-bf1admin_pid = [
-    994371625, 1005935009564, 1006896769855, 1006306480221, 1006197884886, 
-    1007408722331, 1007565122039, 1005349638963, 1005440313535, 1005430659208,
-    1005531036893, 338899212
-]
 bf1admin_filenames = [f"id{i}.txt" for i in [''] + list(range(1, len(bf1admin_pid)))]
 for i in range(len(bf1admin_pid)):
     if not os.path.exists(BF1_SERVERS_DATA/'Caches'/bf1admin_filenames[i]):
@@ -180,6 +180,7 @@ wait = input("bf1admin finished. Press Enter to continue.")
 # Servers, groups, group server binds
 group_servers = []
 group_servers_dict = {}
+gameid_serverid = {}
 for f in os.listdir(BF1_SERVERS_DATA):
     if f.endswith('_jsonBL'):
         for s in os.listdir(BF1_SERVERS_DATA/f):
@@ -187,20 +188,27 @@ for f in os.listdir(BF1_SERVERS_DATA):
             with open(BF1_SERVERS_DATA/f/s,'r' ,encoding='UTF-8') as fs:
                 serverBL = json.load(fs)
                 guid = serverBL['result']['serverInfo']['guid']
-                serverid = serverBL['result']['rspInfo']['server']['serverId']
+                gameId = int(serverBL['result']['serverInfo']['gameId'])
+                serverid = int(serverBL['result']['rspInfo']['server']['serverId'])
                 name = serverBL['result']['serverInfo']['name']
+                is_operation_server = serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge'
                 keywords = None
                 if os.path.exists(BF1_SERVERS_DATA/groupqq/s):
                     with open(BF1_SERVERS_DATA/groupqq/s,'r' ,encoding='UTF-8') as fs_keyword:
                         keyword = fs_keyword.read()
                 group_servers.append((groupqq, serverid, index))
                 group_servers_dict[f'{groupqq}_{index}'] = serverid
-                db_op("INSERT OR IGNORE INTO servers (guid, serverid, name, keyword) VALUES (?,?,?,?);", [guid, int(serverid), name, keyword])
+                gameid_serverid[gameId] = serverid
+                db_op("INSERT OR IGNORE INTO servers (guid, serverid, name, keyword, opserver) VALUES (?,?,?,?,?);", [guid, int(serverid), name, keyword, is_operation_server])
     elif f.endswith('_session.txt'):
         groupqq = int(f.split('_')[0])
         with open(BF1_SERVERS_DATA/f,'r' ,encoding='UTF-8') as fs_group:
             bind_to_group = int(fs_group.read())
-            db_op("INSERT INTO groups (groupqq, bind_to_group) VALUES (?, ?);", [groupqq, bind_to_group])
+        welcome = ''
+        if os.path.exists(BF1_SERVERS_DATA/f'{f}_apply'/'config.txt'):
+            with open(BF1_SERVERS_DATA/f'{f}_apply'/'config.txt', 'r', encoding='UTF-8') as fwelcome:
+                welcome = fwelcome.read()
+        db_op("INSERT INTO groups (groupqq, bind_to_group, welcome) VALUES (?, ?, ?);", [groupqq, bind_to_group, welcome])
 
 db_op_many('INSERT INTO groupservers (groupqq, serverid, ind, perm) VALUES (?,?,?,1);', group_servers)
 
@@ -267,6 +275,11 @@ wait = input("group admins and grouperver alias finished. Press Enter to continu
 for g in os.listdir(BF1_SERVERS_DATA):
     if g.endswith('_vip'):
         for v in os.listdir(BF1_SERVERS_DATA/g):
+            try:
+                with open(BF1_SERVERS_DATA/g/v, 'r', encoding='UTF-8') as fvip:
+                    originid = fvip.read()
+            except Exception as e:
+                print(g, v)
             vip = v.split('_')
             if len(vip) != 4 and len(vip) !=5:
                 continue
@@ -279,7 +292,7 @@ for g in os.listdir(BF1_SERVERS_DATA):
                 enabled = enabled and exists[0][1]
                 db_op("UPDATE servervips SET expire=?, enabled=? WHERE serverid=? AND pid=?;", [expire, enabled, serverid, vip[2]])
             else:
-                db_op("INSERT INTO servervips (serverid, pid, expire, enabled) VALUES (?, ?, ?, ?);", [int(serverid), int(vip[2]), expire, enabled])
+                db_op("INSERT INTO servervips (serverid, pid, expire, enabled, originid) VALUES (?, ?, ?, ?, ?);", [int(serverid), int(vip[2]), expire, enabled, originid])
 
 for s in os.listdir(BF1_SERVERS_DATA/'vban'):
     groupqq, index = s.split('_')[:-1]
@@ -300,10 +313,17 @@ for s in os.listdir(BF1_PLAYERS_DATA/'whitelist'):
             
 wait = input("group whitelist, ban and vip finished. Press Enter to continue.")
 
-# TODO: server_bf1admin group_welcome_messaage, vip add originid, is_operationserver
-# for f in [f'{i}.json' for i in list(range(0, len(bf1admin_pid)))]:
-#     with open(CURRENT_FOLDER/f, 'r', encoding='UTF-8') as fs_server_admin:
-#         admin_servers = fs_server_admin.read().split(',')
-#         db_op_many("UPDATE servers SET bf1admin_pid=? WHERE server IN ()")
+# server-bf1admin bindings
+server_bf1admin_files = [f"{i}.json" for i in range(len(bf1admin_pid))]
+server_bf1admins = {}
+for i in range(len(bf1admin_pid)):
+    with open(CURRENT_FOLDER/server_bf1admin_files[i], 'r') as f_sba:
+        gids = [int(gid_s) for gid_s in f_sba.read().rstrip(',').split(',')]
+        for gid in gids:
+            if gid in gameid_serverid.keys():
+                server_bf1admins[gameid_serverid[gid]]=bf1admin_pid[i]
+db_op_many("INSERT INTO serverbf1admins (serverid, pid) VALUES (?, ?);", server_bf1admins.items())
+wait = input("server-bf1admin bindings finished. Press Enter to continue.")
+
 
 conn.close()
