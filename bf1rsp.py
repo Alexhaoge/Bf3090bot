@@ -245,7 +245,7 @@ async def upd_token(remid, sid):
         )
 
     access_token = res_access_token.json()['access_token']
-    remid, sid = upd_remid_sid(access_token, remid, sid)
+    remid, sid = upd_remid_sid(res_access_token, remid, sid)
     return remid, sid, access_token
 
 async def upd_sessionId(remid, sid):

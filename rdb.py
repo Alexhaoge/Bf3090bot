@@ -23,6 +23,7 @@ class Bf1Admins(Base):
     sid = Column(String, nullable=False)
     token = Column(String, default=None, nullable=True)
     sessionid = Column(String, default=None, nullable=True)
+    managed_servers = relationship("ServerBf1Admins")
 
 class Servers(Base):
     __tablename__ = 'servers'
@@ -35,14 +36,17 @@ class Servers(Base):
     
 class ServerBf1Admins(Base):
     __tablename__ = 'serverbf1admins'
-    serverid = Column(Integer, primary_key=True)
+    serverid = Column(Integer, nullable=False)
     pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=False)
-
+    __table_args__ = (
+        PrimaryKeyConstraint(serverid, pid),
+        {}
+    )
 
 class Players(Base):
     __tablename__ = 'players'
     pid = Column(BigInteger, nullable=False)
-    originid = Column(String, unique=True, nullable=True)
+    originid = Column(String, nullable=True)
     qq = Column(BigInteger, primary_key=True)
 
 
@@ -58,7 +62,7 @@ class ChatGroups(Base):
     welcome = Column(String, default='', nullable=True)
     members = relationship("GroupMembers")
     admins = relationship("GroupAdmins")
-    servers = relationship("GroupServersBinds")
+    servers = relationship("GroupServerBind")
 
 
 class GroupMembers(Base):
@@ -160,7 +164,7 @@ async def async_db_op(stmt: Executable):
 __all__ = [
     'Bf1Admins', 'Servers', 'ChatGroups', 'Players', 
     'GroupServerBind', 'GroupAdmins', 'GroupMembers', 
-    'ServerVips', 'ServerVBans',
+    'ServerVips', 'ServerVBans', 'ServerBf1Admins',
     'engine', 'init_db', 'close_db',
     'async_db_session', 'get_db_session', 'async_db_op'
 ]

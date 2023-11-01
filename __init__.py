@@ -1,3 +1,5 @@
+import logging
+
 from nonebot import get_driver
 from nonebot import on_command
 from nonebot.rule import to_me
@@ -22,13 +24,15 @@ from . import bf1, bfv, bf2042
 driver = get_driver()
 
 # Write all the bot initialization tasks here
-@driver.on_startup()
+@driver.on_startup
 async def init_on_bot_startup():
+    logging.basicConfig()
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
     await init_db()
     await bf1.token_helper()
     await bf1.session_helper()
 
-@driver.on_shutdown()
+@driver.on_shutdown
 async def close_on_bot_shutdown():
     await close_db()
     await redis_client.close()

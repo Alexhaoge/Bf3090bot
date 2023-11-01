@@ -100,7 +100,7 @@ REDIS_URL = config.redis_url
 
 CURRENT_FOLDER = Path(config.bfchat_dir).resolve()
 CURRENT_FOLDER.mkdir(exist_ok=True)
-ASSETS_FOLDER = CURRENT_FOLDER/'assets'
+ASSETS_FOLDER = CODE_FOLDER/'assets'
 BFV_PLAYERS_DATA = CURRENT_FOLDER/'bfv_players'
 BF1_PLAYERS_DATA = CURRENT_FOLDER/'bf1_players'
 BF1_SERVERS_DATA = CURRENT_FOLDER/'bf1_servers'
@@ -110,8 +110,8 @@ BFV_PLAYERS_DATA.mkdir(exist_ok=True)
 BF1_PLAYERS_DATA.mkdir(exist_ok=True)
 BF2042_PLAYERS_DATA.mkdir(exist_ok=True)
 
-SUPERUSERS = [int(su) for su in config.superusers]
-SUDOGROUPS = [int(g) for g in config.sudogroups]
+SUPERUSERS = [int(su) for su in global_config.superusers]
+SUDOGROUPS = [int(g) for g in global_config.sudogroups]
 
 API_SITE = "https://api.gametools.network/"
 

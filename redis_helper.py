@@ -1,4 +1,4 @@
-import redis.asyncio as redis
+from redis import asyncio as redis
 from .utils import REDIS_URL
 
 redis_pool = redis.ConnectionPool.from_url(REDIS_URL)

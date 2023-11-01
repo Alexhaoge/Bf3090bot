@@ -14,8 +14,8 @@ from .bf1rsp import *
 from .utils import *
 from .image import *
 from .secret import *
-from .rdb import async_db_session, Servers, GroupMembers, ChatGroups
-from redis_helper import redis_client
+from .rdb import async_db_session, Servers, GroupMembers, GroupServerBind
+from .redis_helper import redis_client
 from base64 import b64encode
 
 GAME = 'bf1'
@@ -980,7 +980,7 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
     adminList = detailedServer['result']["rspInfo"]['adminList']
 
     async with async_db_session() as session:
-        server_row = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
+        server_row = (await session.execute(select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()
         if not server_row[0].whitelist:
             whiteList = []
             logging.debug('whitelist not found')

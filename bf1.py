@@ -22,7 +22,6 @@ import os
 import numpy
 import zhconv
 import asyncio
-import logging
 import random
 import datetime
 import traceback
@@ -32,7 +31,7 @@ from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from sqlalchemy.future import select
 from sqlalchemy import func, or_
-#from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathlib import Path
 from io import BytesIO
@@ -65,25 +64,25 @@ async def token_helper():
         tasks_token = [asyncio.create_task(upd_token(admin.remid, admin.sid)) for admin in admins]
         list_cookies_tokens = await asyncio.gather(*tasks_token) # Update tokens
         for i in range(len(admins)):
-            admins[i].remid, admins.sid, admins[i].token = list_cookies_tokens[i]
+            admins[i].remid, admins[i].sid, admins[i].token = list_cookies_tokens[i]
         session.add_all(admins) # Write into db
         await session.commit()
-        logging.info('Token updates complete')
+        logger.info('Token updates complete')
 
 async def session_helper():
     async with async_db_session() as session:
         admins = [row[0] for row in (await session.execute(select(Bf1Admins))).all()]
         tasks_session = [
-            asyncio.create_task(upd_sessionId(admin.remid, admin.sid) for admin in admins)
+            asyncio.create_task(upd_sessionId(admin.remid, admin.sid)) for admin in admins
         ]
         list_cookies_sessionIDs = await asyncio.gather(*tasks_session)
-        logging.debug('\n'.join([t[2] for t in list_cookies_sessionIDs]))
+        logger.debug('\n'.join([t[2] for t in list_cookies_sessionIDs]))
 
         for i in range(len(admins)):
             admins[i].remid, admins[i].sid, admins[i].sessionid = list_cookies_sessionIDs[i]
         session.add_all(admins)
         await session.commit()
-        logging.info('SessionID updates complete')
+        logger.info('SessionID updates complete')
 
 async def get_one_random_bf1admin() -> Tuple[str, str, str, str]:
     async with async_db_session() as session:
@@ -96,7 +95,7 @@ async def get_bf1admin_by_serverid(serverid: int) -> Tuple[str, str, str, str] |
         if server_admin:
             admin_pid = server_admin[0].pid
             admin = (await session.execute(select(Bf1Admins).filter_by(pid=admin_pid))).first()
-            return admin.remid, admin.sid, admin.sessionid, admin.token
+            return admin[0].remid, admin[0].sid, admin[0].sessionid, admin[0].token
         else:
             return None, None, None, None
 
@@ -131,7 +130,7 @@ async def check_server_id(groupqq: int, server_ind: str) -> Tuple[str, int] | No
                 .filter(or_(GroupServerBind.ind == server_id, GroupServerBind.alias == server_ind))\
                 )
             ).first()
-    return (group_server[0].ind, group_server[0].serverid) if group_server else None, None
+    return (group_server[0].ind, group_server[0].serverid) if group_server else (None, None)
 
 async def get_user_pid(groupqq:int, qq: int) -> Tuple[int, bool]:
     """
@@ -147,7 +146,11 @@ async def get_gameid_from_serverid(serverid: int) -> int | None:
     """
     Get gameid from redis based on serverid
     """
-    return (await redis_client.get(f'gameid:{serverid}'))
+    gameid = await redis_client.get(f'gameid:{serverid}')
+    if gameid:
+        return int(gameid)
+    else:
+        logger.warning(f'Warning:gameid for {serverid} not find!')
 
 async def add_vban(personaId: int, groupqq: int, serverId: int, reason: str, user_id: int):
     """
@@ -173,13 +176,13 @@ async def del_vban(personaId: int, serverId: int):
             await session.delete(vban_rec[0])
             session.commit()
     
-async def get_server_num(groupqq:int) -> List[Tuple(str, int)]:
+async def get_server_num(groupqq:int) -> List[Tuple[str, int]]:
     """
     Return the (server_ind, serverid) of all the server bound to this chargroup
     """
     async with async_db_session() as session:
         stmt = select(GroupServerBind).filter_by(groupqq=groupqq).order_by(GroupServerBind.ind)
-        servers = (await session.execute()).all()
+        servers = (await session.execute(stmt)).all()
         return [(row[0].ind, row[0].serverid) for row in servers]
 
 async def update_or_bind_player_name(
@@ -195,13 +198,13 @@ async def update_or_bind_player_name(
             return ret_dict
     if mode == 2:
         async with async_db_session() as session:
-            gm = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id)))
+            gm = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
+            player = (await session.execute(select(Players).filter_by(qq=user_id))).first()
             if gm:
                 personaId = gm[0].pid
                 res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 userName = res['result'][f'{personaId}']['displayName']
                 pidid = res['result'][f'{personaId}']['platformId']
-                player = (await session.execute(select(Players).filter_by(qq=user_id))).first()
                 if player:
                     player[0].originid = userName
                     session.add(player[0])
@@ -215,9 +218,12 @@ async def update_or_bind_player_name(
                     ret_dict['err'] = f'您还未绑定，尝试绑定{usercard}失败'
                     return ret_dict
                 ret_dict['msg'] = f'您还未绑定，尝试绑定{usercard}成功'
-                personaId = res['id']
                 session.add(GroupMembers(groupqq=groupqq, qq=user_id, pid=personaId))
-                session.add(Players(pid=personaId, originid=userName, qq=user_id))
+                if player:
+                    player[0].originid = userName
+                    session.add(player[0])
+                else:
+                    session.add(Players(pid=personaId, originid=userName, qq=user_id))
             await session.commit()                          
     ret_dict['userName'] = userName
     ret_dict['pid'] = personaId
@@ -282,9 +288,9 @@ with open(CURRENT_FOLDER/'alarm.json','r',encoding='UTF-8') as f:
 job_cnt = alarm_json["job_cnt"]
 alarm_session = alarm_json["alarm_session"]
 alarm_mode = alarm_json["alarm_mode"]
-logging.info(job_cnt)
-logging.info(alarm_session)
-logging.info(alarm_mode)
+logger.info(job_cnt)
+logger.info(alarm_session)
+logger.info(alarm_mode)
 
 #bf1 help
 BF1_PING = on_command(f"{PREFIX}ping",aliases={f'{PREFIX}原神'},block=True, priority=1)
@@ -374,7 +380,11 @@ async def bf1_init(event:GroupMessageEvent, state:T_State):
 
     main_groupqq = groupqq if arg.startswith(f'{PREFIX}') else arg
     async with async_db_session() as session:
-        async with session.begin():
+        exist_group = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
+        if exist_group:
+            exist_group[0].bind_to_group = main_groupqq
+            session.add(exist_group[0])
+        else:
             session.add(ChatGroups(groupqq=groupqq, bind_to_group=main_groupqq))
         await session.commit()
     
@@ -412,7 +422,7 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
         nums = {r[0].pid:r[1] for r in num_res}
     msg = ''
     for i in range(len(bf1admins)):
-        msg = msg + f'{bf1admins[i].id}. {names[i]}: {nums[bf1admins[i].pid] if bf1admins[i].pid else 0}/20 \n'
+        msg = msg + f'{bf1admins[i].id}. {names[i]}: {nums[bf1admins[i].pid] if bf1admins[i].pid in nums.keys() else 0}/20 \n'
     msg.rstrip()
     await BF1_BOT.send(MessageSegment.reply(event.message_id) + f'请选择未满的eaid添加服管：\n{msg}') 
 
@@ -629,7 +639,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
     
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq, arg[0])
+        server_ind, server_id = await check_server_id(groupqq, arg[0])
         if not server_ind:
             await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         mapName = arg[1]
@@ -706,7 +716,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
         if reply_message_id(event) == None: # single kick
-            server_ind, server_id = check_server_id(groupqq,arg1[0])
+            server_ind, server_id = await check_server_id(groupqq,arg1[0])
             if not server_ind:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
 
@@ -821,7 +831,7 @@ async def bf1_kickall(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(session, user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(session,arg[0])
+        server_ind, server_id = await check_server_id(session,arg[0])
         if not server_ind:
             await BF1_KICKALL.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         try:
@@ -875,7 +885,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
     if admin_perm:
         # Single ban command
         if reply_message_id(event) == None:
-            server_ind, server_id = check_server_id(groupqq,arg[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             personaName = arg[1]
@@ -1022,7 +1032,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq,arg[0])
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
             await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         personaName = arg[1]
@@ -1054,7 +1064,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
         if reply_message_id(event) == None:
-            server_ind, server_id = check_server_id(groupqq,arg[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             
@@ -1181,7 +1191,7 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(groupqq, event.user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq,arg[0])
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
                 await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
 
@@ -1209,7 +1219,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
     admin_perm = await check_admin(groupqq, event.user_id)
     if admin_perm:
         if reply_message_id(event) == None:
-            server_ind, server_id = check_server_id(groupqq,arg[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             personaName = arg[1]
@@ -1288,7 +1298,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
     admin_perm = await check_admin(groupqq, event.user_id)
     if admin_perm:
         if reply_message_id(event) == None:
-            server_ind, server_id = check_server_id(groupqq,arg[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             personaName = arg[1]
@@ -1370,7 +1380,7 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(groupqq, event.user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq,arg[0])
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
             await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         dt_now = datetime.datetime.now()
@@ -1400,7 +1410,7 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(session, event.user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(session,arg[0])
+        server_ind, server_id = await check_server_id(session,arg[0])
         if not server_ind:
             await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         gameid = await get_gameid_from_serverid(server_id)
@@ -1451,7 +1461,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(session, event.user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(session,arg[0])
+        server_ind, server_id = await check_server_id(session,arg[0])
         if not server_ind:
             await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         personaName = arg[1]
@@ -1504,7 +1514,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq,arg[0])
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
             await BF1_PL.finish(MessageSegment.finish(event.meesage_id) + f'服务器{arg[0]}不存在')
         remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
@@ -1517,6 +1527,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
         except asyncio.TimeoutError:
             await BF1_PL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except:
+            logger.error(traceback.format_exc())
             await BF1_PL.send(MessageSegment.reply(event.message_id) + '服务器未开启。')
     else:
         await BF1_PL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
@@ -1553,7 +1564,7 @@ async def bf_pls(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq,arg[0])
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
             await BF1_PLS.finish(MessageSegment.finish(event.meesage_id) + f'服务器{arg[0]}不存在')
         gameId = await get_gameid_from_serverid(server_id)
@@ -1581,7 +1592,7 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
-        server_ind, server_id = check_server_id(groupqq,arg[0])
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
             await BF1_PLSS.finish(MessageSegment.finish(event.meesage_id) + f'服务器{arg[0]}不存在')
         gameId = await get_gameid_from_serverid(server_id)
@@ -1634,7 +1645,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
         if len(arg) == 2 and arg[1] == "info":
-            server_ind, server_id = check_server_id(groupqq,arg[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_UPD.finish(MessageSegment.finish(event.meesage_id) + f'服务器{arg[0]}不存在')
             gameId = await get_gameid_from_serverid(server_id)
@@ -1669,7 +1680,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'
             await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n.配置 <服务器> set <设置>\n示例: \n1).配置 1 map 1z 2z 3z 15z 21z\n2).配置 1 set 1-off 2-off 40-50%\n3).配置 1 set 默认值\n详细配置图请输入.配置 <服务器> info查询\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n为避免混淆，服务器设置均按默认值为基础来修改，与服务器现有配置无关。")
         else:
-            server_ind, server_id = check_server_id(groupqq,arg[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_UPD.finish(MessageSegment.finish(event.meesage_id) + f'服务器{arg[0]}不存在')
             gameId = await get_gameid_from_serverid(server_id)
@@ -1753,14 +1764,14 @@ async def user_add(event: GroupRequestEvent):
 
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     res = await getPersonasByName(access_token, playerName)
-    logging.debug(res)
-    logging.debug(playerName)
+    logger.debug(res)
+    logger.debug(playerName)
     apply = {'flag': event.flag, 'subtype': event.sub_type, 'userid': event.user_id}
     try:
         personaId,playerName,pidid = res
-        logging.debug(playerName,personaId)
+        logger.debug(playerName,personaId)
     except Exception as e:
-        logging.warning(e)
+        logger.warning(e)
         reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(无效id,可能是bug，请手动查询此人战绩！)\n回复y同意进群，回复n+理由(可选)拒绝进群。')#
     else:
         reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n 理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
@@ -1797,7 +1808,7 @@ async def user_add(event: GroupMessageEvent):
                 break
         (BF1_SERVERS_DATA/f'{event.group_id}_apply').mkdir(exist_ok=True)
         message_id = reply_message_id(event)
-        logging.debug(message_id)
+        logger.debug(message_id)
         if message_id != None:
             apply = await redis_client.get(f'apply:{groupqq}:{message_id}')
             if not apply:
@@ -1810,7 +1821,7 @@ async def user_add(event: GroupMessageEvent):
                         session.add(member)
                         session.add(player)
                         await session.commit()
-                logging.debug(apply['flag'])
+                logger.debug(apply['flag'])
                 await bot.set_group_add_request(
                     flag = apply['flag'],
                     sub_type = apply['subtype'],
@@ -1992,7 +2003,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
     arg = message.extract_plain_text().split(' ')
     mode = 0
 
-    logging.debug(arg)
+    logger.debug(arg)
     playerName = None
     if len(arg) == 1:
         searchmode = arg[0]
@@ -2001,7 +2012,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
         searchmode = arg[0]
         playerName = arg[1]
         mode = 1
-    logging.debug(f'mode={mode}')
+    logger.debug(f'mode={mode}')
 
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
@@ -2032,7 +2043,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
 @BF1_INFO.handle()
 async def bf1_info(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    logging.info(message.extract_plain_text())
+    logger.info(message.extract_plain_text())
 
     serverName = message.extract_plain_text()
     serverName = html.unescape(serverName)
@@ -2119,7 +2130,7 @@ async def bf1_tyc(event:GroupMessageEvent, state:T_State):
 @BF1_F.handle()
 async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    logging.debug(message.extract_plain_text())
+    logger.debug(message.extract_plain_text())
     mode = 0
     if message.extract_plain_text().startswith(f'{PREFIX}'):
         mode = 2
@@ -2127,7 +2138,7 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         serverName = message.extract_plain_text()
         serverName = html.unescape(serverName)
         mode = 1
-    logging.debug(f'mode={mode}')
+    logger.debug(f'mode={mode}')
 
     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
     if mode == 1:
@@ -2167,7 +2178,7 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
     if reply_message_id(event) == None:
         playerName = message.extract_plain_text()
         mode = 2 if playerName.startswith(f'{PREFIX}') else 1
-        logging.debug(f'mode={mode}')
+        logger.debug(f'mode={mode}')
 
         ret_dict = await update_or_bind_player_name(
             mode, groupqq, user_id, remid, sid, sessionID, access_token, playerName, usercard
@@ -2222,6 +2233,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     if reply_message_id(event) == None:
         mode = 0
+        playerName = None
         if message.startswith(f'{PREFIX}'):
             wpmode = 0
             mode = 2
@@ -2232,7 +2244,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
                 playerName = message.split(' ')[1]
                 mode = 1
                 wpmode = get_wp_info(message.split(' ')[0],user_id)[1]
-        logging.debug(f'mode={mode},wpmode={wpmode}')
+        logger.debug(f'mode={mode},wpmode={wpmode}')
 
         ret_dict = await update_or_bind_player_name(
             mode, groupqq, user_id, remid, sid, sessionID, access_token, playerName, usercard
@@ -2279,7 +2291,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     playerName = message.extract_plain_text()
     mode = 2 if playerName.startswith(f'{PREFIX}') else 1
-    logging.debug(f'mode={mode}')
+    logger.debug(f'mode={mode}')
 
     ret_dict = await update_or_bind_player_name(
         mode, groupqq, user_id, remid, sid, sessionID, access_token, playerName, usercard
@@ -2318,7 +2330,7 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     playerName = message.extract_plain_text()
     mode = 2 if playerName.startswith(f'{PREFIX}') else 1
-    logging.debug(f'mode={mode}')
+    logger.debug(f'mode={mode}')
 
     ret_dict = await update_or_bind_player_name(
         mode, groupqq, user_id, remid, sid, sessionID, access_token, playerName, usercard
@@ -2390,7 +2402,7 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
     server_ind = arg[0]
     server_keyword = html.unescape(arg[1])
     groupqq = event.group_id
-    logging.info(str(server_keyword))
+    logger.info(str(server_keyword))
     remid, sid, sessionID, _ = await get_one_random_bf1admin()
     try:
         result = await upd_servers(remid, sid, sessionID, server_keyword)
@@ -2491,9 +2503,9 @@ async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
             alarm_session[job_id] = groupqq
             alarm_mode[job_id] = 1
 
-            logging.debug(job_cnt)
-            logging.debug(alarm_session)
-            logging.debug(alarm_mode)
+            logger.debug(job_cnt)
+            logger.debug(alarm_session)
+            logger.debug(alarm_mode)
 
             alarm_json = {
                 "job_cnt": job_cnt,
@@ -2534,9 +2546,9 @@ async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
                 job_cnt = job_cnt - 1
             await BF1_SERVER_ALARM.send(f'已关闭预警')
 
-            logging.debug(job_cnt)
-            logging.debug(alarm_session)
-            logging.debug(alarm_mode)
+            logger.debug(job_cnt)
+            logger.debug(alarm_session)
+            logger.debug(alarm_mode)
 
             alarm_json = {
                 "job_cnt": job_cnt,
@@ -2557,7 +2569,7 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
-    _, server_id = check_server_id(groupqq,arg[0])
+    _, server_id = await check_server_id(groupqq,arg[0])
     gameId = await get_gameid_from_serverid(server_id)
         
         # server_array = await request_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
@@ -2588,13 +2600,13 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + traceback.format_exc(2))
 
 
-alarm_amount = numpy.zeros((100,100))
+alarm_amount = numpy.zeros((200,200))
 
 #@scheduler.scheduled_job("interval", minutes=5, id=f"job_1")
 def check_alarm():
     global alarm_amount
-    for i in range(100):
-        for j in range(100):
+    for i in range(200):
+        for j in range(200):
             alarm_amount[i][j] = 0
 
 async def get_server_status(groupqq:int, num,X,i,bot,draw_dict): 
@@ -2606,7 +2618,7 @@ async def get_server_status(groupqq:int, num,X,i,bot,draw_dict):
     try:
         status = draw_dict[f"{gameId}"]
     except:
-        logging.error(traceback.format_exc(2))
+        logger.error(traceback.format_exc(2))
     else:
         playerAmount = int(status['serverAmount'])
         maxPlayers = int(status['serverMax'])
@@ -2659,7 +2671,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                 tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason))
 
     res = await asyncio.gather(*tasks)
-    logging.debug(res)
+    logger.debug(res)
     remid2, sid2, sessionID2, access_token2  = await get_one_random_bf1admin()
     res_pid = await upd_getPersonasByIds(remid,sid,sessionID,personaIds)
 
@@ -2675,12 +2687,12 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                 name = draw_dict[f"{gameId}"]["server_name"]
                 eaid = res_pid['result'][f'{personaId}']['displayName']
                 report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
-                logging.info(report_msg)
+                logger.info(report_msg)
                 bot = await getbotforAps(bots,groupqq)
                 reply = await bot.send_group_msg(group_id=groupqq, message=report_msg.rstrip())
-                logging.info(reply)
+                logger.info(reply)
             except Exception as e:
-                logging.error(e)
+                logger.error(e)
                 continue
 
 
@@ -2719,12 +2731,12 @@ async def upd_vbanPlayer(draw_dict:dict):
         if len(sgids) < 10:
             sgids.append(serverid_gameIds[i])
         else:
-            logging.debug(sgids)
+            logger.debug(sgids)
             await start_vban(sgids,vbans,draw_dict)
             #await asyncio.sleep(4) 
             sgids = []
     if 0 < len(sgids) < 10:
-        logging.debug(sgids)
+        logger.debug(sgids)
         await start_vban(sgids,vbans,draw_dict)
 
 
@@ -2784,7 +2796,7 @@ async def bf1_upd_vbanPlayer():
     await upd_vbanPlayer(draw_dict)
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
-    logging.info(f"Vban用时：{thr_time}秒")
+    logger.info(f"Vban用时：{thr_time}秒")
 
     # if thr_time % 60 < 30:
     #     await asyncio.sleep(int(31-thr_time))

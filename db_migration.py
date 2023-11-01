@@ -38,6 +38,7 @@ class Bf1Admins(Base):
     sid = Column(String, nullable=False)
     token = Column(String, default=None, nullable=True)
     sessionid = Column(String, default=None, nullable=True)
+    managed_servers = relationship("ServerBf1Admins")
 
 class Servers(Base):
     __tablename__ = 'servers'
@@ -50,14 +51,17 @@ class Servers(Base):
 
 class ServerBf1Admins(Base):
     __tablename__ = 'serverbf1admins'
-    serverid = Column(Integer, primary_key=True)
+    serverid = Column(Integer, nullable=False)
     pid = Column(BigInteger, ForeignKey('bf1admins.pid'), nullable=False)
-
+    __table_args__ = (
+        PrimaryKeyConstraint(serverid, pid),
+        {}
+    )
 
 class Players(Base):
     __tablename__ = 'players'
     pid = Column(BigInteger, nullable=False)
-    originid = Column(String, unique=True, nullable=True)
+    originid = Column(String, nullable=True)
     qq = Column(BigInteger, primary_key=True)
 
 
