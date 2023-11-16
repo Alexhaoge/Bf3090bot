@@ -451,7 +451,7 @@ async def bf_help(event:MessageEvent, state:T_State):
 
     pic = await md_to_pic(md_help, css_path=CODE_FOLDER/"github-markdown-dark.css",width=900)
 
-    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + '捐赠地址：https://afdian.net/a/Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。\n使用EAC功能请直接输入.举报 id。\n更多问题请输入.FAQ查询或加群908813634问我。')
+    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + '捐赠地址：爱发电搜索Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。\n使用EAC功能请直接输入.举报 id。\n更多问题请输入.FAQ查询或加群908813634问我。')
 
 @BF1_FAQ.handle()
 async def bf_faq(event:MessageEvent, state:T_State):
@@ -3278,20 +3278,23 @@ async def kick_vbanPlayer(pljson,vbans,draw_dict):
         for stats in pl["2"]:
             pl_ids.append(stats["id"])
 
-        bfeac_ids = await bfeac_checkBanMulti(pl_ids)
-        if bfeac_ids != []:
-            reason = "Banned by bfeac.com"
-            for personaId in bfeac_ids:
-                tasks.append(upd_kickPlayer(remid0,sid0,sessionID0,gameId,personaId,reason))
-                # personaIds.append(int(personaId))
-                # report_list.append(
-                #     {
-                #         "gameId": gameId,
-                #         "personaId": personaId,
-                #         "reason": reason, 
-                #         "session": session
-                #         }
-                #     )                
+        try:
+            bfeac_ids = await bfeac_checkBanMulti(pl_ids)
+            if bfeac_ids != []:
+                reason = "Banned by bfeac.com"
+                for personaId in bfeac_ids:
+                    tasks.append(upd_kickPlayer(remid0,sid0,sessionID0,gameId,personaId,reason))
+                    # personaIds.append(int(personaId))
+                    # report_list.append(
+                    #     {
+                    #         "gameId": gameId,
+                    #         "personaId": personaId,
+                    #         "reason": reason, 
+                    #         "session": session
+                    #         }
+                    #     )    
+        except:
+            pass            
 
         for personaId in pl_ids:
             if str(personaId) in vban_ids:
