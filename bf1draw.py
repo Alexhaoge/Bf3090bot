@@ -981,11 +981,12 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
 
     async with async_db_session() as session:
         server_row = (await session.execute(select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()
-        if not server_row[0].whitelist:
+        if server_row:
+            if server_row[0].whiltelist:
+                whitelist = server_row[0].split(',')
+        else:
             whiteList = []
             logging.debug('whitelist not found')
-        else:
-            whitelist = server_row[0].split(',')
 
         member_row = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq))).all()
         personaIds = [r[0].pid for r in member_row]
@@ -1466,10 +1467,8 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
     f['pl'].append({'slot': 100, 'rank': 0, 'kd': 0, 'kp': 0, 'id': 0})
     f['serverid'] = server_id
 
-    await redis_client.set(f"pl:{groupqq}:{message_id}", json.dumps(f), ex=1800)
-
     logging.info("draw_pl2"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    return base64img(img)
+    return base64img(img), json.dumps(f)
 
 async def draw_r(remid, sid, sessionID, personaId, playerName):
     print("draw_r"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))

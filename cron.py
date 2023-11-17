@@ -328,7 +328,7 @@ async def start_job():
         scheduler.shutdown()
 
 if __name__ == '__main__':
-    # asyncio.run(init_sessionid()) # Run this command when doing setup for a new production environment.
+    asyncio.run(init_sessionid()) # Run this command when doing setup for a new production environment.
     asyncio.run(upd_gameId())
     renew()
     asyncio.run(start_job())

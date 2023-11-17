@@ -14,9 +14,9 @@ bf1admin_pid = [
     1007408722331, 1007565122039, 1005349638963, 1005440313535, 1005430659208
 ]
 
-CURRENT_FOLDER = Path(path_to_bfchat_data).resolve()
-BF1_PLAYERS_DATA = CURRENT_FOLDER/'bf1_players'
-BF1_SERVERS_DATA = CURRENT_FOLDER/'bf1_servers'
+DATA_FOLDER = Path(path_to_bfchat_data).resolve()
+BF1_PLAYERS_DATA = DATA_FOLDER/'bf1_players'
+BF1_SERVERS_DATA = DATA_FOLDER/'bf1_servers'
 
 
 from sqlalchemy import (
@@ -71,6 +71,7 @@ class ChatGroups(Base):
     owner = Column(BigInteger, nullable=True)
     bind_to_group = Column(BigInteger, ForeignKey(groupqq)) # Primary group qq
     welcome = Column(String, default='', nullable=True)
+    alarm = Column(Boolean, default=0)
     members = relationship("GroupMembers")
     admins = relationship("GroupAdmins")
     servers = relationship("GroupServerBind")
@@ -155,7 +156,7 @@ asyncio.run(init_db2())
 asyncio.run(close_db())
 
 # Helpers for importing data
-conn = sqlite3.connect(CURRENT_FOLDER/'bot.db')
+conn = sqlite3.connect(DATA_FOLDER/'bot.db')
 def db_op(sql: str, params: list):
     cur = conn.cursor()
     res = conn.execute(sql, params).fetchall()
@@ -179,7 +180,7 @@ for i in range(len(bf1admin_pid)):
         remid, sid = f.read().split(',')
         db_op('INSERT INTO bf1admins (pid, remid, sid) VALUES (?, ?, ?);', [int(bf1admin_pid[i]), remid, sid])
 
-wait = input("bf1admin finished. Press Enter to continue.")
+print("bf1admin finished.")
 
 # Servers, groups, group server binds
 group_servers = []
@@ -212,11 +213,19 @@ for f in os.listdir(BF1_SERVERS_DATA):
         if os.path.exists(BF1_SERVERS_DATA/f'{f}_apply'/'config.txt'):
             with open(BF1_SERVERS_DATA/f'{f}_apply'/'config.txt', 'r', encoding='UTF-8') as fwelcome:
                 welcome = fwelcome.read()
-        db_op("INSERT INTO groups (groupqq, bind_to_group, welcome) VALUES (?, ?, ?);", [groupqq, bind_to_group, welcome])
+        db_op("INSERT INTO groups (groupqq, bind_to_group, welcome, alarm) VALUES (?, ?, ?, 0);", [groupqq, bind_to_group, welcome])
 
 db_op_many('INSERT INTO groupservers (groupqq, serverid, ind, perm) VALUES (?,?,?,1);', group_servers)
 
-wait = input("servers, groups, server_group_bind finished. Press Enter to continue.")
+with open(DATA_FOLDER/'alarm.json', 'r', encoding='UTF-8') as f_alarm:
+    alarm_json = json.loads(f_alarm.read())
+    server_alarm_on = []
+    for i in range(len(alarm_json['alarm_session'])):
+        if alarm_json['alarm_session'][i] and alarm_json['alarm_mode'][i]:
+            server_alarm_on.append((alarm_json['alarm_session'][i], ))
+    db_op_many('UPDATE groups SET alarm=1 WHERE groupqq=?;', server_alarm_on)
+
+print("servers, groups, server_group_bind finished.")
 
 # Players and group_members
 players = {}
@@ -250,7 +259,7 @@ for k in players:
 db_op_many('INSERT INTO players (pid, qq, originid) VALUES (?,?,?);', players_list)
 db_op_many('INSERT INTO groupmembers (qq, groupqq, pid) VALUES (?,?,?);', group_members)
 
-wait = input("Players and group_members finished. Press Enter to continue.")
+print("Players and group_members finished.")
 
 # group admin, group server bind alias
 for g in os.listdir(BF1_SERVERS_DATA):
@@ -273,7 +282,7 @@ for f in os.listdir(BF1_SERVERS_DATA):
                 if qq.isdigit():
                     db_op("INSERT OR IGNORE INTO groupadmins (qq, groupqq) VALUES (?, ?);", [qq, main_groupqq])
 
-wait = input("group admins and grouperver alias finished. Press Enter to continue.")
+print("group admins and grouperver alias finished.")
 
 # vip, vban, whitelist
 for g in os.listdir(BF1_SERVERS_DATA):
@@ -315,13 +324,13 @@ for s in os.listdir(BF1_PLAYERS_DATA/'whitelist'):
         white = fs_whitelist.read()
         db_op("UPDATE groupservers SET whitelist=? WHERE groupqq=? AND ind=?;", [white, int(groupqq), str(index)])        
             
-wait = input("group whitelist, ban and vip finished. Press Enter to continue.")
+print("group whitelist, ban and vip finished.")
 
 # server-bf1admin bindings
 server_bf1admin_files = [f"{i}.json" for i in range(len(bf1admin_pid))]
 server_bf1admins = {}
 for i in range(len(bf1admin_pid)):
-    with open(CURRENT_FOLDER/server_bf1admin_files[i], 'r') as f_sba:
+    with open(DATA_FOLDER/server_bf1admin_files[i], 'r') as f_sba:
         gids = [int(gid_s) for gid_s in f_sba.read().rstrip(',').split(',')]
         for gid in gids:
             if gid in gameid_serverid.keys():

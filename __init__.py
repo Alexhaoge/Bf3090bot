@@ -31,6 +31,7 @@ async def init_on_bot_startup():
     await init_db()
     await bf1.token_helper()
     await bf1.session_helper()
+    await bf1.load_alarm_session_from_db()
 
 @driver.on_shutdown
 async def close_on_bot_shutdown():

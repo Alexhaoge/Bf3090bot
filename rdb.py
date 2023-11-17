@@ -60,6 +60,7 @@ class ChatGroups(Base):
     owner = Column(BigInteger, nullable=True)
     bind_to_group = Column(BigInteger, ForeignKey(groupqq)) # Primary group qq
     welcome = Column(String, default='', nullable=True)
+    alarm = Column(Boolean, default=0)
     members = relationship("GroupMembers")
     admins = relationship("GroupAdmins")
     servers = relationship("GroupServerBind")
@@ -137,7 +138,7 @@ class ServerVBans(Base):
 ###################### Table Ends ##########################
 
 ###################### DB Helper ###########################
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(DATABASE_URL)
 
 async def init_db():
     async with engine.begin() as conn:
