@@ -81,7 +81,7 @@ class GroupMembers(Base):
     __tablename__ = 'groupmembers'
     qq = Column(BigInteger, nullable=False)
     groupqq = Column(BigInteger, ForeignKey('groups.groupqq'))
-    pid = Column(BigInteger, ForeignKey('players.pid'))
+    pid = Column(BigInteger, nullable=False)
     __table_args__ = (
         PrimaryKeyConstraint(groupqq, qq),
         {}
@@ -116,7 +116,7 @@ class GroupServerBind(Base):
 class ServerVips(Base):
     __tablename__ = "servervips"
     serverid = Column(Integer, ForeignKey('servers.serverid'))
-    pid = Column(BigInteger, ForeignKey('players.pid'))
+    pid = Column(BigInteger, nullable=False)
     originid = Column(String)
     expire = Column(DateTime, nullable=True) # Null can mean a permanent vip
     enabled = Column(Boolean, default=False, nullable=False) 
@@ -129,7 +129,7 @@ class ServerVips(Base):
 class ServerVBans(Base):
     __tablename__ = "servervbans"
     serverid = Column(Integer, ForeignKey('servers.serverid'))
-    pid = Column(BigInteger, ForeignKey('players.pid'))
+    pid = Column(BigInteger, nullable=False)
     reason = Column(String, default="Virtual Banned")
     processor = Column(BigInteger, nullable=False)
     time = Column(DateTime, nullable=True)

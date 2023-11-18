@@ -77,12 +77,18 @@ async def upd_draw(remid,sid,sessionID):
             }
         draw_dict[f"{gameIdList[i]}"] = serverInfo
 
-    with open(BF1_SERVERS_DATA/'draw.json','r',encoding='UTF-8') as f:
-        data = json.load(f)
+    try:
+        with open(BF1_SERVERS_DATA/'draw.json','r',encoding='UTF-8') as f:
+            data = json.load(f)
+    except:
+        data = {}
     data[f"{datetime.now().isoformat()}"] = draw_dict    
-    for i in list(data.keys()):    
-        if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
-            del data[i]
+    for i in list(data.keys()):
+        try:    
+            if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
+                del data[i]
+        except:
+            continue
     
     with open(BF1_SERVERS_DATA/'draw.json','w',encoding='UTF-8') as f:
         json.dump(data,f,indent=4,ensure_ascii=False)

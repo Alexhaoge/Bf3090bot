@@ -981,11 +981,11 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
 
     async with async_db_session() as session:
         server_row = (await session.execute(select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()
+        whiteList = []
         if server_row:
-            if server_row[0].whiltelist:
-                whitelist = server_row[0].split(',')
+            if server_row[0].whitelist:
+                whiteList = server_row[0].split(',')
         else:
-            whiteList = []
             logging.debug('whitelist not found')
 
         member_row = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq))).all()
@@ -1479,7 +1479,7 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     personaIds=[]
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
-    tasks.append(asyncio.create_task(upd_report(playerName, 10)))
+    tasks.append(asyncio.create_task(upd_report(playerName, personaId, 10)))
     res_stat,emblem,res_tag,async_result = await asyncio.gather(*tasks)
 
     name = playerName
@@ -1514,13 +1514,12 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
 
     recent = []
     count = 0
-    if 'player not found' in async_result:
+    if 'player not found' in async_result["data"]:
         return 0
     else:
-        for i in range(10):
-            data = async_result[i]
+        for data in async_result["data"]:
             try:
-                if data['Kills'] > 5 or data['Deaths'] > 5:
+                if data['kills'] > 2 or data['deaths'] > 2:
                     recent.append(data)
                     count += 1
                     if count == 3:
@@ -1586,64 +1585,73 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
         mapimg = Image.open(BF1_SERVERS_DATA/'Caches'/'Maps1'/f'{dict[recent[i]["map"]]}.jpg').resize((551,350))
         textbox1.paste(mapimg,(0,60))
         draw = ImageDraw.Draw(textbox1)
-        text=f'{recent[i]["server"]}'
+        
+        text=f'{recent[i]["serverName"]}'
 
-        match = re.search(r'(\d+)m(\d+)s', recent[i]['duration'])
-        if match:
-                minute = match.group(1)
-                second = match.group(2)
-                result = f"{minute}分{second}秒"
-        elif re.search(r'(\d+)s', recent[i]['duration']):
-                minute = 0
-                second = recent[i]['duration'][0:-1]
-                result = f"{minute}分{second}秒"
-        elif re.search(r'(\d+)m', recent[i]['duration']):
-                minute = recent[i]['duration'][0:-1]
-                second = 0
-                result = f"{minute}分{second}秒"
+        if recent[i]["teamId"] == 0:
+            team = ""
+            isWinner = "未结算"
         else:
-            minute = 0
-            second = 0
-            result = f"{minute}分{second}秒"
+            if recent[i]["teams"][0]["isWinner"] == recent[i]["teams"][1]["isWinner"]:
+                isWinner = "未结算"
+                for k in recent[i]["teams"]:
+                    if k["id"] == recent[i]["teamId"]:
+                        team = dict[k["name"]]
+            else:
+                for k in recent[i]["teams"]:
+                    if k["id"] == recent[i]["teamId"]:
+                        team = dict[k["name"]]
+                        if k["isWinner"]:
+                            isWinner = "胜利"
+                        else:
+                            isWinner = "落败"
 
-        mapandmode = dict[recent[i]["map"]] + '-' +dict[recent[i]["mode"]]
+
+        mapandmode = dict[recent[i]["map"]] + '-' +dict[recent[i]["mode"]] + " "
+        
+        timePlayed = recent[i]["timePlayed"]
+        hours = int(timePlayed // 3600)
+        minutes = int(timePlayed // 60 - 60*hours)
+        seconds = int(timePlayed) - 3600*hours - 60*minutes
+
+        duration = f"{minutes}分{seconds}秒" if hours == 0 else f"{hours}时{minutes}分{seconds}秒"
         draw.text(xy=(0,4), text=text[0:30], fill=(55, 1, 27, 255),font=font_3)
         draw.text(xy=((550+font_2.getsize(text[0:30])[0]/2-font_2.getsize(mapandmode)[0]/2),10), text=mapandmode, fill=(55, 1, 27, 255),font=font_2)
-        if recent[i]["result"] == '胜利':
-            draw.text(xy=((1200-font_2.getsize(recent[i]["result"])[0]/2),10), text=recent[i]["result"], fill=(100, 255, 50, 255),font=font_2)
-        elif recent[i]["result"] == '落败':
-            draw.text(xy=((1200-font_2.getsize(recent[i]["result"])[0]/2),10), text=recent[i]["result"], fill=(255, 105, 93, 255),font=font_2)
-        elif recent[i]["result"] == '未结算':
-            draw.text(xy=((1200-font_2.getsize(recent[i]["result"])[0]/2),10), text=recent[i]["result"], fill=(55, 1, 27, 255),font=font_2)
+        if isWinner == '胜利':
+            draw.text(xy=((1280-font_2.getsize(team+ "  " + isWinner)[0]),10), text=team+ "  " + isWinner, fill=(100, 255, 50, 255),font=font_2)
+        elif isWinner == '落败':
+            draw.text(xy=((1280-font_2.getsize(team+ "  " + isWinner)[0]),10), text=team+ "  " + isWinner, fill=(255, 105, 93, 255),font=font_2)
+        elif isWinner == '未结算':
+            draw.text(xy=((1200-font_2.getsize(team+ "  " + isWinner)[0]),10), text=team+ "  " + isWinner, fill=(55, 1, 27, 255),font=font_2)
 
         draw.text(xy=(640,90), text=f'时长:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(750,90), text=f'{result}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(750,90), text=duration, fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(960,90), text=f'得分:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1070,90), text=f'{recent[i]["Score"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1070,90), text=f'{recent[i]["score"]}', fill=(66, 112, 244, 255),font=font_4)
         
         draw.text(xy=(640,141), text=f'击杀:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(750,141), text=f'{recent[i]["Kills"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(750,141), text=f'{int(recent[i]["kills"])}', fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(960,141), text=f'死亡:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1070,141), text=f'{recent[i]["Deaths"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1070,141), text=f'{int(recent[i]["deaths"])}', fill=(66, 112, 244, 255),font=font_4)
 
         draw.text(xy=(640,192), text=f'KDA:', fill=(255,100,0,255),font=font_4)
         draw.text(xy=(750,192), text=f'{recent[i]["kd"]}', fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(960,192), text=f'KPM:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1070,192), text=f'{((6000*int(recent[i]["Kills"]))//(60*int(minute)+int(second)))/100}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1070,192), text=f'{recent[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
         
-        draw.text(xy=(640,243), text=f'K/D:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(750,243), text=f'{recent[i]["K/D"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(640,243), text=f'伤害:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(750,243), text=f'{int(recent[i]["damage"]*100)}', fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(960,243), text=f'SPM:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1070,243), text=f'{(60*int(recent[i]["Score"].replace(",", "")))//(60*int(minute)+int(second))}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1070,243), text=f'{int(recent[i]["spm"])}', fill=(66, 112, 244, 255),font=font_4)
 
         draw.text(xy=(640,294), text=f'命中:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(750,294), text=f'{recent[i]["acc"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(750,294), text=f'{recent[i]["acc"]}%', fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(960,294), text=f'爆头:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1070,294), text=f'{(recent[i]["headshot"] *1000 // recent[i]["Kills"] ) / 10 if recent[i]["Kills"] else 0}%', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1070,294), text=f'{recent[i]["hs"]}%', fill=(66, 112, 244, 255),font=font_4)
 
-        date_str = recent[i]["matchDate"]
-        dt = datetime.datetime.strptime(date_str, '%m/%d/%Y %I:%M:%S %p')
-        offset = datetime.timedelta(hours=13)
+        date_str = recent[i]["timestamp"][:-6]
+        dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
+        offset = datetime.timedelta(hours=8)
         dt = dt + offset
         formatted_dt = '数据记录时间: ' + dt.strftime('%Y/%m/%d %H:%M:%S')
  
@@ -1652,9 +1660,9 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
         img.paste(textbox0,position,textbox0)
         img.paste(textbox1,position,textbox1)
 
-        timeall += 60*int(minute) + int(second)
-        killall += recent[i]["Kills"]
-        deathall += recent[i]["Deaths"]
+        timeall += int(timePlayed)
+        killall += int(recent[i]["kills"])
+        deathall += int(recent[i]["deaths"])
     
     textbox = Image.new("RGBA", (1300,50), (254, 238, 218, 180))
     img.paste(textbox,(0,410*len(recent)+360),textbox)

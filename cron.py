@@ -8,6 +8,9 @@ from typing import *
 from PIL import Image
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+with open('secret.json', 'r', encoding='utf-8') as f_secret:
+    secret_dict = json.load(f_secret)
+    BLAZE_HOST = secret_dict['BLAZE_HOST']
 BFCHAT_DATA_FOLDER = Path('../bfchat_data').resolve()
 
 
@@ -279,13 +282,13 @@ async def upd_gameId():
     conn.close()
 
 def upd_ping():
-        response = requests.get(url=f'https://mag1catz.vip.cpolar.cn/web1/ping',timeout=10)
+        response = requests.get(url=f'http://{BLAZE_HOST}/web1/ping',timeout=10)
         return response
 def upd_ping1():
-        response1 = requests.get(url=f'https://mag1catz.vip.cpolar.cn/web2/ping',timeout=10)
+        response1 = requests.get(url=f'http://{BLAZE_HOST}/web2/ping',timeout=10)
         return response1
 def upd_ping2():
-        response1 = requests.get(url=f'https://mag1catz.vip.cpolar.cn/web3/ping',timeout=10)
+        response1 = requests.get(url=f'http://{BLAZE_HOST}/web3/ping',timeout=10)
         return response1
 
 def renew():

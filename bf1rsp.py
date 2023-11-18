@@ -118,26 +118,6 @@ async def process_top_n(game: str, headers: dict, retry: int = 3):
 
     return game_stat    
 
-async def async_bftracker_recent(origin_id: str, top_n: int = 3) -> Union[list, str]:
-    headers = {
-        "Connection": "keep-alive",
-        "User-Agent": "ProtoHttp 1.3/DS 15.1.2.1.0 (Windows)",
-    }
-    url=f'https://battlefieldtracker.com/bf1/profile/pc/{origin_id}/matches'
-
-    games_req = await fetch_data(url,headers)
-  
-    soup = bs4.BeautifulSoup(games_req.text, 'html.parser')
-    if soup.select('.alert.alert-danger.alert-dismissable'):
-        return 'player not found'
-    games = soup.select('.bf1-profile .profile-main .content .matches a')[:top_n]
-    tasks = []
-    for i in range(top_n):
-        tasks.append(asyncio.create_task(process_top_n(games[i]['href'], headers)))
-    
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    return results
-
 async def BTR_get_recent_info(player_name: str) -> list[dict]:
     """
     从BTR获取最近的战绩
