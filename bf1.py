@@ -140,7 +140,7 @@ async def get_user_pid(groupqq:int, qq: int) -> Tuple[int, bool]:
         player = (await session.execute(
             select(GroupMembers).filter_by(groupqq=groupqq, qq=qq)
         )).first()
-    return player[0].qq if player else False
+    return player[0].pid if player else False
 
 async def get_gameid_from_serverid(serverid: int) -> int | None:
     """
@@ -434,24 +434,26 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
     with open(CURRENT_FOLDER/'code.txt','r') as f:
         codearg = f.read().split()
     if code in codearg:
-        personaId = await get_user_pid(groupqq, user_id)
-        if personaId:
-            if f'{code}.txt' in os.listdir(BF1_PLAYERS_DATA/'Code'):
-                with open(BF1_PLAYERS_DATA/'Code'/f'{code}.txt','r') as f:
-                    exist_pid = f.read()
-                if int(exist_pid) != int(personaId):
-                    remid, sid, sessionID = await get_one_random_bf1admin()[0:3]
-                    res = await upd_getPersonasByIds(remid, sid, sessionID, [exist_pid])
-                    userName = res['result'][f'{exist_pid}']['displayName']
-                    await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}。')
+        async with async_db_session() as session:
+            player_r = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
+            if player_r:
+                personaId = player_r[0].pid
+                code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
+                if code_r:
+                    exist_pid = code_r[0].pid
+                    if int(exist_pid) != int(personaId):
+                        remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+                        res = await upd_getPersonasByIds(remid, sid, sessionID, [exist_pid])
+                        userName = res['result'][f'{exist_pid}']['displayName']
+                        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}。')
+                    else:
+                        state["personaId"] = personaId
                 else:
+                    session.add(BotVipCodes(code=code, pid=personaId))
+                    await session.commit()
                     state["personaId"] = personaId
             else:
-                with open(BF1_PLAYERS_DATA/'Code'/f'{code}.txt','w') as f:
-                    f.write(str(personaId))
-                state["personaId"] = personaId
-        else:
-            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
+                await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
     else:
         await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请输入正确的code。')
 
@@ -466,7 +468,7 @@ async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Me
                 image_data = response.content
                 image = Image.open(BytesIO(image_data))
             
-            image.save(BF1_PLAYERS_DATA/'Caches'/f'{state["personaId"]}.jpg')
+            image.convert("RGB").save(BF1_PLAYERS_DATA/'Caches'/f'{state["personaId"]}.jpg')
 
             await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '绑定code完成。')
 
@@ -1736,7 +1738,7 @@ async def user_bye(event: GroupDecreaseNoticeEvent):
             user_rec = (await session.execute(stmt)).all()
             for row in user_rec:
                 await session.delete(row[0])
-            session.commit()
+            await session.commit()
     if event.sub_type == 'leave':
         await del_user.send(f'{event.user_id}退群了。')
     else: 
@@ -1842,7 +1844,7 @@ async def bf1_welcome(event:GroupMessageEvent, state:T_State):
         if group_rec:
             group_rec[0].welcome = msg
             session.add(group_rec[0])
-            await session.add(group_rec[0])
+            await session.commit()
             await welcome_user.finish(MessageSegment.reply(event.message_id) + f'已配置入群欢迎: {msg}')
         else:
             await welcome_user.finish(MessageSegment.reply(event.message_id) + f'群组未初始化')
@@ -2509,7 +2511,7 @@ async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
     if admin_perm:
         await redis_client.srem('alarmsession', groupqq)
         
-        async with async_db_op() as session:
+        async with async_db_session() as session:
             group_r = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
             if group_r[0].alarm:
                 group_r[0].alarm = False

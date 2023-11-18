@@ -135,6 +135,12 @@ class ServerVBans(Base):
         {}
     )
 
+
+class BotVipCodes(Base):
+    __tablename__ = "botvipcodes"
+    code = Column(String, primary_key=True)
+    pid = Column(BigInteger, nullable=False)
+
 ###################### Table Ends ##########################
 
 ###################### DB Helper ###########################
@@ -165,7 +171,7 @@ async def async_db_op(stmt: Executable):
 __all__ = [
     'Bf1Admins', 'Servers', 'ChatGroups', 'Players', 
     'GroupServerBind', 'GroupAdmins', 'GroupMembers', 
-    'ServerVips', 'ServerVBans', 'ServerBf1Admins',
+    'ServerVips', 'ServerVBans', 'ServerBf1Admins', 'BotVipCodes',
     'engine', 'init_db', 'close_db',
     'async_db_session', 'get_db_session', 'async_db_op'
 ]

@@ -82,11 +82,12 @@ async def upd_draw(remid,sid,sessionID):
             data = json.load(f)
     except:
         data = {}
-    data[f"{datetime.now().isoformat()}"] = draw_dict    
-    for i in list(data.keys()):
+    data[f"{datetime.now().isoformat()}"] = draw_dict 
+    data_keys = list(data.keys())
+    for i in data_keys:
         try:    
             if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
-                del data[i]
+                data.pop(i)
         except:
             continue
     

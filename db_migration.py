@@ -139,6 +139,10 @@ class ServerVBans(Base):
         {}
     )
 
+class BotVipCodes(Base):
+    __tablename__ = "botvipcodes"
+    code = Column(String, primary_key=True)
+    pid = Column(BigInteger, nullable=False)
 
 ###################### DB Helper ###########################
 engine = create_async_engine(f"sqlite+aiosqlite:///{path_to_bfchat_data}/bot.db", echo=True)
@@ -325,6 +329,14 @@ for s in os.listdir(BF1_PLAYERS_DATA/'whitelist'):
         db_op("UPDATE groupservers SET whitelist=? WHERE groupqq=? AND ind=?;", [white, int(groupqq), str(index)])        
             
 print("group whitelist, ban and vip finished.")
+
+# bot vip code
+for code_file in os.listdir(BF1_PLAYERS_DATA/'Code'):
+    if code_file.endswith('.txt'):
+        with open(BF1_PLAYERS_DATA/'Code'/code_file, 'r', encoding='UTF-8') as f_code:
+            pid = int(f_code.read())
+            db_op("INSERT INTO botvipcodes (code, pid) VALUES (?, ?);", [code_file.split('.')[0], pid])
+print('vip code finished.')
 
 # server-bf1admin bindings
 server_bf1admin_files = [f"{i}.json" for i in range(len(bf1admin_pid))]
