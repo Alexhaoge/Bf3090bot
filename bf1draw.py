@@ -984,7 +984,7 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
         whiteList = []
         if server_row:
             if server_row[0].whitelist:
-                whiteList = server_row[0].split(',')
+                whiteList = server_row[0].whitelist.split(',')
         else:
             logging.debug('whitelist not found')
 

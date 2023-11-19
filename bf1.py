@@ -1253,7 +1253,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
             for i in pl:
                 if int(i['slot']) in players_to_move:
                     personaIds.append(i['id'])
-                    if int(j) < 33:
+                    if int(i['slot']) < 33:
                         teamIds.append(1)
                     else:
                         teamIds.append(2)
@@ -1503,9 +1503,8 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
         server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
             await BF1_PL.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
-        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
-        if not remid:
-            await BF1_PL.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
+        remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+
         gameId = await get_gameid_from_serverid(server_id)
         try:
             file_dir, pl_cache = await asyncio.wait_for(draw_pl2(groupqq, server_id, gameId, remid, sid, sessionID), timeout=20)
@@ -1734,7 +1733,7 @@ async def user_bye(event: GroupDecreaseNoticeEvent):
         group_row = (await session.execute(select(ChatGroups).filter_by(groupqq=event.group_id))).first()
         if group_row:
             groupqq = group_row[0].bind_to_group
-            stmt = select(GroupMembers).filter(groupqq=groupqq, qq=event.user_id)
+            stmt = select(GroupMembers).filter_by(groupqq=groupqq, qq=event.user_id)
             user_rec = (await session.execute(stmt)).all()
             for row in user_rec:
                 await session.delete(row[0])
@@ -1745,7 +1744,7 @@ async def user_bye(event: GroupDecreaseNoticeEvent):
         await del_user.send(f'{event.user_id}被{event.operator_id}送走了。')
 
 @add_user.handle()
-async def user_add(event: GroupRequestEvent):
+async def user_add_request(event: GroupRequestEvent):
     comment = event.comment.strip()
     playerName = comment[comment.find("答案：") + 3:] \
         if comment.find("答案：") != -1 else None
@@ -1766,9 +1765,9 @@ async def user_add(event: GroupRequestEvent):
         reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n 理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
         apply['personaId'], apply['playerName'] = personaId, playerName
         async with async_db_session() as session:
-            p = (await session.execute(select(Players).where(pid=personaId))).first()
+            p = (await session.execute(select(Players).filter_by(qq=event.user_id))).first()
             if p:
-                p[0].originid, p[0].qq = playerName, event.user_id
+                p[0].originid, p[0].pid = playerName, personaId
                 session.add(p[0])
             else:
                 session.add(Players(pid=personaId, originid=playerName, qq=event.user_id))
@@ -1790,7 +1789,7 @@ async def user_add(event: GroupMessageEvent):
         for bot in bots.values():
             botlist = await bot.get_group_list()
             for i in botlist:
-                if i["group_id"] == groupqq:
+                if i["group_id"] == event.group_id:
                     sign = 1
                     break
             if sign == 1:
@@ -1799,18 +1798,28 @@ async def user_add(event: GroupMessageEvent):
         message_id = reply_message_id(event)
         logger.debug(message_id)
         if message_id != None:
-            apply = await redis_client.get(f'apply:{groupqq}:{message_id}')
+            apply_raw = await redis_client.get(f'apply:{groupqq}:{message_id}')
+            apply = json.loads(apply_raw)
             if not apply:
                 await approve_req.finish('入群自动审批记录已过期，请手动审核')
+            logger.info('approve_req:123456789123456789')
             if message[0].strip().lower() == 'y':
                 if 'personaId' in apply:
+                    logger.info('approve_req:123456789123456789')
                     async with async_db_session() as session:
-                        member = GroupMembers(qq=apply['userid'], groupqq=groupqq, pid=apply['personaId'])
-                        player = Players(qq=apply['userid'], originid=apply['playerName'], pid=apply['personaId'])
-                        session.add(member)
-                        session.add(player)
+                        exist_gm = (await session.execute(select(GroupMembers).filter_by(qq=apply['userid'], groupqq=groupqq))).first()
+                        if not exist_gm:
+                            member = GroupMembers(qq=apply['userid'], groupqq=groupqq, pid=apply['personaId'])
+                            session.add(member)
+                        exist_player = (await session.execute(select(Players).filter_by(qq=apply['userid']))).first()
+                        if exist_player:
+                            exist_player[0].pid, exist_player[0].originid = apply['personaId'], apply['playerName']
+                            session.add(exist_player[0])
+                        else:
+                            player = Players(qq=apply['userid'], originid=apply['playerName'], pid=apply['personaId'])
+                            session.add(player)
                         await session.commit()
-                logger.debug(apply['flag'])
+                logger.info(apply['flag'])
                 await bot.set_group_add_request(
                     flag = apply['flag'],
                     sub_type = apply['subtype'],
@@ -2026,8 +2035,9 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
     if searchmode in search_modes:
         msg_title = f'玩家{userName}共拥有{num}个服务器' + search_modes[searchmode] + (':' if num else '')
         await BF1_SA.send(MessageSegment.reply(event.message_id) + msg_title)    
-        file_dir = await draw_a(num,name,reason,personaId)
-        await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        if num:
+            file_dir = await draw_a(num,name,reason,personaId)
+            await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
 @BF1_INFO.handle()
 async def bf1_info(event:GroupMessageEvent, state:T_State):
@@ -2569,7 +2579,7 @@ async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, dra
         gameId = await get_gameid_from_serverid(serverid)
         status = draw_dict[f"{gameId}"]
     except:
-        logger.warning(f'No data for gameid:{gameId}')
+        logger.debug(f'No data for gameid:{gameId}')
     else:
         playerAmount = int(status['serverAmount'])
         maxPlayers = int(status['serverMax'])
@@ -2625,7 +2635,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
     res = await asyncio.gather(*tasks)
     logger.debug(res)
     remid2, sid2, sessionID2, access_token2  = await get_one_random_bf1admin()
-    res_pid = await upd_getPersonasByIds(remid,sid,sessionID,personaIds)
+    res_pid = await upd_getPersonasByIds(remid2,sid2,sessionID2,personaIds)
 
     if res != []:
         bots = nonebot.get_bots()
@@ -2695,7 +2705,7 @@ async def upd_vbanPlayer(draw_dict:dict):
 
 draw_dict = {}
 
-@scheduler.scheduled_job("interval", minutes=5, id=f"job_reset_alarm_session")
+@scheduler.scheduled_job("interval", minutes=15, id=f"job_reset_alarm_session")
 async def bf1_reset_alarm_session():
     alarm_sessions = await load_alarm_session_from_db()
     await redis_client.delete(*[f"alarmamount:{groupqq}" for groupqq in alarm_sessions])
