@@ -326,6 +326,7 @@ BF1_PLSS = on_command(f'{PREFIX}查战队', block=True, priority=1)
 BF1_PLA = on_command(f'{PREFIX}搜战队', block=True, priority=1)
 BF1_PLAA = on_command(f'{PREFIX}查战队成员', aliases={f'{PREFIX}查成员'}, block=True, priority=1)
 BF1_UPD = on_command(f'{PREFIX}配置', block=True, priority=1)
+BF1_INSPECT = on_command(f'{PREFIX}查岗', block=True, priority=1)
 
 #grouprsp
 del_user = on_notice(Rule(_is_del_user), priority=1, block=True)
@@ -1073,9 +1074,9 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             pl = pl_json['pl']
             server_id = pl_json['serverid'] # Playerlist cache will store serverid instead of server_ind
             if len(arg) > 1:
-                reason = zhconv.convert(arg[1], 'zh-tw')
+                reason = 'Vban:' + zhconv.convert(arg[1], 'zh-tw')
             else:
-                reason = zhconv.convert('违反规则', 'zh-tw')
+                reason = 'Vbanned by admin'
             if len(reason.encode('utf-8')) > 32:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
             personaId = None
@@ -1726,6 +1727,70 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
     else:
         await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
+
+
+@BF1_INSPECT.handle()
+async def bf1_ins(event:GroupMessageEvent, state:T_State):
+    groupqq = await check_session(event.group_id)
+    user_id = event.user_id
+
+    admin_perm = await check_admin(groupqq, user_id)
+    if admin_perm:
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
+        async with async_db_session() as session:
+            stmt = select(GroupAdmins).filter(GroupAdmins.groupqq==groupqq)
+            adminlist = [row[0].qq for row in (await session.execute(stmt)).all()]
+            stmt_pid = select(Players).filter(Players.qq.in_(adminlist))
+            adminpids = [row[0].pid for row in (await session.execute(stmt_pid)).all()]
+
+            res_pid = await upd_getPersonasByIds(remid, sid, sessionID, adminpids)
+            res_tyc = await upd_getServersByPersonaIds(remid,sid,sessionID,adminpids)
+
+            eaids = [res_pid['result'][f'{personaId}']['displayName'] for personaId in adminpids]
+            tycs = [res_tyc['result'][f'{personaId}'] for personaId in adminpids]
+
+            servers = await get_server_num(groupqq)
+            gameids = []
+            for server_ind, server_id in servers:
+                gameid = await get_gameid_from_serverid(server_id)
+                gameids.append(gameid)
+
+            names = []
+            tyc_game = {
+                "names": [],
+                "on": {},
+                "off": {}
+            }
+            for i in range(len(eaids)):
+                if tycs[i]:
+                    print(eaids[i])
+                    name =  tycs[i]['name']
+                    gameid = tycs[i]['gameId']
+                    if name not in tyc_game['names']:
+                        tyc_game['names'].append(name)
+                        if int(gameid) in gameids:
+                            tyc_game['on'][name] = ''
+                        else:
+                            tyc_game['off'][name] = ''
+
+                    if int(gameid) in gameids:
+                        tyc_game['on'][name] += str(eaids[i]) + ' '
+                    else:
+                        tyc_game['off'][name] += str(eaids[i]) + ' '
+            on_msg = '在岗: \n'
+            off_msg = '离岗: \n'
+            print(tyc_game)
+            for name in list(tyc_game['on'].keys()):
+                on_msg += f"{name[:20]}: \n{tyc_game['on'][name].rstrip()}\n"
+
+            for name in list(tyc_game['off'].keys()):
+                off_msg += f"{name[:20]}: \n{tyc_game['off'][name].rstrip()}\n"            
+            
+            ins_msg = on_msg + off_msg.rstrip()
+            await BF1_INSPECT.finish(MessageSegment.reply(event.message_id) + ins_msg)
+            
+    else:
+        await BF1_INSPECT.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
 @del_user.handle()
 async def user_bye(event: GroupDecreaseNoticeEvent):
