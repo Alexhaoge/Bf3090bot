@@ -89,8 +89,8 @@ async def draw_f(server_gameids: list, groupqq: int, remid: str, sid: str, sessi
     server_num = len(server_gameids)
     # 打开图片文件
     img = Image.open(BF1_SERVERS_DATA/f'Caches/background/DLC{random.randint(2, 6)}.jpg')
-    img = img.resize((1506,2900))
-    img = img.crop((0,0,1506,400*server_num+100))
+    img = img.resize((1506,400*server_num+100))
+
     un = 0
     # 将原始图片模糊化
     img = img.filter(ImageFilter.GaussianBlur(radius=15))    

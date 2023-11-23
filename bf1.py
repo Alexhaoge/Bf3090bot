@@ -421,7 +421,9 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
         nums = {r[0].pid:r[1] for r in num_res}
     msg = ''
     for i in range(len(bf1admins)):
-        msg = msg + f'{bf1admins[i].id}. {names[i]}: {nums[bf1admins[i].pid] if bf1admins[i].pid in nums.keys() else 0}/20 \n'
+        admins = nums[bf1admins[i].pid] if bf1admins[i].pid in nums.keys() else 0
+        if int(admins) < 20:
+            msg = msg + f'{bf1admins[i].id}. {names[i]}: {admins}/20 \n'
     msg.rstrip()
     await BF1_BOT.send(MessageSegment.reply(event.message_id) + f'请选择未满的eaid添加服管：\n{msg}') 
 
