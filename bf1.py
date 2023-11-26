@@ -2658,8 +2658,12 @@ async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, dra
             if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
                 alarm_amount = await redis_client.hincrby(f'alarmamount:{groupqq}', ind)
                 await bot.send_group_msg(group_id=groupqq, message=f'第{alarm_amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+                return 1
+            else:
+                return 0
         except:
             logger.error(traceback.format_exc(2))
+            return 0
 
 async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dict):
     tasks = []
@@ -2786,7 +2790,7 @@ async def bf1_init_token():
 async def bf1_init_session():
     await session_helper()
 
-@scheduler.scheduled_job("interval", minutes=1, id=f"job_0")
+@scheduler.scheduled_job("interval", minutes=1, id=f"job_0", max_instances = 2)
 async def bf1_alarm():
     global draw_dict
     tasks = []
@@ -2794,6 +2798,8 @@ async def bf1_alarm():
     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
     draw_dict = await upd_draw(remid,sid,sessionID)
     logger.info('Update draw dict complete')
+    
+    start_time = datetime.datetime.now()
 
     alarm_session_set = await redis_client.smembers('alarmsession')
     for groupqq_b in alarm_session_set:
@@ -2810,9 +2816,16 @@ async def bf1_alarm():
         for ind, serverid in servers:
             alarm_amount = await redis_client.hget(f'alarmamount:{groupqq}', ind)
             if (not alarm_amount) or (int(alarm_amount) < 3):
-                tasks.append(asyncio.create_task(get_server_status(groupqq, ind, serverid, bot, draw_dict)))
+                res = await get_server_status(groupqq, ind, serverid, bot, draw_dict)
+                if res == 1:
+                    await asyncio.sleep(1)
+                #tasks.append(asyncio.create_task(get_server_status(groupqq, ind, serverid, bot, draw_dict)))
     if len(tasks) != 0:
         await asyncio.wait(tasks)
+    
+    end_time = datetime.datetime.now()
+    thr_time = (end_time - start_time).total_seconds()
+    logger.info(f"预警用时：{thr_time}秒")
 
 @scheduler.scheduled_job("interval", minutes=2, id=f"job_4",max_instances=2)
 async def bf1_upd_vbanPlayer():
