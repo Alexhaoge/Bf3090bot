@@ -2719,27 +2719,35 @@ async def search_log(pattern: str|re.Pattern, limit: int = 10) -> list:
 @BF1_SLP.handle()
 async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    if not message.extract_plain_text().startswith(f'{PREFIX}'):
-        playerName = message.extract_plain_text()
-    remid, sid, sessionID, access_token = await get_one_random_bf1admin()
-    try:
-        personaId,userName,_ = await getPersonasByName(access_token, playerName)
-    except:
-        logger.warning(traceback.format_exc(2))
-        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '无效id或网络错误')
-    pattern = re.compile(f'"pid": {personaId}')
-    logs = await search_log(pattern)
-    msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
-    await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
+    groupqq = await check_session(event.group_id)
+    user_id = event.user_id
+
+    admin_perm = await check_admin(groupqq, user_id)
+    if admin_perm:
+        if not message.extract_plain_text().startswith(f'{PREFIX}'):
+            playerName = message.extract_plain_text()
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
+        try:
+            personaId,userName,_ = await getPersonasByName(access_token, playerName)
+        except:
+            logger.warning(traceback.format_exc(2))
+            await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '无效id或网络错误')
+        pattern = re.compile(f'"pid": {personaId}')
+        logs = await search_log(pattern)
+        msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
+        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
+    else:
+        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '你不是管理员')
 
 @BF1_SLK.handle()
 async def search_adminlog_bykeyword(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    if not message.extract_plain_text().startswith(f'{PREFIX}'):
-        pattern = re.compile(message.extract_plain_text())
-    logs = await search_log(pattern)
-    msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
-    await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
+    if check_sudo(event.group_id, event.user_id):
+        if not message.extract_plain_text().startswith(f'{PREFIX}'):
+            pattern = re.compile(message.extract_plain_text())
+        logs = await search_log(pattern)
+        msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
+        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
 
 ######################################## Schedule job parts #########################################
 async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, draw_dict: dict): 
