@@ -2175,3 +2175,15 @@ async def draw_detailplatoon(remid, sid, sessionID, partialName):
     await paste_emb(emblem,img,position)
 
     return base64img(img)
+
+
+async def draw_log(logs):
+    img = Image.new("RGBA", (900,30*len(logs)), (254, 238, 218, 255))
+    draw = ImageDraw.Draw(img)
+    font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    for i in range(len(logs)):
+        logtime = logs[i].split("|")[0].strip()
+        logdict = logs[i].split("|")[1].strip()
+        draw.text(xy=(10,30*i), text=str(i+1)+'. '+logs[i] ,fill=(0, 0, 100, 255),font=font_0)
+
+    return base64img(img)
