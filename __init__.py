@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import TimedRotatingFileHandler
 
 from nonebot import get_driver
 from nonebot import on_command
@@ -16,7 +17,10 @@ from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 from .rdb import init_db, close_db, get_db_session
 from .redis_helper import redis_client
 
-from .utils import PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, CODE_FOLDER, ASSETS_FOLDER
+from .utils import (
+    PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
+    CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER
+)
 
 from . import bf1, bfv, bf2042
 
@@ -26,9 +30,22 @@ driver = get_driver()
 # Write all the bot initialization tasks here
 @driver.on_startup
 async def init_on_bot_startup():
-    logging.basicConfig()
+    # Logging config
     logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
+    admin_logger = logging.getLogger('adminlog')
+    admin_logger.setLevel(logging.INFO)
+    LOGGING_FOLDER.mkdir(exist_ok=True)
+    admin_logger_handler = TimedRotatingFileHandler(
+        LOGGING_FOLDER/'admin.log',
+        when='D', interval=3, backupCount=150
+    )
+    admin_logger_handler.setFormatter(
+        logging.Formatter("%(asctime)s | %(message)s", "%Y-%m-%d %H:%M:%S")
+    )
+    admin_logger.addHandler(admin_logger_handler)
+    # DB setup
     await init_db()
+    # Bot scheduled jobs initial runs
     await bf1.token_helper()
     await bf1.session_helper()
     await bf1.load_alarm_session_from_db()
@@ -64,19 +81,3 @@ async def bf_help(event:MessageEvent, state:T_State):
     pic = await md_to_pic(md_help, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=1200)
 
     await BF_HELP.send(MessageSegment.image(pic))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

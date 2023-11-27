@@ -967,7 +967,7 @@ async def async_get_stat(playerid,platoon,latency):
         return res
     
 
-async def draw_pl2(groupqq: int, server_id: int, gameId: int, 
+async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int, 
                    remid: str, sid: str, sessionID: str, message_id: int = None) -> str:
     """
     Draw playerlist of a server and cache the data into redis. (Version 2)
@@ -1466,6 +1466,7 @@ async def draw_pl2(groupqq: int, server_id: int, gameId: int,
     
     f['pl'].append({'slot': 100, 'rank': 0, 'kd': 0, 'kp': 0, 'id': 0})
     f['serverid'] = server_id
+    f['serverind'] = server_ind
 
     logging.info("draw_pl2"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     return base64img(img), json.dumps(f)

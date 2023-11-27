@@ -105,10 +105,12 @@ BFV_PLAYERS_DATA = CURRENT_FOLDER/'bfv_players'
 BF1_PLAYERS_DATA = CURRENT_FOLDER/'bf1_players'
 BF1_SERVERS_DATA = CURRENT_FOLDER/'bf1_servers'
 BF2042_PLAYERS_DATA = CURRENT_FOLDER/'bf2042_players'
+LOGGING_FOLDER = CURRENT_FOLDER/'log'
 
 BFV_PLAYERS_DATA.mkdir(exist_ok=True)
 BF1_PLAYERS_DATA.mkdir(exist_ok=True)
 BF2042_PLAYERS_DATA.mkdir(exist_ok=True)
+LOGGING_FOLDER.mkdir(exist_ok=True)
 
 SUPERUSERS = [int(su) for su in global_config.superusers]
 SUDOGROUPS = [int(g) for g in global_config.sudogroups]

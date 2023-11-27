@@ -16,7 +16,7 @@ from PIL import Image
 from .utils import BF1_SERVERS_DATA
 from .bf1draw import base64img
 
-async def upd_servers1(remid, sid, sessionID):
+async def upd_servers1(remid, sid, sessionID, timeout: int = None):
     async with httpx.AsyncClient() as client:
         response = await client.post(
             url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
@@ -35,11 +35,11 @@ async def upd_servers1(remid, sid, sessionID):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
-            timeout=None
+            timeout=timeout
         )
     return response.json()
 
-async def upd_draw(remid,sid,sessionID):
+async def upd_draw(remid,sid,sessionID, timeout: int = None):
     time_start = time.time()
     print(datetime.now())
     nameList = []
@@ -49,10 +49,10 @@ async def upd_draw(remid,sid,sessionID):
     numList = []
     tasks = []
     for _ in range(30):
-        tasks.append(upd_servers1(remid, sid, sessionID))
-    results = await asyncio.gather(*tasks)
+        tasks.append(upd_servers1(remid, sid, sessionID, timeout))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:
-        if isinstance(result, str):
+        if isinstance(result, Exception):
             continue
         result: list = result["result"]
         server_list = result['gameservers']
