@@ -2712,7 +2712,7 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + traceback.format_exc(2))
 
 admin_logger_lock = asyncio.Lock() # Must define the lock in global scope
-async def search_log(pattern: str|re.Pattern, limit: int = 10) -> list:
+async def search_log(pattern: str|re.Pattern, limit: int = 20) -> list:
     """
     Search all log files by regex expression, time exhausting!
     """
@@ -2950,7 +2950,7 @@ async def bf1_alarm(timeout: int = 20):
             if (not alarm_amount) or (int(alarm_amount) < 3):
                 res = await get_server_status(groupqq, ind, serverid, bot, draw_dict)
                 if res == 1:
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(2)
                 #tasks.append(asyncio.create_task(get_server_status(groupqq, ind, serverid, bot, draw_dict)))
     if len(tasks) != 0:
         await asyncio.wait(tasks)
