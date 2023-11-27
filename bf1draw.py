@@ -2176,14 +2176,61 @@ async def draw_detailplatoon(remid, sid, sessionID, partialName):
 
     return base64img(img)
 
-
-async def draw_log(logs):
-    img = Image.new("RGBA", (900,30*len(logs)), (254, 238, 218, 255))
+async def draw_log(logs,remid: str, sid: str, sessionID: str):
+    img = Image.new("RGBA", (900,60*len(logs)), (254, 238, 218, 255))
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    pids = []
+
+    with open(BF1_SERVERS_DATA/'zh-cn.json', 'r',encoding='UTF-8') as f:
+        dict = json.load(f)
+    
     for i in range(len(logs)):
         logtime = logs[i].split("|")[0].strip()
-        logdict = logs[i].split("|")[1].strip()
-        draw.text(xy=(10,30*i), text=str(i+1)+'. '+logs[i] ,fill=(0, 0, 100, 255),font=font_0)
+        logdict = json.loads(logs[i].split("|")[1].strip())
 
+        pid = logdict["pid"]
+        if int(pid) not in pids:
+            pids.append(int(pid))
+        draw.text(xy=(10,60*i), text=str(i+1)+'. '+logtime ,fill=(0, 0, 100, 255),font=font_0)
+        
+    userName_res = await upd_getPersonasByIds(remid, sid, sessionID,pids)
+    names = {str(pid): userName_res['result'][str(pid)]['displayName'] for pid in pids}
+    
+    for i in range(len(logs)):
+        logtime = logs[i].split("|")[0].strip()
+        logdict = json.loads(logs[i].split("|")[1].strip())
+        name = names[str(logdict["pid"])]
+        match logdict["incident"]:
+            case 'map':
+                msg = f'{logdict["processor"]}将{logdict["serverind"]}服地图切换为{dict[logdict["mapName"]]}'
+            case 'kick':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服踢出玩家{name}, 理由:{logdict["reason"]}'
+            case 'kickall':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服踢出玩家{name}(清服), 理由:{logdict["reason"]}'
+            case 'ban':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服封禁玩家{name}, 理由:{logdict["reason"]}'
+            case 'banall':
+                msg = f'{logdict["processor"]}封禁玩家{name}(banall), 理由:{logdict["reason"]}'
+            case 'unban':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服解封玩家{name}'
+            case 'unbanall':
+                msg = f'{logdict["processor"]}解封玩家{name}(unbanall)'   
+            case 'vban':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服封禁玩家{name}(vban), 理由:{logdict["reason"]}'
+            case 'vbanall':
+                msg = f'{logdict["processor"]}封禁玩家{name}(vbanall), 理由:{logdict["reason"]}'
+            case 'unvban':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服解封玩家{name}(vban)'
+            case 'unvbanall':
+                msg = f'{logdict["processor"]}解封玩家{name}(vbanall)' 
+            case 'move':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服将玩家换边' 
+            case 'vip':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服为玩家{name}添加{logdict["day"]}天vip'
+            case 'unvip':
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服解除玩家{name}的vip' 
+        
+        draw.text(xy=(10,60*i+25), text='   '+msg ,fill=(0, 0, 100, 255),font=font_0)
+    
     return base64img(img)

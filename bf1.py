@@ -386,6 +386,7 @@ BF1_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=SUPE
 BF1_REBIND = on_command(f'{PREFIX}改绑', block=True, priority=1, permission=SUPERUSER)
 BF1_ADDBIND = on_command(f'{PREFIX}添加服别名', block=True, priority=1, permission=SUPERUSER)
 BF1_SLP = on_command(f'{PREFIX}slog', aliases={f'{PREFIX}搜日志', f'{PREFIX}sl'}, block=True, priority=1)
+BF1_SLF = on_command(f'{PREFIX}log', aliases={f'{PREFIX}服务器日志'}, block=True, priority=1)
 BF1_SLK = on_command(f'{PREFIX}slogkey', aliases={f'{PREFIX}slk'}, block=True, priority=1)
 
 @BF1_PING.handle()
@@ -1419,7 +1420,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         await session.commit()
                         await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})')
             admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
-                                 server_id=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation_server, day=day)
+                                 server_ind=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation_server, day=day)
     else:
         await BF1_VIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -2755,20 +2756,42 @@ async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
             await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '无效id或网络错误')
         pattern = re.compile(f'"maingroupqq": {groupqq}(.*)"pid": {personaId}')
         logs = await search_log(pattern)
-        msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
-        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
+        file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID))
+        await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     else:
-        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '你不是管理员')
+        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+
+@BF1_SLF.handle()
+async def search_adminlog_byserver(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    groupqq = await check_session(event.group_id)
+    user_id = event.user_id
+    arg = message.extract_plain_text().split(' ')
+
+    admin_perm = await check_admin(groupqq, user_id)
+    if admin_perm:
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
+        if not server_ind:
+            await BF1_SLF.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+
+        pattern = re.compile(f'"maingroupqq": {groupqq}(.*)"serverind": "{server_ind}"')
+        logs = await search_log(pattern)
+        file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID))
+        await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+    else:
+        await BF1_SLF.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_SLK.handle()
 async def search_adminlog_bykeyword(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     if check_sudo(event.group_id, event.user_id):
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
         if not message.extract_plain_text().startswith(f'{PREFIX}'):
             pattern = re.compile(message.extract_plain_text())
         logs = await search_log(pattern)
-        msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
-        await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
+        file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
+        await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
 ######################################## Schedule job parts #########################################
 async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, draw_dict: dict): 
