@@ -111,19 +111,21 @@ def reply_message_id(event: GroupMessageEvent) -> int:
 
 admin_logger = logging.getLogger('adminlog')
 def admin_logging_helper(
-        incident: str, processor: int, groupqq: int, 
-        server_ind: str = None, serverid: int = None, pid: int = None, 
+        incident: str, processor: int, groupqq: int, main_groupqq: int = None,
+        server_ind: str = None, server_id: int = None, pid: int = None, 
         log_level: int = logging.INFO, **kwargs):
     """
     Admin logging helper function. TODO: typing check for preset arguments.
     """
     kwargs['incident'], kwargs['processor'], kwargs['groupqq'] = incident, processor, groupqq
+    if main_groupqq:
+        kwargs['maingroupqq'] =  main_groupqq
     if pid:
         kwargs['pid'] = pid
     if server_ind:
         kwargs['serverind'] = server_ind
-    if serverid:
-        kwargs['serverid'] = serverid
+    if server_id:
+        kwargs['serverid'] = server_id
     admin_logger.log(level=log_level, msg=json.dumps(kwargs))
 
 async def check_admin(groupqq: int, user_id: int) -> int:
@@ -706,7 +708,8 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
             elif res['error']['message'] == 'LevelIndexNotSetException':
                 await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + 'sessionID失效')
         else:
-            admin_logging_helper('map', user_id, event.group_id, server_ind=server_ind, serverid=server_id, mapName=mapName)
+            admin_logging_helper('map', user_id, event.group_id,
+                                 main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, mapName=mapName)
             await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + f'地图已切换到：{zhconv.convert(mapmode,"zh-cn")}-{mapName_cn}')
 
     else:
@@ -745,7 +748,8 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
             if 'error' in res:
                 await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'踢出玩家：{name}失败，理由：玩家不在服务器中、无法处置管理员或者bot没有权限.')
             else:
-                admin_logging_helper('kick', user_id, event.group_id, server_ind, server_id, personaId, reason=reason)
+                admin_logging_helper('kick', user_id, event.group_id,
+                                     main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
                 await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出玩家：{name}，理由：{reason}')
 
         else: # kick reply to playerlist
@@ -826,7 +830,9 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
 
             await asyncio.gather(*tasks)
             for pid in personaIds:
-                admin_logging_helper('kickall' if arg[0] == 'all' else 'kick', user_id, event.group_id, pl_json['serverind'], server_id, pid, reason=reason)
+                admin_logging_helper('kickall' if arg[0] == 'all' else 'kick', user_id, event.group_id,
+                                     main_groupqq=groupqq, server_ind=pl_json['serverind'],
+                                     server_id=server_id, pid=pid, reason=reason)
             await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出{len(personaIds)-mode}个玩家，理由：{reason}')
     else:
         await BF1_KICK.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -885,9 +891,13 @@ async def get_kickall(bot: Bot, event: GroupMessageEvent, state: T_State, msg: M
         await asyncio.gather(*tasks)
         
         for i in pl['1']:
-            admin_logging_helper('kickall', event.user_id, event.group_id, server_ind, server_id, i['id'], reason=reason)
+            admin_logging_helper('kickall', event.user_id, event.group_id, 
+                                 main_groupqq=groupqq, server_ind=server_ind,
+                                 server_id=server_id, pid=i['id'], reason=reason)
         for i in pl['2']:
-            admin_logging_helper('kickall', event.user_id, event.group_id, server_ind, server_id, i['id'], reason=reason)
+            admin_logging_helper('kickall', event.user_id, event.group_id,
+                                 main_groupqq=groupqq, server_ind=server_ind,
+                                 server_id=server_id, pid=i['id'], reason=reason)
         
         await BF1_KICKALL.finish(MessageSegment.reply(event.message_id) + f'已踢出{len(pl["1"])+len(pl["2"])}个玩家,理由: {reason}')          
     else:
@@ -933,7 +943,9 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 reason = error_code_dict[error_code]
                 await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'封禁玩家：{personaName}失败，理由：{reason}')
             else:
-                admin_logging_helper('ban', user_id, event.group_id, server_ind, server_id, personaId, reason=reason)
+                admin_logging_helper('ban', user_id, event.group_id, 
+                                     main_groupqq=groupqq, server_ind=server_ind,
+                                     server_id=server_id, pid=personaId, reason=reason)
                 await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
         # Reply to playerlist
         else:
@@ -970,7 +982,8 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             if 'error' in res:
                 await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'封禁玩家：{personaName}失败，理由：无法处置管理员')
             else:
-                admin_logging_helper('ban', user_id, event.group_id, pl_json['serverind'], server_id, personaId, reason=reason)
+                admin_logging_helper('ban', user_id, event.group_id, main_groupqq=groupqq,
+                                     server_ind=pl_json['serverind'], server_id=server_id, pid=personaId, reason=reason)
                 await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
                 # TODO: ban logging
     else:
@@ -1009,7 +1022,8 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
             else:
                 err_message += f'\nbot没有服务器#{server_ind}管理权限'
         await asyncio.gather(*tasks)
-        admin_logging_helper('banall', user_id, event.group_id, player=personaId, reason=reason)
+        admin_logging_helper('banall', user_id, event.group_id,
+                             main_groupqq=groupqq, pid=personaId, reason=reason)
         await BF1_BANALL.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}{err_message}')
     else:
         await BF1_BANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1041,7 +1055,7 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
             else:
                 err_message += f'\nbot没有服务器#{server_ind}管理权限'
         await asyncio.gather(*tasks)
-        admin_logging_helper('unbanall', user_id, event.group_id, player=personaId)
+        admin_logging_helper('unbanall', user_id, event.group_id, main_groupqq=groupqq, pid=personaId)
         await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}{err_message}')
     else:
         await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1073,7 +1087,8 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
         if 'error' in res:
             await BF1_UNBAN.send(MessageSegment.reply(event.message_id) + f'解封玩家：{personaName}失败')
         else:
-            admin_logging_helper('unban', user_id, event.group_id, server_ind, server_id, player=personaId)
+            admin_logging_helper('unban', user_id, event.group_id, main_groupqq=groupqq,
+                                 server_ind=server_ind, server_id=server_id, pid=personaId)
             await BF1_UNBAN.send(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}')
     else:
         await BF1_UNBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1110,7 +1125,8 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '无效id')
 
             await add_vban(personaId,groupqq,server_id,reason,user_id)
-            admin_logging_helper('vban', user_id, event.group_id, server_ind, server_id, personaId, reason=reason)
+            admin_logging_helper('vban', user_id, event.group_id, main_groupqq=groupqq,
+                                 server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
             await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_ind}服为玩家{personaName}添加VBAN，理由：{reason}')
         else:
             redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
@@ -1174,7 +1190,7 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
                 await add_vban(personaId,groupqq,server_id,reason,user_id)
             else:
                 err_message += f'\nbot没有服务器#{server_ind}管理权限'
-        admin_logging_helper('vbanall', user_id, event.group_id, player=personaId, reason=reason)
+        admin_logging_helper('vbanall', user_id, event.group_id, main_groupqq=groupqq, pid=personaId, reason=reason)
         await BF1_VBANALL.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}{err_message}')
     else:
         await BF1_VBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1202,7 +1218,7 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
                 await del_vban(personaId, server_id)
             else:
                 err_message += f'\nbot没有服务器#{server_ind}管理权限'
-        admin_logging_helper('unvbanall', event.user_id, event.group_id, player=personaId)
+        admin_logging_helper('unvbanall', event.user_id, event.group_id, main_groupqq=groupqq, pid=personaId)
         await BF1_UNVBANALL.send(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}{err_message}')
     else:
         await BF1_UNVBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1230,7 +1246,8 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
             await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + '无效id')
 
         await del_vban(personaId, server_id)
-        admin_logging_helper('unvban', event.user_id, event.group_id, server_ind=server_ind, serverid=server_id, player=personaId)
+        admin_logging_helper('unvban', event.user_id, event.group_id, main_groupqq=groupqq,
+                             server_ind=server_ind, serverid=server_id, pid=personaId)
         await BF1_UNVBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_id}解除玩家{personaName}的VBAN')
     else:
         await BF1_UNVBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1283,7 +1300,8 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 else:
                     with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                         zh_cn = json.load(f)
-                    admin_logging_helper('move', event.user_id, event.group_id, server_ind, server_id, personaId)
+                    admin_logging_helper('move', event.user_id, event.group_id, main_groupqq=groupqq,
+                                         server_ind=server_ind, server_id=server_id, pid=personaId)
                     await BF1_MOVE.send(MessageSegment.reply(event.message_id) + f'已移动玩家{personaName}至队伍{3-teamId}：{zh_cn[teamName]}')
 
             except:
@@ -1313,7 +1331,8 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
             for i in range(len(personaIds)):
                 res = await upd_movePlayer(remid, sid, sessionID, gameId, personaIds[i], teamIds[i])
                 if not 'error' in res:
-                    admin_logging_helper('move', event.user_id, event.group_id, pl_json['serverind'], server_id, personaIds[i])
+                    admin_logging_helper('move', event.user_id, event.group_id, main_groupqq=groupqq,
+                                         server_ind=pl_json['serverind'], server_id=server_id, pid=personaIds[i])
             await BF1_MOVE.send(MessageSegment.reply(event.message_id) + f'已移动{len(arg)}个玩家。')
     else:
         await BF1_MOVE.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -1399,7 +1418,8 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     else: # Request success then commit
                         await session.commit()
                         await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})')
-            admin_logging_helper('vip', event.user_id, event.group_id, server_ind, server_id, personaId, operation_server=is_operation_server, day=day)
+            admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
+                                 server_id=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation_server, day=day)
     else:
         await BF1_VIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -1538,7 +1558,8 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
                 await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '移除失败，可能是sessionID失效')
             else:
                 await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + f'已移除玩家{personaName}的vip')
-        admin_logging_helper('unvip', event.user_id, event.group_id, server_ind, server_id, personaId, operation_server=is_operation)
+        admin_logging_helper('unvip', event.user_id, event.group_id, main_groupqq=groupqq,
+                             server_ind=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation)
     else:
         await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -1940,7 +1961,7 @@ async def user_add(event: GroupMessageEvent):
                     sub_type = apply['subtype'],
                     approve = True
                 )
-                admin_logging_helper('approve_join_group_request', user_id, event.group_id, apply_qq=apply['user_id'])
+                admin_logging_helper('approve_join_group_request', user_id, event.group_id, main_groupqq=groupqq, apply_qq=apply['user_id'])
             else:
                 if len(message) == 1:
                     await bot.set_group_add_request(
@@ -1948,7 +1969,7 @@ async def user_add(event: GroupMessageEvent):
                         sub_type = apply['subtype'],
                         approve = False
                     )
-                    admin_logging_helper('reject_join_group_request', user_id, event.group_id, apply_qq=apply['user_id'])
+                    admin_logging_helper('reject_join_group_request', user_id, event.group_id, main_groupqq=groupqq, apply_qq=apply['user_id'])
                     await approve_req.finish('已拒绝入群')
                 else:
                     await bot.set_group_add_request(
@@ -1957,7 +1978,7 @@ async def user_add(event: GroupMessageEvent):
                         approve = False,
                         reason = message[1],
                     )
-                    admin_logging_helper('reject_join_group_request', user_id, event.group_id, reason=message[1], apply_qq=apply['user_id'])
+                    admin_logging_helper('reject_join_group_request', user_id, event.group_id, main_groupqq=groupqq, reason=message[1], apply_qq=apply['user_id'])
                     await approve_req.finish(f'已拒绝入群。理由：{message[1]}')
 
 
@@ -2732,7 +2753,7 @@ async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
         except:
             logger.warning(traceback.format_exc(2))
             await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '无效id或网络错误')
-        pattern = re.compile(f'"pid": {personaId}')
+        pattern = re.compile(f'"maingroupqq": {groupqq}(.*)"pid": {personaId}')
         logs = await search_log(pattern)
         msg = '\n---------------\n'.join(logs) if len(logs) else '未找到相关日志'
         await BF1_SLP.finish(MessageSegment.reply(event.message_id) + msg)
