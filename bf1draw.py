@@ -2189,9 +2189,12 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
         logtime = logs[i].split("|")[0].strip()
         logdict = json.loads(logs[i].split("|")[1].strip())
 
-        pid = logdict["pid"]
-        if int(pid) not in pids:
-            pids.append(int(pid))
+        try:
+            pid = logdict["pid"]
+            if int(pid) not in pids:
+                pids.append(int(pid))
+        except:
+            pass
         draw.text(xy=(10,60*i), text=str(i+1)+'. '+logtime ,fill=(0, 0, 100, 255),font=font_0)
         
     userName_res = await upd_getPersonasByIds(remid, sid, sessionID,pids)
@@ -2200,7 +2203,10 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
     for i in range(len(logs)):
         logtime = logs[i].split("|")[0].strip()
         logdict = json.loads(logs[i].split("|")[1].strip())
-        name = names[str(logdict["pid"])]
+        try:
+            name = names[str(logdict["pid"])]
+        except:
+            pass
         match logdict["incident"]:
             case 'map':
                 msg = f'{logdict["processor"]}将{logdict["serverind"]}服地图切换为{dict[logdict["mapName"]]}'

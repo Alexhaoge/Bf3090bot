@@ -710,7 +710,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
                 await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + 'sessionID失效')
         else:
             admin_logging_helper('map', user_id, event.group_id,
-                                 main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, mapName=mapName)
+                                 main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, mapName=mapName_cn)
             await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + f'地图已切换到：{zhconv.convert(mapmode,"zh-cn")}-{mapName_cn}')
 
     else:
@@ -1962,7 +1962,7 @@ async def user_add(event: GroupMessageEvent):
                     sub_type = apply['subtype'],
                     approve = True
                 )
-                admin_logging_helper('approve_join_group_request', user_id, event.group_id, main_groupqq=groupqq, apply_qq=apply['user_id'])
+                #admin_logging_helper('approve_join_group_request', user_id, event.group_id, main_groupqq=groupqq, apply_qq=apply['user_id'])
             else:
                 if len(message) == 1:
                     await bot.set_group_add_request(
@@ -1970,7 +1970,7 @@ async def user_add(event: GroupMessageEvent):
                         sub_type = apply['subtype'],
                         approve = False
                     )
-                    admin_logging_helper('reject_join_group_request', user_id, event.group_id, main_groupqq=groupqq, apply_qq=apply['user_id'])
+                    #admin_logging_helper('reject_join_group_request', user_id, event.group_id, main_groupqq=groupqq, apply_qq=apply['user_id'])
                     await approve_req.finish('已拒绝入群')
                 else:
                     await bot.set_group_add_request(
@@ -1979,7 +1979,7 @@ async def user_add(event: GroupMessageEvent):
                         approve = False,
                         reason = message[1],
                     )
-                    admin_logging_helper('reject_join_group_request', user_id, event.group_id, main_groupqq=groupqq, reason=message[1], apply_qq=apply['user_id'])
+                    #admin_logging_helper('reject_join_group_request', user_id, event.group_id, main_groupqq=groupqq, reason=message[1], apply_qq=apply['user_id'])
                     await approve_req.finish(f'已拒绝入群。理由：{message[1]}')
 
 
@@ -2713,7 +2713,7 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + traceback.format_exc(2))
 
 admin_logger_lock = asyncio.Lock() # Must define the lock in global scope
-async def search_log(pattern: str|re.Pattern, limit: int = 20) -> list:
+async def search_log(pattern: str|re.Pattern, limit: int = 50) -> list:
     """
     Search all log files by regex expression, time exhausting!
     """
@@ -2756,6 +2756,10 @@ async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
             await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '无效id或网络错误')
         pattern = re.compile(f'"maingroupqq": {groupqq}(.*)"pid": {personaId}')
         logs = await search_log(pattern)
+        
+        if len(logs) == 0:
+            await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '暂无有效log记录')
+        
         file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
         await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     else:
@@ -2777,6 +2781,10 @@ async def search_adminlog_byserver(event:GroupMessageEvent, state:T_State):
 
         pattern = re.compile(f'"maingroupqq": {groupqq}(.*)"serverind": "{server_ind}"')
         logs = await search_log(pattern)
+
+        if len(logs) == 0:
+            await BF1_SLF.finish(MessageSegment.reply(event.message_id) + '暂无有效log记录')
+        
         file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
         await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     else:
@@ -2790,6 +2798,10 @@ async def search_adminlog_bykeyword(event:GroupMessageEvent, state:T_State):
         if not message.extract_plain_text().startswith(f'{PREFIX}'):
             pattern = re.compile(message.extract_plain_text())
         logs = await search_log(pattern)
+        
+        if len(logs) == 0:
+            await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '暂无有效log记录')
+        
         file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
         await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
