@@ -803,7 +803,8 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 mode = 1
                 reason = zhconv.convert(' '.join(arg[1:]) if len(arg)>1 else '清服', 'zh-hant')
                 for i in pl:
-                    personaIds.append(i['id'])
+                    if i['id']!=0:
+                        personaIds.append(i['id'])
                     print(personaIds)
             else:
                 if arg[-1].isdigit():
@@ -834,7 +835,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 admin_logging_helper('kickall' if arg[0] == 'all' else 'kick', user_id, event.group_id,
                                      main_groupqq=groupqq, server_ind=pl_json['serverind'],
                                      server_id=server_id, pid=pid, reason=reason)
-            await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出{len(personaIds)-mode}个玩家，理由：{reason}')
+            await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出{len(personaIds)}个玩家，理由：{reason}')
     else:
         await BF1_KICK.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -864,7 +865,7 @@ async def bf1_kickall(event:GroupMessageEvent, state:T_State):
             await BF1_KICKALL.finish(MessageSegment.reply(event.message_id) + '服务器未开启')
         state["playerlist"] = pl
         state["gameId"] = gameId
-        state["serverind"] = server_ind
+        state["server_ind"] = server_ind
         state["groupqq"] = groupqq
         state["serverid"] = server_id # also store server_id  for easier access to bf1admin account
         state["reason"] = reason
@@ -1419,8 +1420,8 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     else: # Request success then commit
                         await session.commit()
                         await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})')
-            admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
-                                 server_ind=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation_server, day=day)
+        admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
+                             server_ind=server_ind, server_id=server_id, pid=personaId, day=day)
     else:
         await BF1_VIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
