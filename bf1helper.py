@@ -300,7 +300,7 @@ async def load_alarm_session_from_db():
             await redis_client.sadd("alarmsession", *alarm_groups)
         return alarm_groups
 
-def search_all(personaId):
+async def search_all(personaId):
 
     with open(BF1_SERVERS_DATA/'vip.json','r',encoding='UTF-8') as f:
         vip_dict = json.load(f)
@@ -311,7 +311,7 @@ def search_all(personaId):
     with open(BF1_SERVERS_DATA/'owner.json','r',encoding='UTF-8') as f:
         owner_dict = json.load(f)
     
-    num,name,reason = search_vban(personaId)
+    num,name,reason = await search_vban(personaId)
 
     owner = 0
     ban = num

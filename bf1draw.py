@@ -320,7 +320,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     repairs = res_stat['result']["repairs"]
     killAssists = res_stat['result']["killAssists"]
 
-    owner,ban,admin,vip = search_all(personaId)
+    owner,ban,admin,vip = await search_all(personaId)
 
 
     gamemode = sorted(res_stat['result']['gameModeStats'], key=lambda x: x['score'],reverse=True)
