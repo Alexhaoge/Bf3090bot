@@ -1421,7 +1421,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         await session.commit()
                         await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})')
         admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
-                             server_ind=server_ind, server_id=server_id, pid=personaId, day=day)
+                             server_ind=server_ind, server_id=server_id, pid=personaId, day=day, nextday=str(nextday))
     else:
         await BF1_VIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
