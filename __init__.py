@@ -19,6 +19,7 @@ from .utils import (
 )
 
 from . import bf1, bfv, bf2042
+import bf1core.matcher
 
 ################ Global Bot Hooks ##################
 driver = get_driver()
