@@ -18,6 +18,7 @@ from nonebot.permission import SUPERUSER
 import httpx,html
 import json
 import os
+import re
 import zhconv
 import asyncio
 import random
@@ -40,7 +41,8 @@ from .bf1draw2 import draw_server_array2,upd_draw
 from .utils import (
     PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER,
     ASSETS_FOLDER, CURRENT_FOLDER, LOGGING_FOLDER,
-    request_API, get_wp_info, MapTeamDict
+    request_API, get_wp_info, MapTeamDict,
+    getSettings, UpdateDict, UpdateDict_1, ToSettings
 )
 from .bf1rsp import *
 from .bf1draw import *

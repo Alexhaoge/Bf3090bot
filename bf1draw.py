@@ -2231,6 +2231,7 @@ __all__ = [
     'draw_wp',
     'draw_pl2',
     'draw_r',
+    'draw_a',
     'draw_exchange',
     'draw_faq',
     'draw_re',
