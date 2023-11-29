@@ -226,40 +226,6 @@ def get_wp_info(message:str,user_id:int):
                     playerName = message
     return [playerName,wpmode,mode]
 
-def search_vban(personaId):
-    with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
-        info = json.load(f)
-    
-    files = os.listdir(BF1_SERVERS_DATA/f'vban')
-    gameIds = []
-    reason = []
-    name = []
-    vbans = {}
-
-
-    for file in files:
-        arg = file.split("_")
-        session = arg[0]
-        server_id = arg[1]
-
-        with open(BF1_SERVERS_DATA/f'{session}_jsonBL'/f'{session}_{server_id}.json','r', encoding='utf-8') as f:
-            serverBL = json.load(f)
-            serverId = serverBL['result']['rspInfo']['server']['serverId']
-
-        with open(BF1_SERVERS_DATA/f'vban'/file,'r',encoding="UTF-8") as f:
-            vbanjson = json.load(f)
-            personaIds = list(vbanjson.keys())
-
-            for key in personaIds:
-                if key == str(personaId):
-                    try:
-                        name.append(info[f"{serverId}"]["server_name"])
-                        reason.append(vbanjson[key]["reason"])
-                    except:
-                        pass
-    num = len(name)
-    return num,name,reason
-
 def search_all(personaId):
 
     with open(BF1_SERVERS_DATA/'vip.json','r',encoding='UTF-8') as f:
