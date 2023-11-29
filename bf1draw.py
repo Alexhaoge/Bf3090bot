@@ -1696,6 +1696,13 @@ async def draw_exchange(remid, sid, sessionID):
     ex_dict = json.load(f)
     for i in range(len(res['result']['items'])):
         url = 'https://eaassets-a.akamaihd.net/battlelog/battlebinary/'+res['result']['items'][i]['item']['images']['Png180xANY'][11:]
+        
+        try:
+            if res['result']['items'][i]['item']['images']['Png300xANY'][11:]:
+                url = 'https://eaassets-a.akamaihd.net/battlelog/battlebinary/'+res['result']['items'][i]['item']['images']['Png300xANY'][11:]
+        except:
+            pass
+        
         position = (50+200*(i%7),100+150*(i//7))
 
         text = res['result']['items'][i]['item']["name"]
@@ -2181,9 +2188,6 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
     draw = ImageDraw.Draw(img)
     font_0 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
     pids = []
-
-    with open(BF1_SERVERS_DATA/'zh-cn.json', 'r',encoding='UTF-8') as f:
-        dict = json.load(f)
     
     for i in range(len(logs)):
         logtime = logs[i].split("|")[0].strip()
@@ -2209,7 +2213,7 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
             pass
         match logdict["incident"]:
             case 'map':
-                msg = f'{logdict["processor"]}将{logdict["serverind"]}服地图切换为{dict[logdict["mapName"]]}'
+                msg = f'{logdict["processor"]}将{logdict["serverind"]}服地图切换为{logdict["mapName"]}'
             case 'kick':
                 msg = f'{logdict["processor"]}在{logdict["serverind"]}服踢出玩家{name}, 理由:{logdict["reason"]}'
             case 'kickall':
@@ -2231,7 +2235,7 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
             case 'unvbanall':
                 msg = f'{logdict["processor"]}解封玩家{name}(vbanall)' 
             case 'move':
-                msg = f'{logdict["processor"]}在{logdict["serverind"]}服将玩家换边' 
+                msg = f'{logdict["processor"]}在{logdict["serverind"]}服将玩家{name}换边' 
             case 'vip':
                 msg = f'{logdict["processor"]}在{logdict["serverind"]}服为玩家{name}添加{logdict["day"]}天vip'
             case 'unvip':
