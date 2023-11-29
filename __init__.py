@@ -18,8 +18,8 @@ from .utils import (
     CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER
 )
 
-from . import bf1, bfv, bf2042
-import bf1core.matcher
+from . import bf1helper, bfv, bf2042
+from .bf1core import matcher
 
 ################ Global Bot Hooks ##################
 driver = get_driver()
@@ -43,9 +43,9 @@ async def init_on_bot_startup():
     # DB setup
     await init_db()
     # Bot scheduled jobs initial runs
-    await bf1.token_helper()
-    await bf1.session_helper()
-    await bf1.load_alarm_session_from_db()
+    await bf1helper.token_helper()
+    await bf1helper.session_helper()
+    await bf1helper.load_alarm_session_from_db()
 
 @driver.on_shutdown
 async def close_on_bot_shutdown():
