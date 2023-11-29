@@ -199,7 +199,26 @@ async def del_vban(personaId: int, serverId: int):
         if vban_rec:
             await session.delete(vban_rec[0])
             await session.commit()
+
+async def search_vban(personaId):
+    with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
+        info = json.load(f)
     
+    reason = []
+    name = []
+
+    async with async_db_session() as session:
+        vban_rows = (await session.execute(select(ServerVBans).filter_by(pid=personaId))).all()
+        for vban_row in vban_rows:
+            reason.append(vban_row[0].reason)
+            serverId = vban_row[0].serverid
+            try:
+                name.append(info[f"{serverId}"]["server_name"])
+            except:
+                name.append(f"serverId:{serverId}")
+    num = len(name)
+    return num,name,reason
+
 async def get_server_num(groupqq:int) -> List[Tuple[str, int]]:
     """
     Return the (server_ind, serverid) of all the server bound to this chargroup
