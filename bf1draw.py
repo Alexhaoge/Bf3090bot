@@ -2216,6 +2216,11 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
                 msg = f'{logdict["processor"]}在{logdict["serverind"]}服将玩家{name}换边' 
             case 'vip':
                 msg = f'{logdict["processor"]}在{logdict["serverind"]}服为玩家{name}添加{logdict["day"]}天vip'
+                try:
+                    nextday = logdict["nextday"]
+                    msg += f'({nextday})'
+                except:
+                    pass
             case 'unvip':
                 msg = f'{logdict["processor"]}在{logdict["serverind"]}服解除玩家{name}的vip' 
         
