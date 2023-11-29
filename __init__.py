@@ -3,18 +3,14 @@ from logging.handlers import TimedRotatingFileHandler
 
 from nonebot import get_driver
 from nonebot import on_command
-from nonebot.rule import to_me
-from nonebot.matcher import Matcher
-from nonebot.adapters import Message
-from nonebot.params import CommandArg, Depends, _command_arg
-from nonebot.adapters.onebot.v11 import GROUP, Message, MessageEvent, MessageSegment, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
 
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
-from .rdb import init_db, close_db, get_db_session
+from .rdb import init_db, close_db
 from .redis_helper import redis_client
 
 from .utils import (

@@ -7,7 +7,6 @@ from nonebot import on_command,on_notice, on_request
 from nonebot.rule import Rule,to_me
 from nonebot.log import logger
 from nonebot.params import CommandArg, Depends, _command_arg, Arg, ArgStr, Received
-from nonebot.adapters import Event
 from nonebot.adapters.onebot.v11 import (
     GROUP, Message, MessageEvent, MessageSegment, GroupMessageEvent, 
     Bot, GroupDecreaseNoticeEvent, GroupIncreaseNoticeEvent, GroupRequestEvent
@@ -19,7 +18,6 @@ from nonebot.permission import SUPERUSER
 import httpx,html
 import json
 import os
-import numpy
 import zhconv
 import asyncio
 import random
@@ -31,21 +29,18 @@ from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from sqlalchemy.future import select
 from sqlalchemy import func, or_
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathlib import Path
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image
 from typing import Union, Tuple, List
 from random import choice
 
-from .config import Config
 from .bf1draw2 import draw_server_array2,upd_draw
-from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md
 from .utils import (
     PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CODE_FOLDER,
-    ASSETS_FOLDER, SUPERUSERS, CURRENT_FOLDER, LOGGING_FOLDER,
-    request_API, get_wp_info,search_a,getsid,MapTeamDict
+    ASSETS_FOLDER, CURRENT_FOLDER, LOGGING_FOLDER,
+    request_API, get_wp_info, MapTeamDict
 )
 from .bf1rsp import *
 from .bf1draw import *
@@ -53,285 +48,13 @@ from .secret import *
 from .image import upload_img
 from .rdb import *
 from .redis_helper import redis_client
+from .bf1helper import *
 
+# Global variables here
 GAME = 'bf1'
 LANG = 'zh-tw'
-
-async def token_helper():
-    async with async_db_session() as session:
-        # Fetch admins from db
-        admins = [row[0] for row in (await session.execute(select(Bf1Admins))).all()]
-        tasks_token = [asyncio.create_task(upd_token(admin.remid, admin.sid)) for admin in admins]
-        list_cookies_tokens = await asyncio.gather(*tasks_token) # Update tokens
-        for i in range(len(admins)):
-            admins[i].remid, admins[i].sid, admins[i].token = list_cookies_tokens[i]
-        session.add_all(admins) # Write into db
-        await session.commit()
-        logger.info('Token updates complete')
-
-async def session_helper():
-    async with async_db_session() as session:
-        admins = [row[0] for row in (await session.execute(select(Bf1Admins))).all()]
-        tasks_session = [
-            asyncio.create_task(upd_sessionId(admin.remid, admin.sid)) for admin in admins
-        ]
-        list_cookies_sessionIDs = await asyncio.gather(*tasks_session)
-        logger.debug('\n'.join([t[2] for t in list_cookies_sessionIDs]))
-
-        for i in range(len(admins)):
-            admins[i].remid, admins[i].sid, admins[i].sessionid = list_cookies_sessionIDs[i]
-        session.add_all(admins)
-        await session.commit()
-        logger.info('SessionID updates complete')
-
-async def get_one_random_bf1admin() -> Tuple[str, str, str, str]:
-    async with async_db_session() as session:
-        admin = (await session.execute(select(Bf1Admins).order_by(func.random()).limit(1))).one()[0]
-    return admin.remid, admin.sid, admin.sessionid, admin.token
-
-async def get_bf1admin_by_serverid(serverid: int) -> Tuple[str, str, str, str] | None:
-    async with async_db_session() as session:
-        server_admin = (await session.execute(select(ServerBf1Admins).filter_by(serverid=serverid))).first()
-        if server_admin:
-            admin_pid = server_admin[0].pid
-            admin = (await session.execute(select(Bf1Admins).filter_by(pid=admin_pid))).first()
-            return admin[0].remid, admin[0].sid, admin[0].sessionid, admin[0].token
-        else:
-            return None, None, None, None
-
-def reply_message_id(event: GroupMessageEvent) -> int:
-    message_id = None
-    for seg in event.original_message:
-        if seg.type == "reply":
-            message_id = int(seg.data["id"])
-            break
-    return message_id
-
-
-
-admin_logger = logging.getLogger('adminlog')
-def admin_logging_helper(
-        incident: str, processor: int, groupqq: int, main_groupqq: int = None,
-        server_ind: str = None, server_id: int = None, pid: int = None, 
-        log_level: int = logging.INFO, **kwargs):
-    """
-    Admin logging helper function. TODO: typing check for preset arguments.
-    """
-    kwargs['incident'], kwargs['processor'], kwargs['groupqq'] = incident, processor, groupqq
-    if main_groupqq:
-        kwargs['maingroupqq'] =  main_groupqq
-    if pid:
-        kwargs['pid'] = pid
-    if server_ind:
-        kwargs['serverind'] = server_ind
-    if server_id:
-        kwargs['serverid'] = server_id
-    admin_logger.log(level=log_level, msg=json.dumps(kwargs))
-
-async def check_admin(groupqq: int, user_id: int) -> int:
-    if user_id in SUPERUSERS:
-        return True
-    async with async_db_session() as session:
-        perm_rec = (await session.execute(select(GroupAdmins).filter_by(groupqq=groupqq, qq=user_id))).all()
-    return len(perm_rec)
-
-def check_sudo(groupqq: int, user_id: int) -> int:
-    return (user_id in SUPERUSERS) or (groupqq in SUDOGROUPS)
-    
-async def check_session(groupqq: int) -> int:
-    async with async_db_session() as session:
-        group_rec = (await session.execute(select(ChatGroups).filter_by(groupqq=int(groupqq)))).first()
-    return int(group_rec[0].bind_to_group) if group_rec else 0
-
-async def check_server_id(groupqq: int, server_ind: str) -> Tuple[str, int] | None:
-    """
-    Return the true server_ind, serverid from group server alias
-    """
-    server_id = str(server_ind)
-    async with async_db_session() as session:
-        group_server = (await session.execute(
-            select(GroupServerBind).filter(GroupServerBind.groupqq==groupqq)\
-                .filter(or_(GroupServerBind.ind == server_id, GroupServerBind.alias == server_ind))\
-                )
-            ).first()
-    return (group_server[0].ind, group_server[0].serverid) if group_server else (None, None)
-
-async def get_user_pid(groupqq:int, qq: int) -> Tuple[int, bool]:
-    """
-    Get pid the user bind within the given group
-    """
-    async with async_db_session() as session:
-        player = (await session.execute(
-            select(GroupMembers).filter_by(groupqq=groupqq, qq=qq)
-        )).first()
-    return player[0].pid if player else False
-
-async def get_gameid_from_serverid(serverid: int) -> int | None:
-    """
-    Get gameid from redis based on serverid
-    """
-    gameid = await redis_client.get(f'gameid:{serverid}')
-    if gameid:
-        return int(gameid)
-    else:
-        logger.warning(f'Warning:gameid for {serverid} not find!')
-
-async def add_vban(personaId: int, groupqq: int, serverId: int, reason: str, user_id: int):
-    """
-    Update: vban now records serverid(from Battlefield) instead group server code(1, 2, 3, etc.)
-    """
-    async with async_db_session() as session:
-        exist_vban = (await session.execute(select(ServerVBans).filter_by(pid=personaId, serverid=serverId))).first()
-        if not exist_vban:
-            session.add(ServerVBans(
-                pid = personaId, serverid = serverId,
-                time = datetime.datetime.now(), reason = reason,
-                processor = user_id, notify_group = groupqq
-            ))
-            await session.commit()
-
-async def del_vban(personaId: int, serverId: int):
-    """
-    Update: vban now records serverid(from Battlefield) instead group server code(1, 2, 3)
-    """
-    async with async_db_session() as session:
-        vban_rec = (await session.execute(select(ServerVBans).filter_by(pid=personaId, serverid=serverId))).first()
-        if vban_rec:
-            await session.delete(vban_rec[0])
-            await session.commit()
-
-async def search_vban(personaId):
-    with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
-        info = json.load(f)
-    
-    reason = []
-    name = []
-
-    async with async_db_session() as session:
-        vban_rows = (await session.execute(select(ServerVBans).filter_by(pid=personaId))).all()
-        for vban_row in vban_rows:
-            reason.append(vban_row[0].reason)
-            serverId = vban_row[0].serverid
-            try:
-                name.append(info[f"{serverId}"]["server_name"])
-            except:
-                name.append(f"serverId:{serverId}")
-    num = len(name)
-    return num,name,reason
-
-async def get_server_num(groupqq:int) -> List[Tuple[str, int]]:
-    """
-    Return the (server_ind, serverid) of all the server bound to this chargroup
-    """
-    async with async_db_session() as session:
-        stmt = select(GroupServerBind).filter_by(groupqq=groupqq).order_by(GroupServerBind.ind)
-        servers = (await session.execute(stmt)).all()
-        return [(row[0].ind, row[0].serverid) for row in servers]
-
-async def update_or_bind_player_name(
-        mode: int, groupqq: int, user_id: int,
-        remid: str, sid: str, sessionID: str, access_token: str,
-        playerName: str = None, usercard: str = None) -> dict:
-    ret_dict = {}
-    if mode == 1:
-        try:
-            personaId,userName,pidid = await getPersonasByName(access_token, playerName)
-        except:
-            ret_dict['err'] = '无效id'
-            return ret_dict
-    if mode == 2:
-        async with async_db_session() as session:
-            gm = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
-            player = (await session.execute(select(Players).filter_by(qq=user_id))).first()
-            if gm:
-                personaId = gm[0].pid
-                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
-                userName = res['result'][f'{personaId}']['displayName']
-                pidid = res['result'][f'{personaId}']['platformId']
-                if player:
-                    player[0].originid = userName
-                    session.add(player[0])
-                else:
-                    session.add(Players(pid=gm[0].pid, originid=userName, qq=user_id))
-            else:
-                try:
-                    playerName = usercard
-                    personaId,userName,pidid = await getPersonasByName(access_token, playerName)
-                except:
-                    ret_dict['err'] = f'您还未绑定，尝试绑定{usercard}失败'
-                    return ret_dict
-                ret_dict['msg'] = f'您还未绑定，尝试绑定{usercard}成功'
-                session.add(GroupMembers(groupqq=groupqq, qq=user_id, pid=personaId))
-                if player:
-                    player[0].originid = userName
-                    session.add(player[0])
-                else:
-                    session.add(Players(pid=personaId, originid=userName, qq=user_id))
-            await session.commit()                          
-    ret_dict['userName'] = userName
-    ret_dict['pid'] = personaId
-    ret_dict['pidid'] = pidid
-    return ret_dict
-
-async def get_bf1status(game:str):
-    return await request_API(game,'status',{"platform":"pc"})
-
-async def get_player_id(player_name:str)->dict:
-    return await request_API(GAME,'player',{'name':player_name})
-
-async def get_pl(gameID:str)->dict:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            url="https://api.gametools.network/bf1/players",
-            params = {
-                "gameid": f"{gameID}"
-	            }
-        )
-    return response.json()
-
-async def get_player_data(player_name:str)->dict:
-    return await request_API(GAME,'all',{'name':player_name,'lang':LANG})
-
-async def get_player_databyID(personaId)->dict:
-    return await request_API(GAME,'all',{'playerid':personaId,'lang':LANG})
-
-async def get_server_data(server_name:str)->dict:
-    return await request_API(GAME,'servers',{'name':server_name,'lang':LANG,"platform":"pc","limit":20})
-
-async def get_detailedServer_data(server_name:str)->dict:
-    return await request_API(GAME,'detailedserver',{'name':server_name})
-
-async def get_detailedServer_databyid(server_name)->dict:
-    return await request_API(GAME,'detailedserver',{'gameid':server_name})
-
-async def _is_del_user(event: Event) -> bool:
-    return isinstance(event, GroupDecreaseNoticeEvent)
-
-async def _is_get_user(event: Event) -> bool:
-    return isinstance(event, GroupIncreaseNoticeEvent)
-
-async def _is_add_user(event: Event) -> bool:
-    return isinstance(event, GroupRequestEvent)
-
-async def getbotforAps(bots,session:int):
-    sign = 0
-    for bot in bots.values():
-        botlist = await bot.get_group_list()
-        for i in botlist:
-            if int(i["group_id"]) == session:
-                sign = 1
-                break
-        if sign == 1:
-            break
-    return bot    
-    
-async def load_alarm_session_from_db():
-    async with async_db_session() as session:
-        stmt = select(ChatGroups).filter_by(alarm=True)
-        alarm_groups = [int(r[0].groupqq) for r in (await session.execute(stmt)).all()]
-        if len(alarm_groups):
-            await redis_client.sadd("alarmsession", *alarm_groups)
-        return alarm_groups
+draw_dict = {}
+admin_logger_lock = asyncio.Lock() # Must define the lock in global scope
 
 #bf1 help
 BF1_PING = on_command(f"{PREFIX}ping",aliases={f'{PREFIX}原神'},block=True, priority=1)
@@ -2187,7 +1910,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
     personaId, userName = ret_dict['pid'], ret_dict['userName']
 
     if searchmode == 'vban':
-        num,name,reason = search_vban(personaId)
+        num,name,reason = await search_vban(personaId)
     else:
         num,name = search_a(personaId,searchmode)
         reason = []
@@ -2732,7 +2455,6 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
         except:
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + traceback.format_exc(2))
 
-admin_logger_lock = asyncio.Lock() # Must define the lock in global scope
 async def search_log(pattern: str|re.Pattern, limit: int = 50) -> list:
     """
     Search all log files by regex expression, time exhausting!
@@ -2960,8 +2682,6 @@ async def upd_vbanPlayer(draw_dict:dict):
         logger.debug(sgids)
         await start_vban(sgids,vbans,draw_dict)
 
-
-draw_dict = {}
 
 @scheduler.scheduled_job("interval", minutes=15, id=f"job_reset_alarm_session")
 async def bf1_reset_alarm_session():

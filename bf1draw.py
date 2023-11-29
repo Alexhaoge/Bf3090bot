@@ -11,11 +11,11 @@ import asyncio
 import httpx
 from io import BytesIO
 from .bf1rsp import *
+from .bf1helper import search_all
 from .utils import *
 from .image import *
 from .secret import *
-from .rdb import async_db_session, Servers, GroupMembers, GroupServerBind
-from .redis_helper import redis_client
+from .rdb import async_db_session, GroupMembers, GroupServerBind
 from base64 import b64encode
 
 GAME = 'bf1'
@@ -276,13 +276,6 @@ def paste_img(img:Image):
             new_data.append((255 - item[0], 255 - item[1], 255 - item[2], item[3]))
     img.putdata(new_data)
     return img
-
-def search_dicts_by_key_value(dict_list, key, value):
-    for d in dict_list:
-        if key in d and d[key] == value:
-            return True
-        else :
-            return False
 
 async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     tasks = []
@@ -951,21 +944,6 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     img.paste(textbox, (0,340*row+260), textbox)
 
     return base64img(img)
-
-def get_pl(gameID:str)->dict:
-    return request_API(GAME,'players',{'gameid':gameID})
-
-async def async_get_stat(playerid,platoon,latency):
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.get(
-            url="https://api.gametools.network/bf1/stats",
-            params={'playerid': playerid,
-                    'lang':'zh-tw',
-                    "platform":"pc",}
-                    )
-        res = response.text[0:-1]+f', "platoon": "{platoon}", "latency": {latency}'+'}'
-        return res
-    
 
 async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int, 
                    remid: str, sid: str, sessionID: str, message_id: int = None) -> str:
@@ -2244,3 +2222,20 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
         draw.text(xy=(10,60*i+25), text='   '+msg ,fill=(0, 0, 100, 255),font=font_0)
     
     return base64img(img)
+
+__all__ = [
+    'base64img',
+    'draw_f',
+    'draw_server',
+    'draw_stat',
+    'draw_wp',
+    'draw_pl2',
+    'draw_r',
+    'draw_exchange',
+    'draw_faq',
+    'draw_re',
+    'draw_platoons',
+    'draw_searchplatoons',
+    'draw_detailplatoon',
+    'draw_log'
+]

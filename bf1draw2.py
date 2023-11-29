@@ -14,7 +14,6 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
-from .bf1draw import base64img
 
 async def upd_servers1(remid, sid, sessionID, timeout: int = None):
     async with httpx.AsyncClient() as client:
@@ -210,3 +209,7 @@ def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
     img = BytesIO()
     plt.savefig(img, format='png')
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
+
+__all__ = [
+    'upd_servers1', 'upd_draw', 'draw_server_array_matplotlib', 'draw_server_array2'
+]

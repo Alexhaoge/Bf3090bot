@@ -1,17 +1,10 @@
 import json
-import requests
 import aiohttp
 import uuid
-from pathlib import Path
-import zhconv
-from datetime import timedelta
 import datetime,time
-from .utils import BF1_SERVERS_DATA,MapTeamDict,CURRENT_FOLDER
+from .utils import CURRENT_FOLDER
 import httpx
-import asyncio
 import bs4
-import re
-import os
 #import geoip2.database
 from typing import Union
 
@@ -910,3 +903,29 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
             return f"获取服务器信息失败:{response}"
     else:
         return response["data"]
+
+__all__ = [
+    'getPersonasByName',
+    'fetch_data', 'post_data', 
+    'process_top_n', 'BTR_get_recent_info',
+    'async_get_server_data', 'error_code_dict', 
+    'upd_remid_sid', 'upd_token', 'upd_sessionId',
+    'upd_welcome',
+    'upd_campaign', 'upd_exchange',
+    'upd_detailedServer',
+    'upd_platoon', 'upd_platoons', 'upd_findplatoon', 'upd_platoonMembers',
+    'upd_reserveSlot', 'upd_leaveServer',
+    'upd_movePlayer',
+    'upd_unbanPlayer', 'upd_banPlayer',
+    'upd_chooseLevel',
+    'upd_kickPlayer',
+    'upd_vipPlayer', 'upd_unvipPlayer',
+    'upd_getServersByPersonaIds', 'upd_mostRecentServers',
+    'upd_getPersonasByIds', 'upd_getActiveTagsByPersonaIds',
+    'upd_WeaponsByPersonaId', 'upd_VehiclesByPersonaId', 'upd_StatsByPersonaId', 
+    'upd_loadout',
+    'upd_servers',
+    'upd_Stats',
+    'upd_Emblem',
+    'get_playerList_byGameid'
+]
