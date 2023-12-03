@@ -276,6 +276,10 @@ async def upd_gameId():
         pids = list(set(int(ad["personaId"]) for ad in adlist).intersection(db_admin_pids))
         for pid in pids:
             server_bf1admins.append((int(serverid), pid))
+    for serverid, ownlist in owner_dict.items():
+        pid = int(ownlist[0]["personaId"])
+        if pid in db_admin_pids:
+            server_bf1admins.append((int(serverid), pid))
     db_op(conn, 'DELETE FROM serverbf1admins;', [])
     db_op_many(conn, 'INSERT INTO serverbf1admins (serverid, pid) VALUES(?, ?);', 
                server_bf1admins)
