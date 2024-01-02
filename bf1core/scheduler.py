@@ -247,7 +247,10 @@ async def bf1_alarm(timeout: int = 20):
         groupqq = int(groupqq_b)
         bot = None
         for bot in nonebot.get_bots().values():
-            botlist = await bot.get_group_list()
+            try:
+                botlist = await bot.get_group_list()
+            except:
+                continue
             if next((1 for i in botlist if i['group_id']==groupqq), False):
                 break
         if not bot:
