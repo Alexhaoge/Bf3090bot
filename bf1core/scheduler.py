@@ -146,30 +146,36 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                     )
                 tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason))
 
-    res = await asyncio.gather(*tasks)
+    res = await asyncio.gather(*tasks, return_exceptions=True)
     logger.debug(res)
     remid2, sid2, sessionID2, access_token2  = await get_one_random_bf1admin()
-    res_pid = await upd_getPersonasByIds(remid2,sid2,sessionID2,personaIds)
+    try:
+        res_pid = await upd_getPersonasByIds(remid2,sid2,sessionID2,personaIds)
+    except:
+        res_pid = None
 
     if res != []:
         bots = nonebot.get_bots()
-        for report_dict in report_list:
-            try:
-                gameId = report_dict["gameId"]
-                reason = report_dict["reason"]
-                personaId = report_dict["personaId"]
-                groupqq = report_dict["groupqq"]
-
-                name = draw_dict[f"{gameId}"]["server_name"]
-                eaid = res_pid['result'][f'{personaId}']['displayName']
-                report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
-                logger.info(report_msg)
-                bot = await getbotforAps(bots,groupqq)
-                reply = await bot.send_group_msg(group_id=groupqq, message=report_msg.rstrip())
-                logger.info(reply)
-            except Exception as e:
-                logger.error(e)
-                continue
+        for r, report_dict in zip(res, report_list):
+            if not isinstance(r, Exception):
+                try:
+                    gameId = report_dict["gameId"]
+                    reason = report_dict["reason"]
+                    personaId = report_dict["personaId"]
+                    groupqq = report_dict["groupqq"]
+                    name = draw_dict[f"{gameId}"]["server_name"]
+                    if res_pid and str(personaId) in res_pid['result']:
+                        eaid = res_pid['result'][str(personaId)]['displayName']
+                    else:
+                        eaid = f'pid:{personaId}'
+                    report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
+                    logger.info(report_msg)
+                    bot = await getbotforAps(bots,groupqq)
+                    reply = await bot.send_group_msg(group_id=groupqq, message=report_msg.rstrip())
+                    logger.info(reply)
+                except Exception as e:
+                    logger.warning(e)
+                    continue
 
 
 async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
@@ -180,7 +186,14 @@ async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
         logger.warning(traceback.format_exc(1))
         logger.warning('Vban Blaze error for ' + ','.join([str(t[1]) for t in sgids]))
     else:
-        await kick_vbanPlayer(pljson, sgids,vbans,draw_dict) 
+        try:
+            await kick_vbanPlayer(pljson, sgids,vbans,draw_dict) 
+        except RSPException as rsp_exc:
+            logger.warning('Vban RSP exception: ' + rsp_exc.echo() + '\n' + ','.join([str(t[1]) for t in sgids]))
+        except:
+            logger.warning(traceback.format_exc(1))
+            logger.warning('Vban exception during execution: ' + traceback.format_exception_only() + \
+                           '\n' + ','.join([str(t[1]) for t in sgids]))
 
 async def upd_vbanPlayer(draw_dict:dict):
     alive_servers = list(draw_dict.keys())

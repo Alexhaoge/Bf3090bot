@@ -4,6 +4,7 @@ from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
 
 import html
+import traceback
 from sqlalchemy.future import select
 from sqlalchemy import or_
 
@@ -58,8 +59,12 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
         gameId = result['result']['gameservers'][0]['gameId']
         #detailedresult = await get_detailedServer_databyid(gameId)
         detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
-    except: 
-        await BF1_BIND.finish('无法获取到服务器数据。')
+    except RSPException as rsp_exc:
+        await BF1_BIND.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+    except:
+        logger.warning(traceback.format_exc())
+        await BF1_BIND.finish(MessageSegment.reply(event.message_id) + "无法获取服务器数据\n" \
+                              + traceback.format_exception_only())
     else:
         async with async_db_session() as session:
             serverid = detailedServer['result']['rspInfo']['server']['serverId']

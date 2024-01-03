@@ -292,7 +292,11 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     tasks.append(asyncio.create_task(bfeac_checkBan(personaId)))
     tasks.append(asyncio.create_task(upd_loadout(remid, sid, sessionID, personaId)))
 
-    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac,res_pre = await asyncio.gather(*tasks)
+    ress = await asyncio.gather(*tasks, return_exceptions=True)
+    for res in ress:
+        if isinstance(res, Exception):
+            raise res
+    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,bfeac,res_pre = ress
     special_stat = await upd_blazestat(personaId,'s5')
     
     name = playerName
@@ -620,7 +624,11 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
 
     tasks.append(asyncio.create_task(upd_loadout(remid, sid, sessionID, personaId)))
 
-    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,res_pre = await asyncio.gather(*tasks)
+    ress = await asyncio.gather(*tasks, return_exceptions=True)
+    for res in ress:
+        if isinstance(res, Exception):
+            raise res
+    special_stat1,res_stat,res_weapon,res_vehicle,emblem,res_tag,res_pre = ress
     special_stat = await upd_blazestat(personaId,'s5')
     name = playerName
     tag = res_tag['result'][f'{personaId}']
@@ -1459,7 +1467,12 @@ async def draw_r(remid, sid, sessionID, personaId, playerName):
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
     tasks.append(asyncio.create_task(upd_report(playerName, personaId, 10)))
-    res_stat,emblem,res_tag,async_result = await asyncio.gather(*tasks)
+
+    ress = await asyncio.gather(*tasks, return_exceptions=True)
+    for res in ress:
+        if isinstance(res, Exception):
+            raise res
+    res_stat,emblem,res_tag,async_result = ress
 
     name = playerName
     tag = res_tag['result'][f'{personaId}']

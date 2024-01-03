@@ -98,10 +98,10 @@ async def user_add(event: GroupMessageEvent):
             apply = json.loads(apply_raw)
             if not apply:
                 await approve_req.finish('入群自动审批记录已过期，请手动审核')
-            logger.info('approve_req:123456789123456789')
+            logger.info(f'approve_req:{apply["userid"]}')
             if message[0].strip().lower() == 'y':
                 if 'personaId' in apply:
-                    logger.info('approve_req:123456789123456789')
+                    logger.info(f'approve_req:{apply["userid"]}, {apply["personaId"]}')
                     async with async_db_session() as session:
                         exist_gm = (await session.execute(select(GroupMembers).filter_by(qq=apply['userid'], groupqq=groupqq))).first()
                         if not exist_gm:
