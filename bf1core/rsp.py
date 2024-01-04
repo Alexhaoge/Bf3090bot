@@ -50,18 +50,15 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         res = await upd_servers(remid, sid, sessionID, serverName)
         try:
             if len(res['result']['gameservers']) == 0:
-                1/0
+                await BF1_F.finish(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
             else:
-                try:
-                    file_dir = await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
-                    await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
-                except RSPException as rsp_exc:
-                    await BF1_F.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-                except:
-                    logger.warning(traceback.format_exc())
-                    await BF1_F.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
-
-        except: await BF1_F.send(MessageSegment.reply(event.message_id) + '未查询到数据')
+                file_dir = await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
+                await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        except RSPException as rsp_exc:
+            await BF1_F.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
     if mode == 2:
         groupqq = await check_session(event.group_id)
         servers = await get_server_num(groupqq)
@@ -74,9 +71,9 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
             await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except RSPException as rsp_exc:
             await BF1_F.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_F.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
 
 
 @BF1_CHOOSELEVEL.handle()
@@ -145,9 +142,9 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
             res = await upd_chooseLevel(remid, sid, sessionID, persistedGameId, levelIndex)
         except RSPException as rsp_exc:
             await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
         else:
             admin_logging_helper('map', user_id, event.group_id,
                                  main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, mapName=mapName_cn)
@@ -183,9 +180,9 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 res = await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
             except RSPException as rsp_exc:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_KICK.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
             else:
                 admin_logging_helper('kick', user_id, event.group_id,
                                      main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
@@ -376,9 +373,9 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 res = await upd_banPlayer(remid, sid, sessionID, server_id, personaId)
             except RSPException as rsp_exc:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
             else:
                 admin_logging_helper('ban', user_id, event.group_id, 
                                      main_groupqq=groupqq, server_ind=server_ind,
@@ -418,9 +415,9 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 res = await upd_banPlayer(remid, sid, sessionID, server_id, personaId)
             except RSPException as rsp_exc:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
             else:
                 admin_logging_helper('ban', user_id, event.group_id, main_groupqq=groupqq,
                                      server_ind=pl_json['serverind'], server_id=server_id, pid=personaId, reason=reason)
@@ -452,9 +449,9 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
             personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
         
         messages = []
         valid_serverinds = []
@@ -498,9 +495,9 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
             personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
         
         messages = []
         valid_serverinds = []
@@ -548,9 +545,9 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
             await upd_unbanPlayer(remid, sid, sessionID, server_id, personaId)
         except RSPException as rsp_exc:
             await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
         else:
             admin_logging_helper('unban', user_id, event.group_id, main_groupqq=groupqq,
                                  server_ind=server_ind, server_id=server_id, pid=personaId)
@@ -589,9 +586,9 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 await add_vban(personaId,groupqq,server_id,reason,user_id)
             except RSPException as rsp_exc:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
 
             admin_logging_helper('vban', user_id, event.group_id, main_groupqq=groupqq,
                                  server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
@@ -627,9 +624,9 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_id}为玩家{personaName}添加VBAN，理由：{reason}')
             except RSPException as rsp_exc:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
     else:
         await BF1_VBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -656,9 +653,9 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
             personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
 
         err_message = ''
         for server_ind, server_id in servers:
@@ -688,9 +685,9 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
             personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_UNVBANALL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_UNVBANALL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_UNVBANALL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
 
         err_message = ''
         for server_ind, server_id in servers:
@@ -725,9 +722,9 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
             personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
 
         await del_vban(personaId, server_id)
         admin_logging_helper('unvban', event.user_id, event.group_id, main_groupqq=groupqq,
@@ -757,9 +754,9 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
             except RSPException as rsp_exc:
                 await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
 
             try:
                 pl = await upd_blazepl(gameId)
@@ -786,9 +783,9 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                     res = await upd_movePlayer(remid, sid, sessionID, gameId, personaId, teamId)
                 except RSPException as rsp_exc:
                     await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-                except:
+                except Exception as e:
                     logger.warning(traceback.format_exc())
-                    await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                    await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
                 else:
                     with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                         zh_cn = json.load(f)
@@ -829,8 +826,8 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 except RSPException as rsp_exc:
                     error_message = rsp_exc.echo()
                     break
-                except:
-                    error_message = traceback.format_exception_only()
+                except Exception as e:
+                    error_message = traceback.format_exception_only(e)
                     break
                 else:
                     admin_logging_helper('move', event.user_id, event.group_id, main_groupqq=groupqq,
@@ -857,9 +854,9 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
             except RSPException as rsp_exc:
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_VIP.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n'+ traceback.format_exception_only(e))
             day = int(arg[2]) if len(arg) > 2 else 36500
         else:
             redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
@@ -882,9 +879,9 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 personaName = res['result'][f'{personaId}']['displayName']
             except RSPException as rsp_exc:
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_VIP.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
 
             day = int(arg[1]) if len(arg) > 1 else 36500
 
@@ -909,9 +906,9 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     is_operation_server = serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge'
                 except RSPException as rsp_exc:
                     await BF1_VIP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-                except:
+                except Exception as e:
                     logger.warning(traceback.format_exc())
-                    await BF1_VIP.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+                    await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
                 # Add to db (not committed yey)
                 new_vip = ServerVips(
                     serverid = server_id, pid = personaId, originid = personaName,
@@ -932,10 +929,10 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     except RSPException as rsp_exc:
                         await session.rollback()
                         await BF1_VIP.finish(MessageSegment.reply(event.message_id) + f'添加失败：{rsp_exc.echo()}')
-                    except:
+                    except Exception as e:
                         await session.rollback()
                         logger.warning(traceback.format_exc())
-                        await BF1_VIP.finish(MessageSegment.reply(event.message_id) + f'添加失败：{traceback.format_exception_only()}')
+                        await BF1_VIP.finish(MessageSegment.reply(event.message_id) + f'添加失败：{traceback.format_exception_only(e)}')
                     # Request success then commit
                     else: 
                         await session.commit()
@@ -1048,9 +1045,9 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
             is_operation = serverBL['result']['serverInfo']['mapMode'] == 'BreakthroughLarge'
         except RSPException as rsp_exc:
             await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
         
         async with async_db_session() as session:
             vip = (await session.execute(select(ServerVips).filter_by(serverid=server_id, pid=personaId))).first()
@@ -1078,10 +1075,10 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
             except RSPException as rsp_exc:
                 await session.rollback()
                 await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            except:
+            except Exception as e:
                 await session.rollback()
                 logger.warning(traceback.format_exc())
-                await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '移除VIP失败' + traceback.format_exception_only())
+                await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '移除VIP失败\n' + traceback.format_exception_only(e))
             else:
                 await session.commit()
                 await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + f'已移除玩家{personaName}的vip')
@@ -1113,9 +1110,9 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             await BF1_PL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_PL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_PL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_PL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启\n' + traceback.format_exception_only(e))
 
     else:
         await BF1_PL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
@@ -1143,9 +1140,9 @@ async def bf_adminpl(event:GroupMessageEvent, state:T_State):
             await BF1_ADMINPL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_ADMINPL.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_ADMINPL.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_ADMINPL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启\n' + traceback.format_exception_only(e))
  
 @BF1_PLS.handle()
 async def bf_pls(event:GroupMessageEvent, state:T_State):
@@ -1202,9 +1199,9 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
             await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启\n' + traceback.format_exception_only(e))
     else:
         await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
@@ -1274,9 +1271,9 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     zh_cn = json.load(f)
             except RSPException as rsp_exc:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '无法获取服务器信息\n' + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '无法获取服务器信息\n' + traceback.format_exception_only())
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '无法获取服务器信息\n' + traceback.format_exception_only(e))
 
             try:
                 if arg[1] == "desc":
@@ -1318,9 +1315,9 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
             except RSPException as rsp_exc:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '配置失败\n' + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '配置失败\n' + traceback.format_exception_only())
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '配置失败\n' + traceback.format_exception_only(e))
     else:
         await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
 
@@ -1343,9 +1340,9 @@ async def bf1_ins(event:GroupMessageEvent, state:T_State):
                 res_tyc = await upd_getServersByPersonaIds(remid,sid,sessionID,adminpids)
             except RSPException as rsp_exc:
                 await BF1_INSPECT.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_INSPECT.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only())
+                await BF1_INSPECT.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
             eaids = [res_pid['result'][f'{personaId}']['displayName'] for personaId in adminpids]
             tycs = [res_tyc['result'][f'{personaId}'] for personaId in adminpids]

@@ -206,6 +206,7 @@ async def update_or_bind_player_name(
             personaId,userName,pidid = await getPersonasByName(access_token, playerName)
         except RSPException as rsp_exc:
             ret_dict['err'] = rsp_exc.echo()
+            return ret_dict
         except:
             logger.warning(traceback.format_exc())
             ret_dict['err'] = '无效id'

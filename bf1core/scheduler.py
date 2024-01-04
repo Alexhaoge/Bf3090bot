@@ -190,9 +190,9 @@ async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
             await kick_vbanPlayer(pljson, sgids,vbans,draw_dict) 
         except RSPException as rsp_exc:
             logger.warning('Vban RSP exception: ' + rsp_exc.echo() + '\n' + ','.join([str(t[1]) for t in sgids]))
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc(1))
-            logger.warning('Vban exception during execution: ' + traceback.format_exception_only() + \
+            logger.warning('Vban exception during execution: ' + traceback.format_exception_only(e) + \
                            '\n' + ','.join([str(t[1]) for t in sgids]))
 
 async def upd_vbanPlayer(draw_dict:dict):

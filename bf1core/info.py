@@ -96,9 +96,9 @@ async def cmd_receive_report(event: GroupMessageEvent, state: T_State, pic: Mess
         personaId,name,userId = await getPersonasByName(access_token, playerName)
     except RSPException as rsp_exc:
         await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + '获取玩家id出错\n' + traceback.format_exception_only(e))
     bfeac = await bfeac_checkBan(personaId)
     if bfeac['stat'] == '无':
         state['case_body'] = ''
@@ -183,9 +183,9 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
             nums = {r[0].pid:r[1] for r in num_res}
         except RSPException as rsp_exc:
             await BF1_BOT.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_BOT.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_BOT.finish(MessageSegment.reply(event.message_id) + '获取玩家id出错\n' + traceback.format_exception_only(e))
     msg = ''
     for i in range(len(bf1admins)):
         admins = nums[bf1admins[i].pid] if bf1admins[i].pid in nums.keys() else 0
@@ -205,9 +205,9 @@ async def bf_pla(event:GroupMessageEvent, state:T_State):
         await BF1_PLA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
         await BF1_PLA.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_PLA.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+        await BF1_PLA.finish(MessageSegment.reply(event.message_id) + '无法获取战队信息\n' + traceback.format_exception_only(e))
 
 @BF1_PLAA.handle()
 async def bf_plaa(event:GroupMessageEvent, state:T_State):
@@ -220,9 +220,9 @@ async def bf_plaa(event:GroupMessageEvent, state:T_State):
         await BF1_PLAA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
         await BF1_PLAA.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_PLAA.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+        await BF1_PLAA.finish(MessageSegment.reply(event.message_id) + '无法获取战队信息' + traceback.format_exception_only(e))
 
 @BF_STATUS.handle()
 async def bf_status(event:GroupMessageEvent, state:T_State):
@@ -376,10 +376,10 @@ async def bf1_info(event:GroupMessageEvent, state:T_State):
         userName = res1['result'][f'{ownerid}']['displayName']
     except RSPException as rsp_exc:
         await BF1_INFO.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_INFO.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
-                                + traceback.format_exception_only())
+                                + traceback.format_exception_only(e))
     else:
         status1 = servermode + '-' +servermap
         status1 = zhconv.convert(status1,'zh-cn')
@@ -396,9 +396,9 @@ async def bf1_ex(event:GroupMessageEvent, state:T_State):
         await BF1_EX.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
         await BF1_EX.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-    await BF1_EX.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+    await BF1_EX.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
 
 @BF1_DRAW.handle()
 async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
@@ -416,9 +416,9 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
         await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
     except RSPException as rsp_exc:
         await BF1_DRAW.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_DRAW.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+        await BF1_DRAW.finish(MessageSegment.reply(event.message_id) + '未知数据错误\n' + traceback.format_exception_only(e))
 
 
 @BF1_ADMINDRAW.handle()
@@ -436,6 +436,6 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
         except RSPException as rsp_exc:
             await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+            await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + '未知数据错误\n' + traceback.format_exception_only(e))
