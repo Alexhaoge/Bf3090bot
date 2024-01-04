@@ -3,6 +3,7 @@ import logging
 import json
 import datetime
 import httpx
+import traceback
 
 from nonebot.adapters import Event
 from nonebot.log import logger
@@ -203,7 +204,10 @@ async def update_or_bind_player_name(
     if mode == 1:
         try:
             personaId,userName,pidid = await getPersonasByName(access_token, playerName)
+        except RSPException as rsp_exc:
+            ret_dict['err'] = rsp_exc.echo()
         except:
+            logger.warning(traceback.format_exc())
             ret_dict['err'] = '无效id'
             return ret_dict
     if mode == 2:
@@ -212,7 +216,11 @@ async def update_or_bind_player_name(
             player = (await session.execute(select(Players).filter_by(qq=user_id))).first()
             if gm:
                 personaId = gm[0].pid
-                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
+                try:
+                    res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
+                except Exception as e:
+                    ret_dict['err'] = e.echo() if isinstance(e, RSPException) else str(e)
+                    return ret_dict
                 userName = res['result'][f'{personaId}']['displayName']
                 pidid = res['result'][f'{personaId}']['platformId']
                 if player:
@@ -224,8 +232,9 @@ async def update_or_bind_player_name(
                 try:
                     playerName = usercard
                     personaId,userName,pidid = await getPersonasByName(access_token, playerName)
-                except:
-                    ret_dict['err'] = f'您还未绑定，尝试绑定{usercard}失败'
+                except Exception as e:
+                    ret_dict['err'] = f'您还未绑定，尝试绑定{usercard}失败\n' + \
+                        (e.echo() if isinstance(e, RSPException) else str(e))
                     return ret_dict
                 ret_dict['msg'] = f'您还未绑定，尝试绑定{usercard}成功'
                 session.add(GroupMembers(groupqq=groupqq, qq=user_id, pid=personaId))
