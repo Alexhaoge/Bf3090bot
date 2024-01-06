@@ -13,6 +13,8 @@ BF1_FAQ = on_command(f"{PREFIX}FAQ",block=True, priority=1)
 
 #info
 BF1_CODE = on_command(f"{PREFIX}code", block=True, priority=1)
+BF1_ADMIN_ADD_CODE = on_command(f"{PREFIX}addcode", block=True, priority=1, permission=SUPERUSER)
+BF1_ADMIN_DEL_CODE = on_command(f"{PREFIX}delcode", block=True, priority=1, permission=SUPERUSER)
 BF1_REPORT = on_command(f"{PREFIX}举报",aliases={f'{PREFIX}举办', f'{PREFIX}report'}, block=True, priority=1)
 BF1_BOT = on_command(f"{PREFIX}bot", aliases={f'{PREFIX}管服号'}, block=True, priority=1)
 BF1_PLA = on_command(f'{PREFIX}搜战队', block=True, priority=1)

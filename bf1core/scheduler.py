@@ -237,7 +237,9 @@ async def upd_vbanPlayer(draw_dict:dict):
 @scheduler.scheduled_job("interval", minutes=15, id=f"job_reset_alarm_session")
 async def bf1_reset_alarm_session():
     alarm_sessions = await load_alarm_session_from_db()
-    await redis_client.delete(*[f"alarmamount:{groupqq}" for groupqq in alarm_sessions])
+    keys_to_del = [f"alarmamount:{groupqq}" for groupqq in alarm_sessions]
+    if len(keys_to_del):
+        await redis_client.delete(*keys_to_del)
     logger.info('Alarm session reset')
 
 @scheduler.scheduled_job("interval", hours=2, id=f"job_2")

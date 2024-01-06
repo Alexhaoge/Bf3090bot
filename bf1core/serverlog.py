@@ -58,7 +58,8 @@ async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
         try:
             personaId,userName,_ = await getPersonasByName(access_token, playerName)
         except RSPException as rsp_exc:
-            await BF1_SLP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            await BF1_SLP.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
         except Exception as e:
             logger.warning(traceback.format_exc())
             await BF1_SLP.finish(MessageSegment.reply(event.message_id) + "无效id或网络错误\n" \

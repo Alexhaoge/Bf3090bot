@@ -28,11 +28,16 @@ from ..image import upload_img
 from ..rdb import *
 from ..bf1helper import *
 from .matcher import (
-    BF1_CODE,BF1_REPORT,BF1_BOT,
+    BF1_CODE, BF1_ADMIN_ADD_CODE, BF1_ADMIN_DEL_CODE,
+    BF1_REPORT,
+    BF1_BOT,
     BF1_PLA,BF1_PLAA,
     BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,BF1_INFO,
-    BF1_EX,BF1_DRAW,BF1_ADMINDRAW
+    BF1_EX,
+    BF1_DRAW,BF1_ADMINDRAW
 )
+
+code_file_lock = asyncio.Lock()
 
 @BF1_CODE.handle()
 async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = CommandArg()):
@@ -41,8 +46,9 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
     code = message.extract_plain_text().split(' ')[0]
     groupqq = await check_session(event.group_id)
 
-    with open(CURRENT_FOLDER/'code.txt','r') as f:
-        codearg = f.read().split()
+    async with code_file_lock:
+        with open(CURRENT_FOLDER/'code.txt','r') as f:
+            codearg = f.readlines()
     if code in codearg:
         async with async_db_session() as session:
             player_r = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
@@ -62,10 +68,43 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
                     session.add(BotVipCodes(code=code, pid=personaId))
                     await session.commit()
                     state["personaId"] = personaId
+
+                    codearg.remove(code)
+                    async with code_file_lock:
+                        with open(CURRENT_FOLDER/'code.txt','w') as f:
+                            f.writelines(codearg)
             else:
                 await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
     else:
         await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请输入正确的code。')
+
+@BF1_ADMIN_ADD_CODE.handle()
+async def bf1_admin_add_code(event: GroupMessageEvent, state: T_State):
+    message = _command_arg(state) or event.get_message()
+    code = message.extract_plain_text()
+    async with code_file_lock:
+        with open(CURRENT_FOLDER/'code.txt', 'a') as f:
+            f.write('\n' + code)
+    await BF1_ADMIN_ADD_CODE.send(MessageSegment.reply(event.message_id) + f'已添加背景图片码{code}')
+
+@BF1_ADMIN_DEL_CODE.handle()
+async def bf1_admin_del_code(event: GroupMessageEvent, state: T_State):
+    message = _command_arg(state) or event.get_message()
+    code = message.extract_plain_text()
+    async with code_file_lock:
+        with open(CURRENT_FOLDER/'code.txt', 'r') as f:
+            codes = f.readlines()
+    if code in codes:
+        codes.remove(code)
+        async with code_file_lock:
+            with open(CURRENT_FOLDER/'code.txt', 'w') as f:
+                f.writelines(codes)
+        await BF1_ADMIN_DEL_CODE.send(MessageSegment.reply(event.message_id) + f'已删除背景图片码{code}')
+    else:
+        async with async_db_session() as session:
+            code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
+            msg = f'背景图片码{code}已被使用' if code_r else f'背景图片码{code}从未被添加'
+        await BF1_ADMIN_DEL_CODE.send(MessageSegment.reply(event.message_id) + msg)
 
 @BF1_CODE.got("Message_pic", prompt="请发送你的背景图片，最好为正方形jpg格式。如果发现发送一切违反相关法律规定的图片的行为，将永久停止你的bot使用权限！")
 async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message_pic")):
@@ -95,7 +134,8 @@ async def cmd_receive_report(event: GroupMessageEvent, state: T_State, pic: Mess
         access_token = (await get_one_random_bf1admin())[3]
         personaId,name,userId = await getPersonasByName(access_token, playerName)
     except RSPException as rsp_exc:
-        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_REPORT.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + '获取玩家id出错\n' + traceback.format_exception_only(e))
@@ -182,7 +222,8 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
             num_res = (await session.execute(select(ServerBf1Admins, func.count()).group_by(ServerBf1Admins.pid))).all()
             nums = {r[0].pid:r[1] for r in num_res}
         except RSPException as rsp_exc:
-            await BF1_BOT.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            await BF1_BOT.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
         except Exception as e:
             logger.warning(traceback.format_exc())
             await BF1_BOT.finish(MessageSegment.reply(event.message_id) + '获取玩家id出错\n' + traceback.format_exception_only(e))
@@ -204,7 +245,8 @@ async def bf_pla(event:GroupMessageEvent, state:T_State):
         file_dir = await asyncio.wait_for(draw_searchplatoons(remid, sid, sessionID,platoon), timeout=20)
         await BF1_PLA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
-        await BF1_PLA.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_PLAA.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_PLA.finish(MessageSegment.reply(event.message_id) + '无法获取战队信息\n' + traceback.format_exception_only(e))
@@ -219,7 +261,8 @@ async def bf_plaa(event:GroupMessageEvent, state:T_State):
         file_dir = await asyncio.wait_for(draw_detailplatoon(remid, sid, sessionID,platoon), timeout=20)
         await BF1_PLAA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
-        await BF1_PLAA.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_PLAA.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_PLAA.finish(MessageSegment.reply(event.message_id) + '无法获取战队信息' + traceback.format_exception_only(e))
@@ -395,7 +438,8 @@ async def bf1_ex(event:GroupMessageEvent, state:T_State):
         file_dir = await asyncio.wait_for(draw_exchange(remid, sid, sessionID), timeout=35)
         await BF1_EX.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
-        await BF1_EX.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_EX.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
     await BF1_EX.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
@@ -415,7 +459,8 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
         img = draw_server_array2(str(gameId))
         await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
     except RSPException as rsp_exc:
-        await BF1_DRAW.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_DRAW.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_DRAW.finish(MessageSegment.reply(event.message_id) + '未知数据错误\n' + traceback.format_exception_only(e))
@@ -435,7 +480,8 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
             img = draw_server_array2(str(gameId))
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
         except RSPException as rsp_exc:
-            await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
         except Exception as e:
             logger.warning(traceback.format_exc())
             await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + '未知数据错误\n' + traceback.format_exception_only(e))

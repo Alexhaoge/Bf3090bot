@@ -185,7 +185,7 @@ class RSPException(Exception):
         -34501: "服务器已过期或不存在",
         -35150: "战队不存在",
         -35160: "无权限进行次操作",
-        -32603: "此code为多个错误共用,请查阅error_msg_dict",
+        #-32603: "此code为多个错误共用,请查阅error_msg_dict",
         -32851: "服务器不存在/已过期",
         -32856: "玩家ID有误",
         -32857: "机器人无法处置管理员",
@@ -498,7 +498,7 @@ async def upd_Stats(personaIds):
 
 async def upd_Emblem(remid, sid, sessionID, personaId):
     return await upd_gateway(
-        'Emblems.getEquippedEmblem', remid, sid, sessionID, personaId=str(personaId)
+        'Emblems.getEquippedEmblem', remid, sid, sessionID, personaId=str(personaId), platform="pc"
     )
 
 async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union[str, dict]:

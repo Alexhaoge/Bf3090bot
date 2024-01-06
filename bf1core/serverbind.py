@@ -60,7 +60,8 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
         #detailedresult = await get_detailedServer_databyid(gameId)
         detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
     except RSPException as rsp_exc:
-        await BF1_BIND.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_BIND.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_BIND.finish(MessageSegment.reply(event.message_id) + "无法获取服务器数据\n" \
