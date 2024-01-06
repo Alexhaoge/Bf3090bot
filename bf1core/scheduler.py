@@ -100,8 +100,12 @@ async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, dra
             #if True: # Test
             if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
                 alarm_amount = await redis_client.hincrby(f'alarmamount:{groupqq}', ind)
-                await bot.send_group_msg(group_id=groupqq, message=f'第{alarm_amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
-                return 1
+                try:
+                    await bot.send_group_msg(group_id=groupqq, message=f'第{alarm_amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+                    return 1
+                except Exception as e:
+                    logger.warning(e)
+                    return 0
             else:
                 return 0
         except:
