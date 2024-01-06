@@ -39,9 +39,9 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
         personaId,userName,_ = await getPersonasByName(access_token, playerName)
     except RSPException as rsp_exc:
         await BF1_BIND_PID.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_BIND_PID.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only())
+        await BF1_BIND_PID.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only(e))
     
     async with async_db_session() as session:
         gm = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
@@ -142,9 +142,9 @@ async def bf1_tyc(event:GroupMessageEvent, state:T_State):
             pidid = res1['result'][f'{personaId}']['platformId']
         except RSPException as rsp_exc:
             await BF1_TYC.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + rsp_exc.echo())
-        except:
+        except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_TYC.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + traceback.format_exception_only())
+            await BF1_TYC.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + traceback.format_exception_only(e))
             
     msg = await tyc(remid,sid,sessionID,personaId,userName,pidid)
     await BF1_TYC.send(MessageSegment.reply(event.message_id) + msg)
@@ -188,9 +188,9 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
                 userName = res1['result'][f'{personaId}']['displayName']
             except RSPException as rsp_exc:
                 await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + rsp_exc.echo())
-            except:
+            except Exception as e:
                 logger.warning(traceback.format_exc())
-                await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + traceback.format_exception_only())
+                await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + traceback.format_exception_only(e))
         else:
             await BF1_S.finish(MessageSegment.reply(event.message_id)+'请选择正确的玩家序号')
     try:
@@ -200,9 +200,9 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
         await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
     except RSPException as rsp_exc:
         await BF1_S.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only())
+        await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
 @BF1_WP.handle()
 async def bf1_wp(event:GroupMessageEvent, state:T_State):
@@ -278,9 +278,9 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
         await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
     except RSPException as rsp_exc:
         await BF1_WP.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_WP.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only())
+        await BF1_WP.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
 @BF1_R.handle()
 async def bf1_recent(event:GroupMessageEvent, state:T_State):
@@ -311,9 +311,9 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
             await BF1_R.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
     except RSPException as rsp_exc:
         await BF1_R.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_R.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only())
+        await BF1_R.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
 @BF1_RE.handle()
 async def bf1_recent1(event:GroupMessageEvent, state:T_State):
@@ -354,6 +354,6 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
             await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
     except RSPException as rsp_exc:
         await BF1_S.finish(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！\n' + rsp_exc.echo())
-    except:
+    except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_S.finish(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！\n' + traceback.format_exception_only())
+        await BF1_S.finish(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！\n' + traceback.format_exception_only(e))

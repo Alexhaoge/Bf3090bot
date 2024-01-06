@@ -39,9 +39,8 @@ async def getPersonasByName(access_token, player_name) -> tuple | Exception:
                 name = res['personas']['persona'][0]['displayName']
                 pidid = res['personas']['persona'][0]['pidId']
                 return id,name,pidid
-        except Exception as e:
-            print(response.text)
-            return e
+        except KeyError:
+            raise RSPException(error_code=-32856)
 
 async def fetch_data(url,headers):
     async with httpx.AsyncClient() as client:
