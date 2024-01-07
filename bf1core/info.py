@@ -49,22 +49,25 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
     async with code_file_lock:
         with open(CURRENT_FOLDER/'code.txt','r') as f:
             codearg = f.readlines()
-    if code in codearg:
-        async with async_db_session() as session:
-            player_r = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
-            if player_r:
-                personaId = player_r[0].pid
-                code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
-                if code_r:
-                    exist_pid = code_r[0].pid
-                    if int(exist_pid) != int(personaId):
-                        remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+    async with async_db_session() as session:
+        player_r = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
+        if player_r:
+            personaId = player_r[0].pid
+            code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
+            if code_r:
+                exist_pid = code_r[0].pid
+                if int(exist_pid) != int(personaId):
+                    remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+                    try:
                         res = await upd_getPersonasByIds(remid, sid, sessionID, [exist_pid])
                         userName = res['result'][f'{exist_pid}']['displayName']
-                        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}。')
-                    else:
-                        state["personaId"] = personaId
+                    except Exception as e:
+                        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已被他人使用，使用者pid为{exist_pid}')
+                    await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}。')
                 else:
+                    state["personaId"] = personaId
+            else:        
+                if code in codearg:
                     session.add(BotVipCodes(code=code, pid=personaId))
                     await session.commit()
                     state["personaId"] = personaId
@@ -73,10 +76,10 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
                     async with code_file_lock:
                         with open(CURRENT_FOLDER/'code.txt','w') as f:
                             f.writelines(codearg)
-            else:
-                await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
-    else:
-        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请输入正确的code。')
+                else:
+                    await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请输入正确的code。')
+        else:
+            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
 
 @BF1_ADMIN_ADD_CODE.handle()
 async def bf1_admin_add_code(event: GroupMessageEvent, state: T_State):
