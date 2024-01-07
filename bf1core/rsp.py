@@ -50,12 +50,13 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         res = await upd_servers(remid, sid, sessionID, serverName)
         try:
             if len(res['result']['gameservers']) == 0:
-                await BF1_F.finish(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
+                await BF1_F.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
             else:
                 file_dir = await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
                 await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except RSPException as rsp_exc:
-            await BF1_F.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
         except Exception as e:
             logger.warning(traceback.format_exc())
             await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
@@ -65,7 +66,8 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         gameids = []
         for server_ind, server_id in servers:
             gameid = await get_gameid_from_serverid(server_id)
-            gameids.append(gameid)
+            if gameid:
+                gameids.append(gameid)
         try:
             file_dir = await asyncio.wait_for(draw_f(gameids,groupqq,remid, sid, sessionID), timeout=15)
             await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))

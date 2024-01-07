@@ -94,7 +94,7 @@ async def draw_f(server_gameids: list, groupqq: int, remid: str, sid: str, sessi
     un = 0
     # 将原始图片模糊化
     img = img.filter(ImageFilter.GaussianBlur(radius=15))    
-    ress = await asyncio.gather(*tasks)
+    ress = await asyncio.gather(*tasks, return_exceptions=True)
     
     for id in range(server_num):
         try:
@@ -189,7 +189,7 @@ async def draw_server(remid, sid, sessionID, serverName, res):
         gameId = res[ij]['gameId']
         tasks.append(asyncio.create_task(upd_detailedServer(remid, sid, sessionID, gameId)))
 
-    ress = await asyncio.gather(*tasks)
+    ress = await asyncio.gather(*tasks, return_exceptions=True)
 
     for ij in range(len(res)):
         servername = res[ij]['name']
@@ -204,7 +204,7 @@ async def draw_server(remid, sid, sessionID, serverName, res):
         serverimg = res[ij]['mapImageUrl'].split('/')[-1]
         serverimg = BF1_SERVERS_DATA/f'Caches/Maps/{serverimg}'
         res_0 = ress[ij]
-        serverstar = res_0['result']['serverInfo']['serverBookmarkCount']
+        serverstar = None if isinstance(res_0, Exception) else res_0['result']['serverInfo']['serverBookmarkCount']
 
         status1 = servermode + '-' +servermap
         status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
