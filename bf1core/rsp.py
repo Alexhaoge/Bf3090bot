@@ -374,7 +374,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             if len(reason.encode('utf-8')) > 32:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
 
-            gameId = await get_bf1admin_by_serverid(server_id)
+            gameId = await get_gameid_from_serverid(server_id)
             remid,sid,sessionID,access_token = (await get_bf1admin_by_serverid(server_id))
             if not remid:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
@@ -1141,7 +1141,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             return
         except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_PL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启\n' + traceback.format_exception_only(e))
+            await BF1_PL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
 
     else:
         await BF1_PL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
@@ -1172,7 +1172,7 @@ async def bf_adminpl(event:GroupMessageEvent, state:T_State):
             return
         except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_ADMINPL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启\n' + traceback.format_exception_only(e))
+            await BF1_ADMINPL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
  
 @BF1_PLS.handle()
 async def bf_pls(event:GroupMessageEvent, state:T_State):
@@ -1233,7 +1233,7 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
             return
         except Exception as e:
             logger.warning(traceback.format_exc())
-            await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启\n' + traceback.format_exception_only(e))
+            await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
     else:
         await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
