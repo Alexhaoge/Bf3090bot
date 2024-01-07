@@ -309,7 +309,6 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
     Other exceptions will not be handled.
     """
     kwargs['game'] = 'tunguska'
-    kwargs['minutesToUTC'] = '-480'
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -348,7 +347,7 @@ async def upd_campaign(remid, sid, sessionID):
 
 #获取交换
 async def upd_exchange(remid, sid, sessionID):
-    return await upd_gateway('ScrapExchange.getOffers', remid, sid, sessionID)
+    return await upd_gateway('ScrapExchange.getOffers', remid, sid, sessionID, minutesToUTC='-480')
 
 #获取服务器详细信息
 async def upd_detailedServer(remid, sid, sessionID, gameId):

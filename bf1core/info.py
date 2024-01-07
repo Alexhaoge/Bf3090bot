@@ -445,7 +445,7 @@ async def bf1_ex(event:GroupMessageEvent, state:T_State):
         return
     except Exception as e:
         logger.warning(traceback.format_exc())
-    await BF1_EX.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
+        await BF1_EX.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
 
 @BF1_DRAW.handle()
 async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
