@@ -882,7 +882,11 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n'+ traceback.format_exception_only(e))
-            day = int(arg[2]) if len(arg) > 2 else 36500
+            if len(arg) > 2:
+                permanent, days = False, int(arg[2])
+                priority = int(arg[3]) if len(arg) > 3 else 1
+            else:
+                permanent, days, priority = True, 0, 1
         else:
             redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
             if not redis_pl:
@@ -909,19 +913,29 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 logger.warning(traceback.format_exc())
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
 
-            day = int(arg[1]) if len(arg) > 1 else 36500
+            if len(arg) > 1:
+                permanent, days = False, int(arg[1])
+                priority = int(arg[2]) if len(arg) > 2 else 1
+            else:
+                permanent, days, priority = True, 0, 1
 
         async with async_db_session() as session:
             exist_vip = (await session.execute(
                 select(ServerVips).filter_by(serverid=server_id, pid=personaId)
             )).first()
             if exist_vip: # If vip exists, update the current vip
-                exist_vip[0].expire += datetime.timedelta(days=day)
-                nextday = datetime.datetime.strftime(exist_vip[0].expire, "%Y-%m-%d")
+                exist_vip[0].days += days
+                exist_vip[0].permanent |= permanent
+                exist_vip[0].priority = max(exist_vip[0].priority, priority)
                 session.add(exist_vip[0])
                 await session.commit()
-                await BF1_VIP.send(MessageSegment.reply(event.message_id) +\
-                                    f"已为玩家{personaName}添加{day}天的vip({nextday}){'' if exist_vip[0].enabled else '(未生效)'}")
+                if exist_vip[0].enabled:
+                    expire_date = exist_vip[0].start_date + datetime.timedelta(days=exist_vip[0].days)
+                    nextday = datetime.datetime.strftime(expire_date, "%Y-%m-%d")
+                    msg = f"已为玩家{personaName}添加" + ("永久vip" if exist_vip[0].permanent else f"{days}天的vip({nextday})")
+                else:
+                    msg = f"已为玩家{personaName}添加" + ("永久vip" if exist_vip[0].permanent else f"{days}天的vip") + "(未生效)"
+                await BF1_VIP.send(MessageSegment.reply(event.message_id) + msg)
             else: # If vip does not exists, create a new record
                 remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
                 if not remid:
@@ -939,15 +953,20 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 # Add to db (not committed yey)
                 new_vip = ServerVips(
                     serverid = server_id, pid = personaId, originid = personaName,
-                    expire = datetime.datetime.now() + datetime.timedelta(days=day),
-                    enabled = not is_operation_server
+                    days = days, permanent = permanent, enabled = False, priority = priority
                 )
-                session.add(new_vip)
-                nextday = datetime.datetime.strftime(new_vip.expire, "%Y-%m-%d")
                 # For operation servers, do not send vip request immediately, set enabled to False and add to database
                 if is_operation_server:
+                    msg = f'已为玩家{personaName}添加' + ('永久' if new_vip.permanent else f'{days}天的') + 'vip(行动模式，未生效)'
+                    session.add(new_vip)
+                    await session.commit()
+                    await BF1_VIP.send(MessageSegment.reply(event.message_id) + msg)
+                elif len(serverBL['result']['rspInfo']['vipList']) >= 50:
+                    msg = f'已为玩家{personaName}添加' + ('永久' if new_vip.permanent else f'{days}天的') + 'vip(未生效)\n' +\
+                        '服务器VIP位已满，请使用.checkvip/.unvip，或手动删除vip'
+                    session.add(new_vip)
                     await session.commit() 
-                    await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})(未生效)')
+                    await BF1_VIP.send(MessageSegment.reply(event.message_id) + msg)
                 # For other servers, send vip request immediately, set enabled to True
                 else:
                     try:
@@ -961,11 +980,16 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                         logger.warning(traceback.format_exc())
                         await BF1_VIP.finish(MessageSegment.reply(event.message_id) + f'添加失败：{traceback.format_exception_only(e)}')
                     # Request success then commit
-                    else: 
+                    else:
+                        new_vip.enabled = True
+                        new_vip.start_date = datetime.datetime.now()
+                        nextday = datetime.datetime.strftime(new_vip.start_date + datetime.timedelta(days=new_vip.days), "%Y-%m-%d")
+                        msg = f"已为玩家{personaName}添加" + ("永久vip" if new_vip.permanent else f"{days}天的vip({nextday})")
+                        session.add(new_vip)
                         await session.commit()
-                        await BF1_VIP.send(MessageSegment.reply(event.message_id) + f'已为玩家{personaName}添加{day}天的vip({nextday})')
+                        await BF1_VIP.send(MessageSegment.reply(event.message_id) + msg)
         admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
-                             server_ind=server_ind, server_id=server_id, pid=personaId, day=day, nextday=str(nextday))
+                             server_ind=server_ind, server_id=server_id, pid=personaId, day=days, permanent=permanent, priority=priority)
     else:
         await BF1_VIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -986,12 +1010,16 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
             viplist = []
             for i, row in enumerate(vip_rows):
                 vip_str = f"{i+1}.{row[0].originid}"
-                if row[0].expire > dt_now:
-                    vip_str += f"({datetime.datetime.strftime(row[0].expire, '%Y-%m-%d')})"
-                    if not row[0].enabled:
-                        vip_str += '(未生效)'
+                if row[0].permanent:
+                    vip_str += '(永久)'
                 else:
-                    vip_str += '(已过期)'
+                    expire = row[0].start_date + datetime.timedelta(days=row[0].days)
+                    if expire > dt_now:
+                        vip_str += f"({datetime.datetime.strftime(expire, '%Y-%m-%d')})"
+                    else:
+                        vip_str += '(已过期)'
+                if not row[0].enabled:
+                    vip_str += '(未生效)'
                 viplist.append(vip_str)
             msg = '只展示通过本bot添加的vip:\n' + '\n'.join(viplist) 
         
@@ -1010,40 +1038,70 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
         server_ind, server_id = await check_server_id(session,arg[0])
         if not server_ind:
             await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+
         gameid = await get_gameid_from_serverid(server_id)
         remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
-        now_dt = datetime.datetime.now()
         if not remid:
             await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
+
+        try:
+            serverBL = await upd_detailedServer(remid, sid, sessionID, gameid)
+        except RSPException as rsp_exc:
+            await BF1_VIP.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
+        
+        n_add = n_remove = n_pending = 0
+        err_names = []
+        now_dt = datetime.datetime.now()
         
         async_tasks = []
-        expire_or_enable = []
-        n_add = n_remove = 0
-        err_names = []
         async with async_db_session() as session:
-            vip_rows = (await session.execute(select(ServerVips).filter_by(serverid=server_id).order_by(ServerVips.originid))).all()
-            for i, v in enumerate(vip_rows):
-                if v[0].expire < now_dt:
-                    async_tasks.append(asyncio.create_task(upd_unvipPlayer(remid, sid, sessionID, server_id, v[0].pid)))
-                    expire_or_enable.append((i, False))
-                elif not v[0].enabled:
-                    async_tasks.append(asyncio.create_task(upd_vipPlayer(remid, sid, sessionID, server_id, v[0].pid)))
-                    expire_or_enable.append((i, True))
+            # Find all vips to enable, permanent + temporary order by priority
+            pending_enable = (await session.execute(select(ServerVips).filter_by(server_id=server_id, enabled=False, permanent=True))).all()
+            pending_enable.extend((await session.execute(
+                select(ServerVips).filter_by(
+                    server_id=server_id, enabled=False, permanent=False).order_by(ServerVips.priority.desc())
+            )).all())
+            # Find all vips to expire
+            pending_expire = (await session.execute(
+                select(ServerVips).filter(
+                    ServerVips.serverid==server_id, ServerVips.enabled==True,
+                    ServerVips.start_date + datetime.timedelta(days=ServerVips.days) > now_dt
+                )
+            )).all()
+            # Execute expiration first
+            async_tasks = [asyncio.create_task(upd_unvipPlayer(remid,sid,sessionID,server_id,v[0].pid)) for v in pending_expire]
             results = await asyncio.gather(*async_tasks, return_exceptions=True)
-            
-            for i, res in zip(expire_or_enable, results):
+            for i, res in enumerate(results):
                 if isinstance(res, Exception):
                     logger.warning(str(res))
-                    err_names.append(vip_rows[i[0]][0].originid)
-                elif i[1]: # enabled vip to update
-                    vip_rows[i[0]][0].enabled = True
-                    session.add(vip_rows[i[0]][0])
-                    n_add += 1
-                else: # expired vip to delete
-                    await session.delete(vip_rows[i[0]][0])
+                    err_names.append(pending_expire[i][0].originid)
+                else:
                     n_remove += 1
+                    await session.delete(pending_expire[i][0])
+            # Execute activation
+            n_expected_to_enable = 50 - len(serverBL['result']['rspInfo']['vipList']) + n_remove
+            n_expected_to_enable = min(len(pending_enable), max(n_expected_to_enable, 0))
+            async_tasks = [asyncio.create_task(upd_vipPlayer(remid,sid,sessionID,server_id,v[0].pid))\
+                            for v in pending_enable[:n_expected_to_enable]]
+            results = await asyncio.gather(*async_tasks, return_exceptions=True)
+            for i, res in enumerate(results):
+                if isinstance(res, Exception):
+                    logger.warning(str(res))
+                    err_names.append(pending_enable[i][0].originid)
+                else:
+                    n_add += 1
+                    pending_enable[i][0].enabled = True
+                    pending_enable[i][0].start_date = now_dt
+                    session.add(pending_enable[i][0])
+                    n_add += 1
             await session.commit()
-        msg = f"已添加{n_add}个vip，删除{n_remove}个vip，{len(err_names)}个vip处理失败"
+
+        msg = f"已添加{n_add}个vip，删除{n_remove}个vip\n" +\
+            f"{len(pending_enable)-n_expected_to_enable}个vip尚在等待生效，{len(err_names)}个vip处理失败"
         if len(err_names):
             msg = msg + ':\n' + '\n'.join(err_names)
         await BF1_CHECKVIP.send(MessageSegment.reply(event.message_id) + msg)
@@ -1083,7 +1141,8 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
                 if is_operation: 
                     if vip[0].enabled:
                         # Enabled vip in operation server will not be requested or deleted immediated, we only set it to expired in database
-                        vip[0].expire = datetime.datetime.now() - datetime.timedelta(days=2)
+                        vip[0].days = -1
+                        vip[0].permanent = False
                         session.add(vip[0])
                         await session.commit()
                         await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + f'已移除玩家{personaName}的行动vip(需要check)')
