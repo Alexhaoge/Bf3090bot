@@ -11,6 +11,7 @@ import datetime
 import traceback
 
 from sqlalchemy.future import select
+from sqlalchemy import func
 from pathlib import Path
 
 from ..utils import (
@@ -1010,16 +1011,16 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
             viplist = []
             for i, row in enumerate(vip_rows):
                 vip_str = f"{i+1}.{row[0].originid}"
-                if row[0].permanent:
+                if not row[0].enabled:
+                    vip_str += ('永久' if row[0].permanent else f'{row[0].days}天') + '(未生效)'
+                elif row[0].permanent:
                     vip_str += '(永久)'
                 else:
-                    expire = row[0].start_date + datetime.timedelta(days=row[0].days)
-                    if expire > dt_now:
-                        vip_str += f"({datetime.datetime.strftime(expire, '%Y-%m-%d')})"
-                    else:
+                    expire_date = row[0].start_date + datetime.timedelta(days=row[0].days)
+                    if expire_date < dt_now:
                         vip_str += '(已过期)'
-                if not row[0].enabled:
-                    vip_str += '(未生效)'
+                    else:
+                        vip_str += f"({datetime.datetime.strftime(expire_date, '%Y-%m-%d')})"
                 viplist.append(vip_str)
             msg = '只展示通过本bot添加的vip:\n' + '\n'.join(viplist) 
         
@@ -1060,18 +1061,16 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
         async_tasks = []
         async with async_db_session() as session:
             # Find all vips to enable, permanent + temporary order by priority
-            pending_enable = (await session.execute(select(ServerVips).filter_by(server_id=server_id, enabled=False, permanent=True))).all()
+            pending_enable = (await session.execute(select(ServerVips).filter_by(serverid=server_id, enabled=False, permanent=True))).all()
             pending_enable.extend((await session.execute(
                 select(ServerVips).filter_by(
-                    server_id=server_id, enabled=False, permanent=False).order_by(ServerVips.priority.desc())
+                    serverid=server_id, enabled=False, permanent=False).order_by(ServerVips.priority.desc())
             )).all())
+
             # Find all vips to expire
-            pending_expire = (await session.execute(
-                select(ServerVips).filter(
-                    ServerVips.serverid==server_id, ServerVips.enabled==True,
-                    ServerVips.start_date + datetime.timedelta(days=ServerVips.days) > now_dt
-                )
-            )).all()
+            activated = (await session.execute(select(ServerVips).filter_by(serverid=server_id, enabled=True))).all()
+            pending_expire = list(filter(lambda v: v[0].start_date + datetime.timedelta(v[0].days) < now_dt, activated))
+            
             # Execute expiration first
             async_tasks = [asyncio.create_task(upd_unvipPlayer(remid,sid,sessionID,server_id,v[0].pid)) for v in pending_expire]
             results = await asyncio.gather(*async_tasks, return_exceptions=True)
@@ -1082,12 +1081,15 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
                 else:
                     n_remove += 1
                     await session.delete(pending_expire[i][0])
+            
             # Execute activation
             n_expected_to_enable = 50 - len(serverBL['result']['rspInfo']['vipList']) + n_remove
             n_expected_to_enable = min(len(pending_enable), max(n_expected_to_enable, 0))
+            
             async_tasks = [asyncio.create_task(upd_vipPlayer(remid,sid,sessionID,server_id,v[0].pid))\
                             for v in pending_enable[:n_expected_to_enable]]
             results = await asyncio.gather(*async_tasks, return_exceptions=True)
+
             for i, res in enumerate(results):
                 if isinstance(res, Exception):
                     logger.warning(str(res))
@@ -1097,7 +1099,6 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
                     pending_enable[i][0].enabled = True
                     pending_enable[i][0].start_date = now_dt
                     session.add(pending_enable[i][0])
-                    n_add += 1
             await session.commit()
 
         msg = f"已添加{n_add}个vip，删除{n_remove}个vip\n" +\

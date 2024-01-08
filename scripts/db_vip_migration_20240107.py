@@ -5,8 +5,8 @@ conn = sqlite3.connect('../bfchat_data/bot.db')
 
 cur = conn.cursor()
 old_vips = conn.execute('SELECT * FROM servervips').fetchall()
-# with open('../bfchat_data/vip_copy.json', 'w') as f:
-#     json.dump(old_vips, f)
+with open('../bfchat_data/vip_copy.json', 'w') as f:
+    json.dump(old_vips, f)
 conn.execute('DROP TABLE servervips')
 conn.execute("""
 CREATE TABLE servervips (
@@ -23,7 +23,7 @@ CREATE TABLE servervips (
 )
 """)
 for vip in old_vips:
-    expire = datetime.datetime.strptime(vip[3], '%Y-%m-%d %H:%M:%S')
+    expire = datetime.datetime.fromisoformat(vip[3])
     days = max((expire - datetime.datetime.now()).days, 0)
     conn.execute('INSERT INTO servervips (serverid, pid, originid, days, permanent, start_date, enabled, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?);',
                  [vip[0], vip[1], vip[2], days, days>=3650, datetime.datetime.now(), vip[4], 1])
