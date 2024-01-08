@@ -1,4 +1,5 @@
-# a lot of TODO works here for migration from file data to db
+# Migration scrip from local json file data to db
+# Depreacated: should not be used anymore after migration
 import sqlite3
 import asyncio
 import os
