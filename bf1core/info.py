@@ -6,7 +6,7 @@ from nonebot.typing import T_State
 
 import httpx,html
 import json
-
+import re
 import zhconv
 import asyncio
 import random
@@ -48,7 +48,7 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
 
     async with code_file_lock:
         with open(CURRENT_FOLDER/'code.txt','r') as f:
-            codearg = f.readlines()
+            codearg = re.split('\r|\n', f.read())
     async with async_db_session() as session:
         player_r = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
         if player_r:
@@ -96,7 +96,7 @@ async def bf1_admin_del_code(event: GroupMessageEvent, state: T_State):
     code = message.extract_plain_text()
     async with code_file_lock:
         with open(CURRENT_FOLDER/'code.txt', 'r') as f:
-            codes = f.readlines()
+            codes = re.split('\r|\n', f.read())
     if code in codes:
         codes.remove(code)
         async with code_file_lock:
