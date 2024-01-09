@@ -75,7 +75,7 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
                     codearg.remove(code)
                     async with code_file_lock:
                         with open(CURRENT_FOLDER/'code.txt','w') as f:
-                            f.writelines(codearg)
+                            f.write('\n'.join(codearg))
                 else:
                     await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请输入正确的code。')
         else:
@@ -101,7 +101,7 @@ async def bf1_admin_del_code(event: GroupMessageEvent, state: T_State):
         codes.remove(code)
         async with code_file_lock:
             with open(CURRENT_FOLDER/'code.txt', 'w') as f:
-                f.writelines(codes)
+                f.write('\n'.join(codes))
         await BF1_ADMIN_DEL_CODE.send(MessageSegment.reply(event.message_id) + f'已删除背景图片码{code}')
     else:
         async with async_db_session() as session:
