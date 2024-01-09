@@ -113,9 +113,14 @@ class ServerVips(Base):
     serverid = Column(Integer, ForeignKey('servers.serverid'))
     pid = Column(BigInteger, nullable=False)
     originid = Column(String)
-    expire = Column(DateTime, nullable=True) # Null can mean a permanent vip
-    # Enabled mark for opeation server vip. Set to False for every vip update and set to True after checkvip
-    enabled = Column(Boolean, default=False, nullable=False) 
+    days = Column(Integer, nullable=True)
+    permanent = Column(Boolean, nullable=False)
+    start_date = Column(DateTime, nullable=True)
+    # Activation state for operation server, or if regular has full vip slots occupied
+    enabled = Column(Boolean, default=False, nullable=False)
+    # Priority for activation when checkvip, if the server vip slots are full.
+    # Temporary vip with higher priority will be activated sooner while permanent vip will always be activated first.
+    priority = Column(Integer, nullable=False, default=1)
     __table_args__ = (
         PrimaryKeyConstraint(serverid, pid),
         {}
