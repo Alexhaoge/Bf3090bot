@@ -925,6 +925,9 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 select(ServerVips).filter_by(serverid=server_id, pid=personaId)
             )).first()
             if exist_vip: # If vip exists, update the current vip
+                if exist_vip[0].permanent:
+                    await BF1_VIP.send(MessageSegment.reply(event.message_id) + '玩家已是永久VIP')
+                    return
                 exist_vip[0].days += days
                 exist_vip[0].permanent |= permanent
                 exist_vip[0].priority = max(exist_vip[0].priority, priority)
