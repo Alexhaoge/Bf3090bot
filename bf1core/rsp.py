@@ -1319,12 +1319,19 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             if not remid:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             
-            res = await upd_detailedServer(remid, sid, sessionID, gameId)
-            rspInfo = res['result']['rspInfo']
-            maps = rspInfo['mapRotations'][0]['maps']
-            name = rspInfo['serverSettings']['name']
-            description = rspInfo['serverSettings']['description']
-            settings = rspInfo['serverSettings']['customGameSettings']
+            try:
+                res = await upd_detailedServer(remid, sid, sessionID, gameId)
+                rspInfo = res['result']['rspInfo']
+                maps = rspInfo['mapRotations'][0]['maps']
+                name = rspInfo['serverSettings']['name']
+                description = rspInfo['serverSettings']['description']
+                settings = rspInfo['serverSettings']['customGameSettings']
+            except RSPException as rsp_exc:
+                await BF1_UPD.send(MessageSegment.reply(event.message_id) + '无法获取服务器信息\n' + rsp_exc.echo())
+                return
+            except Exception as e:
+                logger.warning(traceback.format_exc())
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '无法获取服务器信息\n' + traceback.format_exception_only(e))
 
             with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
                 zh_cn = json.load(f)
@@ -1377,13 +1384,14 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     if len(description) > 256 or len(description.encode('utf-8')) > 512:
                         await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '简介过长')
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
-                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '已配置简介: '+ description)
                 elif arg[1] == "name":
                     name = arg[2]
                     if len(name) > 64 or len(name.encode('utf-8')) > 64:
-                        await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '名称过长')
+                        await BF1_UPD.send(MessageSegment.reply(event.message_id) + '名称过长')
+                        return
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
-                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '已配置服务器名: '+ name)
                 elif arg[1] == "map":
                     map = arg[2].split(" ")
                     maps = []
@@ -1402,13 +1410,13 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                         except:
                             continue
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
-                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置图池:\n'+ msg.rstrip())
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '已配置图池:\n'+ msg.rstrip())
                 elif arg[1] == "set":
                     setstrlist = arg[2].split(" ")
                     print(setstrlist)
                     settings = ToSettings(setstrlist)
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
-                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '已配置服务器设置:\n'+ getSettings(settings))
             except RSPException as rsp_exc:
                 await BF1_UPD.send(MessageSegment.reply(event.message_id) + '配置失败\n' + rsp_exc.echo())
                 return
