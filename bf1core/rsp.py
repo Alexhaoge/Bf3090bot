@@ -1012,7 +1012,7 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
             for i, row in enumerate(vip_rows):
                 vip_str = f"{i+1}.{row[0].originid}"
                 if not row[0].enabled:
-                    vip_str += ('永久' if row[0].permanent else f'{row[0].days}天') + '(未生效)'
+                    vip_str += ('永久' if row[0].permanent else f'({row[0].days}天)') + '(未生效)'
                 elif row[0].permanent:
                     vip_str += '(永久)'
                 else:
@@ -1068,7 +1068,7 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
             )).all())
 
             # Find all vips to expire
-            activated = (await session.execute(select(ServerVips).filter_by(serverid=server_id, enabled=True))).all()
+            activated = (await session.execute(select(ServerVips).filter_by(serverid=server_id, permanent=False, enabled=True))).all()
             pending_expire = list(filter(lambda v: v[0].start_date + datetime.timedelta(v[0].days) < now_dt, activated))
             
             # Execute expiration first
