@@ -213,7 +213,7 @@ class RSPException(Exception):
             msg_lower = self.msg.lower()
             if "session expired" in msg_lower or "no varlid session" in msg_lower:
                 return f"服管账号的SessionID失效，请联系管理员刷新"
-            elif "Internal Error" in msg_lower:
+            elif msg_lower.startswith('Internal Error'):
                 return "EA后端错误"
             elif "severnotrestartableexception" in msg_lower:
                 return "服务器未开启"
