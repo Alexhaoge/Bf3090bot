@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.dates as mdates
 import asyncio
 import time
-import httpx
 import uuid
 
 from io import BytesIO
@@ -14,28 +13,28 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
+from .bf1rsp import httpx_client
 
 async def upd_servers1(remid, sid, sessionID, timeout: int = None):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-            json = {
-	            "jsonrpc": "2.0",
-	            "method": "GameServer.searchServers",
-	            "params": {
-		        "filterJson": "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
-                "game": "tunguska",
-                "limit": 200,
-                "protocolVersion": "3779779"
-	            },
-                "id": str(uuid.uuid4())
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'X-GatewaySession': sessionID
-            },
-            timeout=timeout
-        )
+    response = await httpx_client.post(
+        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        json = {
+	        "jsonrpc": "2.0",
+	        "method": "GameServer.searchServers",
+	        "params": {
+	        "filterJson": "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
+            "game": "tunguska",
+            "limit": 200,
+            "protocolVersion": "3779779"
+	        },
+            "id": str(uuid.uuid4())
+        },
+        headers= {
+            'Cookie': f'remid={remid};sid={sid}',
+            'X-GatewaySession': sessionID
+        },
+        timeout=timeout
+    )
     return response.json()
 
 async def upd_draw(remid,sid,sessionID, timeout: int = None):

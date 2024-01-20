@@ -2,7 +2,6 @@ import asyncio
 import logging
 import json
 import datetime
-import httpx
 import traceback
 
 from nonebot.adapters import Event
@@ -257,13 +256,12 @@ async def get_player_id(player_name:str)->dict:
     return await request_API(GAME,'player',{'name':player_name})
 
 async def get_pl(gameID:str)->dict:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            url="https://api.gametools.network/bf1/players",
-            params = {
-                "gameid": f"{gameID}"
-	            }
-        )
+    response = await httpx_client.get(
+        url="https://api.gametools.network/bf1/players",
+        params = {
+            "gameid": f"{gameID}"
+	    }
+    )
     return response.json()
 
 async def get_player_data(player_name:str)->dict:

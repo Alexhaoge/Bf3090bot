@@ -32,12 +32,11 @@ async def paste_exchange(url:str,img,position,size):
         image = Image.open(BF1_SERVERS_DATA/"Caches"/"Skins"/url.split("/")[-1])
         image = image.resize(size)
     else:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url,timeout=20)
-            image_data = response.content
-            image = Image.open(BytesIO(image_data))
-            image.save(BF1_SERVERS_DATA/"Caches"/"Skins"/url.split("/")[-1])
-            image = image.resize(size)
+        response = await httpx_client.get(url,timeout=20)
+        image_data = response.content
+        image = Image.open(BytesIO(image_data))
+        image.save(BF1_SERVERS_DATA/"Caches"/"Skins"/url.split("/")[-1])
+        image = image.resize(size)
     img.paste(image,position,image)
 
 async def paste_emb(url,img,position):
@@ -56,31 +55,29 @@ async def paste_emb(url,img,position):
                 except:
                     img.paste(image,position)
             else:
-                async with httpx.AsyncClient() as client:
-                    try:
-                        response = await client.get(url,timeout=5)
-                        image_data = response.content
-                        image = Image.open(BytesIO(image_data)).resize((250,250))     
-                        image.save(BF1_PLAYERS_DATA/"Emblem"/url.split("/")[-1])
-                        try:
-                            img.paste(image,position,image)
-                        except:
-                            img.paste(image,position)
-                    except:
-                        pass
-        else:
-            async with httpx.AsyncClient() as client:
                 try:
-                    response = await client.get(url,timeout=5)
+                    response = await httpx_client.get(url,timeout=5)
                     image_data = response.content
-                    image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
-                    image.save(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+                    image = Image.open(BytesIO(image_data)).resize((250,250))     
+                    image.save(BF1_PLAYERS_DATA/"Emblem"/url.split("/")[-1])
                     try:
                         img.paste(image,position,image)
                     except:
                         img.paste(image,position)
                 except:
                     pass
+        else:
+            try:
+                response = await httpx_client.get(url,timeout=5)
+                image_data = response.content
+                image = Image.open(BytesIO(image_data)).resize((250,250)).convert("RGBA")
+                image.save(BF1_PLAYERS_DATA/"Emblem"/f'{url.split("=")[-1]}.png')
+                try:
+                    img.paste(image,position,image)
+                except:
+                    img.paste(image,position)
+            except:
+                pass
 
 
 async def draw_f(server_gameids: list, groupqq: int, remid: str, sid: str, sessionID: str):

@@ -12,6 +12,7 @@ from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from .rdb import init_db, close_db
 from .redis_helper import redis_client
+from .bf1rsp import httpx_client
 
 from .utils import (
     PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
@@ -51,6 +52,7 @@ async def init_on_bot_startup():
 async def close_on_bot_shutdown():
     await close_db()
     await redis_client.close()
+    await httpx_client.aclose()
 
 
 BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)

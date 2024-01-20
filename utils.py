@@ -122,6 +122,9 @@ with open(CURRENT_FOLDER/"skininfo.json","r",encoding="utf-8")as f:
     skininfo = json.load(f)
 
 async def request_API(game, prop='stats', params={}):
+    """
+    Depreacated
+    """
     url = API_SITE+f'{game}/{prop}'
     async with httpx.AsyncClient() as client:
         res = await client.get(url,params=params,timeout=20)

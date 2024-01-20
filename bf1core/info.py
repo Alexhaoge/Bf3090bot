@@ -4,7 +4,7 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment, GroupMessageEve
 from nonebot.typing import T_State
 
 
-import httpx,html
+import html
 import json
 import re
 import zhconv
@@ -115,10 +115,9 @@ async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Me
         if segment.type == "image":
             pic_url: str = segment.data["url"]  # 图片链接
             logger.success(f"获取到图片: {pic_url}")
-            async with httpx.AsyncClient() as client:
-                response = await client.get(pic_url,timeout=20)
-                image_data = response.content
-                image = Image.open(BytesIO(image_data))
+            response = await httpx_client.get(pic_url,timeout=20)
+            image_data = response.content
+            image = Image.open(BytesIO(image_data))
             
             image.convert("RGB").save(BF1_PLAYERS_DATA/'Caches'/f'{state["personaId"]}.jpg')
 
@@ -196,10 +195,9 @@ async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Me
             if state['case_num'] < 5:    
                 pic_url: str = segment.data["url"]  # 图片链接
                 logger.success(f"获取到图片: {pic_url}")
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(pic_url,timeout=20)
-                    image_data = response.content
-                    image = Image.open(BytesIO(image_data))
+                response = await httpx_client.get(pic_url,timeout=20)
+                image_data = response.content
+                image = Image.open(BytesIO(image_data))
                 
                 imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
                 state['case_num'] += 1

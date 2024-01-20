@@ -12,7 +12,7 @@ with open('secret.json', 'r', encoding='utf-8') as f_secret:
     secret_dict = json.load(f_secret)
     BLAZE_HOST = secret_dict['BLAZE_HOST']
 BFCHAT_DATA_FOLDER = Path('../bfchat_data').resolve()
-
+httpx_client = httpx.AsyncClient()
 
 def db_op(conn: sqlite3.Connection, sql: str, params: list):
     cur = conn.cursor()

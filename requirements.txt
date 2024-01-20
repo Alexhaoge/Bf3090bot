@@ -7,7 +7,6 @@ httpx
 numpy
 matplotlib
 zhconv
-aiohttp
 beautifulsoup4
 nonebot_plugin_htmlrender
 nonebot_plugin_apscheduler

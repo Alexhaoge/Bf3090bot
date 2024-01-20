@@ -9,6 +9,7 @@ import bs4
 from typing import Union
 
 #reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
+httpx_client = httpx.AsyncClient()
 
 async def getPersonasByName(access_token, player_name) -> tuple | Exception:
         """
@@ -27,30 +28,27 @@ async def getPersonasByName(access_token, player_name) -> tuple | Exception:
             "Accept-Encoding": "deflate"
         }
         try:
-            async with aiohttp.ClientSession() as session:
-                response = await session.get(
+            response = await httpx_client.get(
                     url=url,
                     headers=head,
                     timeout=10,
                     ssl=False
                 )
-                res =  await response.json()
-                id = res['personas']['persona'][0]['personaId']
-                name = res['personas']['persona'][0]['displayName']
-                pidid = res['personas']['persona'][0]['pidId']
-                return id,name,pidid
+            res =  await response.json()
+            id = res['personas']['persona'][0]['personaId']
+            name = res['personas']['persona'][0]['displayName']
+            pidid = res['personas']['persona'][0]['pidId']
+            return id,name,pidid
         except KeyError:
             raise RSPException(error_code=-32856)
 
 async def fetch_data(url,headers):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url=url,headers=headers,timeout=20)
-        return response
+    response = await httpx_client.get(url=url,headers=headers,timeout=20)
+    return response
     
 async def post_data(url,json,headers):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(url=url,json=json,headers=headers,timeout=20)
-        return response.text
+    response = await httpx_client.post(url=url,json=json,headers=headers,timeout=20)
+    return response.text
     
 async def process_top_n(game: str, headers: dict, retry: int = 3):
     next_url = f"https://battlefieldtracker.com/{game}"
@@ -123,57 +121,55 @@ async def BTR_get_recent_info(player_name: str) -> list[dict]:
         "Connection": "keep-alive",
         "User-Agent": "ProtoHttp 1.3/DS 15.1.2.1.0 (Windows)",
     }
-    async with aiohttp.ClientSession(headers=header) as session:
-        async with session.get(url) as response:
-            html = await response.text()
-            # 处理网页获取失败的情况
-            if not html:
-                return None
-            soup = bs4.BeautifulSoup(html, "html.parser")
-            # 从<div class="card-body player-sessions">获取对局数量，如果找不到则返回None
-            if not soup.select('div.card-body.player-sessions'):
-                return None
-            sessions = soup.select('div.card-body.player-sessions')[0].select('div.sessions')
-            # 每个sessions由标题和对局数据组成，标题包含时间和胜率，对局数据包含spm、kdr、kpm、btr、gs、tp
-            for item in sessions:
-                time_item = item.select('div.title > div.time > h4 > span')[0]
-                # 此时time_item =  <span data-livestamp="2023-03-22T14:00:00.000Z"></span>
-                # 提取UTC时间转换为本地时间的时间戳
-                time_item = time_item['data-livestamp']
-                # 将时间戳转换为时间
-                time_item = datetime.datetime.fromtimestamp(
-                    time.mktime(time.strptime(time_item, "%Y-%m-%dT%H:%M:%S.000Z")))+datetime.timedelta(hours=8)
-                # 将时间转换为字符串
-                time_item = time_item.strftime('%Y-%m-%d %H:%M')
-                # 提取胜率
-                win_rate = item.select('div.title > div.stat')[0].text
-                # 提取spm、kdr、kpm、btr、gs、tp
-                spm = item.select('div.session-stats > div:nth-child(1) > div:nth-child(1)')[0].text.strip()
-                kd = item.select('div.session-stats > div:nth-child(2) > div:nth-child(1)')[0].text.strip()
-                kpm = item.select('div.session-stats > div:nth-child(3) > div:nth-child(1)')[0].text.strip()
-                score = item.select('div.session-stats > div:nth-child(5)')[0].text.strip().replace('Game Score', '')
-                time_play = item.select('div.session-stats > div:nth-child(6)')[0].text.strip().replace('Time Played','')
-                result.append({
-                    'time': time_item.strip(),
-                    'win_rate': win_rate.strip(),
-                    'spm': spm.strip(),
-                    'kd': kd.strip(),
-                    'kpm': kpm.strip(),
-                    'score': score.strip(),
-                    'time_play': time_play.strip()
-                })
-            return result
+    async with httpx_client.get(url, headers=header) as response:
+        html = await response.text()
+        # 处理网页获取失败的情况
+        if not html:
+            return None
+        soup = bs4.BeautifulSoup(html, "html.parser")
+        # 从<div class="card-body player-sessions">获取对局数量，如果找不到则返回None
+        if not soup.select('div.card-body.player-sessions'):
+            return None
+        sessions = soup.select('div.card-body.player-sessions')[0].select('div.sessions')
+        # 每个sessions由标题和对局数据组成，标题包含时间和胜率，对局数据包含spm、kdr、kpm、btr、gs、tp
+        for item in sessions:
+            time_item = item.select('div.title > div.time > h4 > span')[0]
+            # 此时time_item =  <span data-livestamp="2023-03-22T14:00:00.000Z"></span>
+            # 提取UTC时间转换为本地时间的时间戳
+            time_item = time_item['data-livestamp']
+            # 将时间戳转换为时间
+            time_item = datetime.datetime.fromtimestamp(
+                time.mktime(time.strptime(time_item, "%Y-%m-%dT%H:%M:%S.000Z")))+datetime.timedelta(hours=8)
+            # 将时间转换为字符串
+            time_item = time_item.strftime('%Y-%m-%d %H:%M')
+            # 提取胜率
+            win_rate = item.select('div.title > div.stat')[0].text
+            # 提取spm、kdr、kpm、btr、gs、tp
+            spm = item.select('div.session-stats > div:nth-child(1) > div:nth-child(1)')[0].text.strip()
+            kd = item.select('div.session-stats > div:nth-child(2) > div:nth-child(1)')[0].text.strip()
+            kpm = item.select('div.session-stats > div:nth-child(3) > div:nth-child(1)')[0].text.strip()
+            score = item.select('div.session-stats > div:nth-child(5)')[0].text.strip().replace('Game Score', '')
+            time_play = item.select('div.session-stats > div:nth-child(6)')[0].text.strip().replace('Time Played','')
+            result.append({
+                'time': time_item.strip(),
+                'win_rate': win_rate.strip(),
+                'spm': spm.strip(),
+                'kd': kd.strip(),
+                'kpm': kpm.strip(),
+                'score': score.strip(),
+                'time_play': time_play.strip()
+            })
+        return result
 
 async def async_get_server_data(serverName):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            url="https://api.gametools.network/bf1/servers",
-            params={'name':serverName,
-                    'lang':'zh-tw',
-                    "platform":"pc",
-                    "limit":20}
-                    )
-        return response.text
+    response = await httpx_client.get(
+        url="https://api.gametools.network/bf1/servers",
+        params={'name':serverName,
+                'lang':'zh-tw',
+                "platform":"pc",
+                "limit":20}
+    )
+    return response.text
 
 class RSPException(Exception):
     code_dict = {
@@ -213,7 +209,7 @@ class RSPException(Exception):
             msg_lower = self.msg.lower()
             if "session expired" in msg_lower or "no varlid session" in msg_lower:
                 return f"服管账号的SessionID失效，请联系管理员刷新"
-            elif msg_lower.startswith('Internal Error'):
+            elif 'internal error' in msg_lower:
                 return "EA后端错误"
             elif "severnotrestartableexception" in msg_lower:
                 return "服务器未开启"
@@ -244,58 +240,55 @@ def upd_remid_sid(res: httpx.Response, remid, sid):
     return remid, sid
 
 async def upd_token(remid, sid):
-    async with httpx.AsyncClient() as client:
-        res_access_token = await client.get(
-            url="https://accounts.ea.com/connect/auth",
-            params= {
-                'client_id': 'ORIGIN_JS_SDK',
-                'response_type': 'token',
-                'redirect_uri': 'nucleus:rest',
-                'prompt': 'none',
-                'release_type': 'prod'
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
-                'content-type': 'application/json'
-            }
-        )
+    res_access_token = await httpx_client.get(
+        url="https://accounts.ea.com/connect/auth",
+        params= {
+            'client_id': 'ORIGIN_JS_SDK',
+            'response_type': 'token',
+            'redirect_uri': 'nucleus:rest',
+            'prompt': 'none',
+            'release_type': 'prod'
+        },
+        headers= {
+        'Cookie': f'remid={remid};sid={sid}',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
+            'content-type': 'application/json'
+        }
+    )
 
     access_token = res_access_token.json()['access_token']
     remid, sid = upd_remid_sid(res_access_token, remid, sid)
     return remid, sid, access_token
 
 async def upd_sessionId(remid, sid):
-    async with httpx.AsyncClient() as client:
-        res_authcode = await client.get(       
-            url="https://accounts.ea.com/connect/auth",
-            params= {
-                'client_id': 'sparta-backend-as-user-pc',
-                'response_type': 'code',
-                'release_type': 'none'
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}'
-            },
-            follow_redirects=False
-        )
+    res_authcode = await httpx_client.get(       
+        url="https://accounts.ea.com/connect/auth",
+        params= {
+            'client_id': 'sparta-backend-as-user-pc',
+            'response_type': 'code',
+            'release_type': 'none'
+        },
+        headers= {
+            'Cookie': f'remid={remid};sid={sid}'
+        },
+        follow_redirects=False
+    )
     # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
     authcode = str.split(res_authcode.headers.get("location"), "=")[1]
     remid, sid = upd_remid_sid(res_authcode, remid, sid)
 
-    async with httpx.AsyncClient() as client:
-        res_session = await client.post( 
-            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-            json= {
-                'jsonrpc': '2.0',
-                'method': 'Authentication.getEnvIdViaAuthCode',
-                'params': {
-                    'authCode': authcode,
-                    "locale": "zh-tw",
-                },
-                "id": str(uuid.uuid4())
-            }
-        )
+    res_session = await httpx_client.post( 
+        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        json= {
+            'jsonrpc': '2.0',
+            'method': 'Authentication.getEnvIdViaAuthCode',
+            'params': {
+                'authCode': authcode,
+                "locale": "zh-tw",
+            },
+            "id": str(uuid.uuid4())
+        }
+    )
     sessionID = res_session.json()['result']['sessionId']
     return remid,sid,sessionID
 
@@ -309,31 +302,30 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
     Other exceptions will not be handled.
     """
     kwargs['game'] = 'tunguska'
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                url = "https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-                json = {
-                    'jsonrpc': '2.0',
-                    'method': method_name,
-                    'params': kwargs,
-                    "id": str(uuid.uuid4())
-                },            
-                headers= {
-                    'Cookie': f'remid={remid};sid={sid}',
-                    'X-GatewaySession': sessionID
-                    },
-                timeout=10
-            )
-            res_json = response.json()
-            if 'error' in res_json:
-                raise RSPException(msg=res_json['error']['message'], error_code=res_json['error']['code'])
-            else:
-                return res_json
-        except httpx.RequestError as exc:
-            raise RSPException(msg=f"{exc.request.url!r}", request_error=True)
-        except httpx.HTTPStatusError as exc:
-            raise RSPException(msg=f"{exc.request.url!r}", error_code=exc.response.status_code, request_error=True)
+    try:
+        response = await httpx_client.post(
+            url = "https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            json = {
+                'jsonrpc': '2.0',
+                'method': method_name,
+                'params': kwargs,
+                "id": str(uuid.uuid4())
+            },            
+            headers= {
+                'Cookie': f'remid={remid};sid={sid}',
+                'X-GatewaySession': sessionID
+                },
+            timeout=10
+        )
+        res_json = response.json()
+        if 'error' in res_json:
+            raise RSPException(msg=res_json['error']['message'], error_code=res_json['error']['code'])
+        else:
+            return res_json
+    except httpx.RequestError as exc:
+        raise RSPException(msg=f"{exc.request.url!r}", request_error=True)
+    except httpx.HTTPStatusError as exc:
+        raise RSPException(msg=f"{exc.request.url!r}", error_code=exc.response.status_code, request_error=True)
 
 async def upd_welcome(remid, sid, sessionID):
     return await upd_gateway('Onboarding.welcomeMessage', remid, sid, sessionID)
@@ -488,11 +480,10 @@ async def upd_servers(remid, sid, sessionID, serverName, limit: int = 7):
     )
 
 async def upd_Stats(personaIds):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url="https://api.gametools.network/bf1/multiple?raw=false&format_values=true",
-            data= json.dumps(personaIds)
-        )
+    response = await httpx_client.post(
+        url="https://api.gametools.network/bf1/multiple?raw=false&format_values=true",
+        data= json.dumps(personaIds)
+    )
     return response.json()
 
 async def upd_Emblem(remid, sid, sessionID, personaId):
@@ -522,8 +513,7 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
         }
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(api_url, headers=header, data=json.dumps(data), timeout=5)
+        response = await httpx_client.post(api_url, headers=header, data=json.dumps(data), timeout=5)
         response = eval(response.text)
     except:
         return "网络超时!"
@@ -536,6 +526,7 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
         return response["data"]
 
 __all__ = [
+    'httpx_client',
     'getPersonasByName',
     'fetch_data', 'post_data', 
     'process_top_n', 'BTR_get_recent_info',
