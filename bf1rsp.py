@@ -9,7 +9,15 @@ import bs4
 from typing import Union
 
 #reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
-httpx_client = httpx.AsyncClient()
+httpx_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=200))
+httpx_client_eagt = httpx.AsyncClient(
+    base_url='https://gateway.ea.com',
+    limits=httpx.Limits(max_connections=200))
+httpx_client_ea_account = httpx.AsyncClient(base_url='https://accounts.ea.com/connect/auth')
+httpx_client_gateway = httpx.AsyncClient(
+    base_url='https://sparta-gw.battlelog.com/jsonrpc/pc/api',
+    limits=httpx.Limits(max_connections=500)
+    )
 
 async def getPersonasByName(access_token, player_name) -> tuple | Exception:
         """
@@ -17,7 +25,7 @@ async def getPersonasByName(access_token, player_name) -> tuple | Exception:
         :param player_name:
         :return:
         """
-        url = f"https://gateway.ea.com/proxy/identity/personas?namespaceName=cem_ea_id&displayName={player_name}"
+        url = f"/proxy/identity/personas?namespaceName=cem_ea_id&displayName={player_name}"
         # 头部信息
         head = {
             "Host": "gateway.ea.com",
@@ -28,13 +36,8 @@ async def getPersonasByName(access_token, player_name) -> tuple | Exception:
             "Accept-Encoding": "deflate"
         }
         try:
-            response = await httpx_client.get(
-                    url=url,
-                    headers=head,
-                    timeout=10,
-                    ssl=False
-                )
-            res =  await response.json()
+            response = await httpx_client_eagt.get(url=url, headers=head, timeout=10)
+            res =  response.json()
             id = res['personas']['persona'][0]['personaId']
             name = res['personas']['persona'][0]['displayName']
             pidid = res['personas']['persona'][0]['pidId']
@@ -121,45 +124,45 @@ async def BTR_get_recent_info(player_name: str) -> list[dict]:
         "Connection": "keep-alive",
         "User-Agent": "ProtoHttp 1.3/DS 15.1.2.1.0 (Windows)",
     }
-    async with httpx_client.get(url, headers=header) as response:
-        html = await response.text()
-        # 处理网页获取失败的情况
-        if not html:
-            return None
-        soup = bs4.BeautifulSoup(html, "html.parser")
-        # 从<div class="card-body player-sessions">获取对局数量，如果找不到则返回None
-        if not soup.select('div.card-body.player-sessions'):
-            return None
-        sessions = soup.select('div.card-body.player-sessions')[0].select('div.sessions')
-        # 每个sessions由标题和对局数据组成，标题包含时间和胜率，对局数据包含spm、kdr、kpm、btr、gs、tp
-        for item in sessions:
-            time_item = item.select('div.title > div.time > h4 > span')[0]
-            # 此时time_item =  <span data-livestamp="2023-03-22T14:00:00.000Z"></span>
-            # 提取UTC时间转换为本地时间的时间戳
-            time_item = time_item['data-livestamp']
-            # 将时间戳转换为时间
-            time_item = datetime.datetime.fromtimestamp(
-                time.mktime(time.strptime(time_item, "%Y-%m-%dT%H:%M:%S.000Z")))+datetime.timedelta(hours=8)
-            # 将时间转换为字符串
-            time_item = time_item.strftime('%Y-%m-%d %H:%M')
-            # 提取胜率
-            win_rate = item.select('div.title > div.stat')[0].text
-            # 提取spm、kdr、kpm、btr、gs、tp
-            spm = item.select('div.session-stats > div:nth-child(1) > div:nth-child(1)')[0].text.strip()
-            kd = item.select('div.session-stats > div:nth-child(2) > div:nth-child(1)')[0].text.strip()
-            kpm = item.select('div.session-stats > div:nth-child(3) > div:nth-child(1)')[0].text.strip()
-            score = item.select('div.session-stats > div:nth-child(5)')[0].text.strip().replace('Game Score', '')
-            time_play = item.select('div.session-stats > div:nth-child(6)')[0].text.strip().replace('Time Played','')
-            result.append({
-                'time': time_item.strip(),
-                'win_rate': win_rate.strip(),
-                'spm': spm.strip(),
-                'kd': kd.strip(),
-                'kpm': kpm.strip(),
-                'score': score.strip(),
-                'time_play': time_play.strip()
-            })
-        return result
+    response = await httpx_client.get(url, headers=header)
+    html = response.text()
+    # 处理网页获取失败的情况
+    if not html:
+        return None
+    soup = bs4.BeautifulSoup(html, "html.parser")
+    # 从<div class="card-body player-sessions">获取对局数量，如果找不到则返回None
+    if not soup.select('div.card-body.player-sessions'):
+        return None
+    sessions = soup.select('div.card-body.player-sessions')[0].select('div.sessions')
+    # 每个sessions由标题和对局数据组成，标题包含时间和胜率，对局数据包含spm、kdr、kpm、btr、gs、tp
+    for item in sessions:
+        time_item = item.select('div.title > div.time > h4 > span')[0]
+        # 此时time_item =  <span data-livestamp="2023-03-22T14:00:00.000Z"></span>
+        # 提取UTC时间转换为本地时间的时间戳
+        time_item = time_item['data-livestamp']
+        # 将时间戳转换为时间
+        time_item = datetime.datetime.fromtimestamp(
+            time.mktime(time.strptime(time_item, "%Y-%m-%dT%H:%M:%S.000Z")))+datetime.timedelta(hours=8)
+        # 将时间转换为字符串
+        time_item = time_item.strftime('%Y-%m-%d %H:%M')
+        # 提取胜率
+        win_rate = item.select('div.title > div.stat')[0].text
+        # 提取spm、kdr、kpm、btr、gs、tp
+        spm = item.select('div.session-stats > div:nth-child(1) > div:nth-child(1)')[0].text.strip()
+        kd = item.select('div.session-stats > div:nth-child(2) > div:nth-child(1)')[0].text.strip()
+        kpm = item.select('div.session-stats > div:nth-child(3) > div:nth-child(1)')[0].text.strip()
+        score = item.select('div.session-stats > div:nth-child(5)')[0].text.strip().replace('Game Score', '')
+        time_play = item.select('div.session-stats > div:nth-child(6)')[0].text.strip().replace('Time Played','')
+        result.append({
+            'time': time_item.strip(),
+            'win_rate': win_rate.strip(),
+            'spm': spm.strip(),
+            'kd': kd.strip(),
+            'kpm': kpm.strip(),
+            'score': score.strip(),
+            'time_play': time_play.strip()
+        })
+    return result
 
 async def async_get_server_data(serverName):
     response = await httpx_client.get(
@@ -240,8 +243,8 @@ def upd_remid_sid(res: httpx.Response, remid, sid):
     return remid, sid
 
 async def upd_token(remid, sid):
-    res_access_token = await httpx_client.get(
-        url="https://accounts.ea.com/connect/auth",
+    res_access_token = await httpx_client_ea_account.get(
+        url="/",
         params= {
             'client_id': 'ORIGIN_JS_SDK',
             'response_type': 'token',
@@ -261,8 +264,8 @@ async def upd_token(remid, sid):
     return remid, sid, access_token
 
 async def upd_sessionId(remid, sid):
-    res_authcode = await httpx_client.get(       
-        url="https://accounts.ea.com/connect/auth",
+    res_authcode = await httpx_client_ea_account.get(       
+        url="/",
         params= {
             'client_id': 'sparta-backend-as-user-pc',
             'response_type': 'code',
@@ -277,8 +280,8 @@ async def upd_sessionId(remid, sid):
     authcode = str.split(res_authcode.headers.get("location"), "=")[1]
     remid, sid = upd_remid_sid(res_authcode, remid, sid)
 
-    res_session = await httpx_client.post( 
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+    res_session = await httpx_client_gateway.post( 
+        url="/",
         json= {
             'jsonrpc': '2.0',
             'method': 'Authentication.getEnvIdViaAuthCode',
@@ -303,8 +306,8 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
     """
     kwargs['game'] = 'tunguska'
     try:
-        response = await httpx_client.post(
-            url = "https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+        response = await httpx_client_gateway.post(
+            url = "/",
             json = {
                 'jsonrpc': '2.0',
                 'method': method_name,
@@ -526,7 +529,7 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
         return response["data"]
 
 __all__ = [
-    'httpx_client',
+    'httpx_client', 'httpx_client_gateway', 'httpx_client_eagt', 'httpx_client_ea_account'
     'getPersonasByName',
     'fetch_data', 'post_data', 
     'process_top_n', 'BTR_get_recent_info',

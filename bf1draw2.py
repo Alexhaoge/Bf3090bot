@@ -13,11 +13,11 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
-from .bf1rsp import httpx_client
+from .bf1rsp import httpx_client_gateway
 
 async def upd_servers1(remid, sid, sessionID, timeout: int = None):
-    response = await httpx_client.post(
-        url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+    response = await httpx_client_gateway.post(
+        url="/",
         json = {
 	        "jsonrpc": "2.0",
 	        "method": "GameServer.searchServers",
