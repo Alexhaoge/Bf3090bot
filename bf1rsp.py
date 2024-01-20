@@ -529,7 +529,7 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
         return response["data"]
 
 __all__ = [
-    'httpx_client', 'httpx_client_gateway', 'httpx_client_eagt', 'httpx_client_ea_account'
+    'httpx_client', 'httpx_client_gateway', 'httpx_client_eagt', 'httpx_client_ea_account',
     'getPersonasByName',
     'fetch_data', 'post_data', 
     'process_top_n', 'BTR_get_recent_info',
