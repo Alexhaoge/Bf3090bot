@@ -2,7 +2,7 @@ import json,asyncio,datetime
 import requests,httpx
 import sqlite3
 import redis
-import uuid,time,os,re
+import uuid,time
 from pathlib import Path
 from typing import *
 from PIL import Image
@@ -28,8 +28,7 @@ def db_op_many(conn: sqlite3.Connection, sql: str, params: list):
     return res    
 
 def upd_remid_sid(res: httpx.Response, remid, sid):
-    res_cookies = httpx.Cookies.extract_cookies(res.cookies,res)
-    res_cookies = json.dumps(res_cookies)
+    res_cookies = res.cookies
     if 'sid' in res_cookies:
         sid = res_cookies['sid']
     if 'remid' in res_cookies:
@@ -119,7 +118,7 @@ async def init_sessionid():
 async def upd_servers(remid, sid, sessionID):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            url=f"http://{BLAZE_HOST}:8000/proxy/gateway/",
             json = {
 	            "jsonrpc": "2.0",
 	            "method": "GameServer.searchServers",
@@ -135,14 +134,14 @@ async def upd_servers(remid, sid, sessionID):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
-            timeout=None
+            timeout=5
         )
     return response.json()
 
 async def upd_detailedServer(remid, sid, sessionID, gameId):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            url=f"http://{BLAZE_HOST}:8000/proxy/gateway/",
             json = {
 	            "jsonrpc": "2.0",
 	            "method": "GameServer.getFullServerDetails",
@@ -156,10 +155,13 @@ async def upd_detailedServer(remid, sid, sessionID, gameId):
                 'Cookie': f'remid={remid};sid={sid}',
                 'X-GatewaySession': sessionID
             },
-            timeout=None
+            timeout=5
         )
 
     return response.json()
+
+def get_one_random_bf1admin(conn) -> Tuple[str, str, str]:
+    return db_op(conn, "SELECT remid, sid, sessionid FROM bf1admins ORDER BY RANDOM() LIMIT 1;", [])[0]
 
 async def upd_gameId():
     conn = sqlite3.connect(BFCHAT_DATA_FOLDER/'bot.db')
@@ -167,12 +169,12 @@ async def upd_gameId():
     print(datetime.datetime.now())
     gameIdList = []
     tasks = []
-    remid, sid, sessionID = db_op(conn, "SELECT remid, sid, sessionid FROM bf1admins ORDER BY RANDOM() LIMIT 1;", [])[0]
     for _ in range(30):
+        remid, sid, sessionID = get_one_random_bf1admin(conn)
         tasks.append(upd_servers(remid, sid, sessionID))
-    results = await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:
-        if isinstance(result, str):
+        if isinstance(result, (Exception, str)):
             continue
         result: list = result["result"]
         server_list = result['gameservers']
@@ -185,19 +187,19 @@ async def upd_gameId():
     results = []
     progress = 0
     for game_id in gameIdList:
+        remid, sid, sessionID = get_one_random_bf1admin(conn)
         tasks.append(upd_detailedServer(remid, sid, sessionID, game_id))
         if len(tasks) == 250:
             print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{progress}/{len(gameIdList)}")
-            temp = await asyncio.gather(*tasks)
-            results.extend(temp)
+            temp = await asyncio.gather(*tasks, return_exceptions=True)
+            results.extend(filter(lambda x: isinstance(x, dict), temp))
             progress += len(tasks)
             tasks = []
+            await asyncio.sleep(1)
     if tasks:
         print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{progress}/{len(gameIdList)}")
-        temp = await asyncio.gather(*tasks)
-        results.extend(temp)
-
-    results = [result for result in results if not isinstance(result, str)]
+        temp = await asyncio.gather(*tasks, return_exceptions=True)
+        results.extend(filter(lambda x: isinstance(x, dict), temp))
     print(f"共获取{len(results)}个私服详细信息")
 
     serverId_list = []

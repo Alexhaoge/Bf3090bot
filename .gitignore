@@ -179,6 +179,7 @@ cython_debug/
 
 secret.py
 secret.json
+btr.py
 image.py
 
 .vscode/

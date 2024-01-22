@@ -1,8 +1,7 @@
 import json
-import aiohttp
+# import aiohttp
 import uuid
 import datetime,time
-from .utils import CURRENT_FOLDER
 import httpx
 import bs4
 #import geoip2.database
@@ -234,8 +233,7 @@ class RSPException(Exception):
                 return f"未知错误{self.__str__()}"
 
 def upd_remid_sid(res: httpx.Response, remid, sid):
-    res_cookies = httpx.Cookies.extract_cookies(res.cookies,res)
-    res_cookies = json.dumps(res_cookies)
+    res_cookies = res.cookies
     if 'sid' in res_cookies:
         sid = res_cookies['sid']
     if 'remid' in res_cookies:

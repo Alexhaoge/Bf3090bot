@@ -128,8 +128,12 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
             continue
 
         pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
-        bfeac_ids = await bfeac_checkBanMulti(pl_ids)
-        if bfeac_ids != []:
+        try:
+            bfeac_ids = await bfeac_checkBanMulti(pl_ids)
+        except Exception as e:
+            logger.warning(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
+            continue
+        if bfeac_ids and len(bfeac_ids):
             reason = "Banned by bfeac.com"
             for personaId in bfeac_ids:
                 tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason))
@@ -265,7 +269,8 @@ async def bf1_alarm(timeout: int = 20):
     for groupqq_b in alarm_session_set:
         groupqq = int(groupqq_b)
         bot = None
-        for bot in nonebot.get_bots().values():
+        bots = nonebot.get_bots()
+        for bot in bots.values():
             try:
                 botlist = await bot.get_group_list()
             except:
