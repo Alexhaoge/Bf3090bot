@@ -98,6 +98,34 @@ async def BTR_get_recent_info(player_name: str) -> Optional[list[dict]]:
 httpx_client_gateway = httpx.AsyncClient(
     base_url='https://sparta-gw.battlelog.com/jsonrpc/pc/api',
     limits=httpx.Limits(max_connections=500))
+httpx_client_ea = httpx.AsyncClient(base_url='https://accounts.ea.com/connect/auth')
+
+@app.post('/proxy/accountsea/', status_code=200)
+async def accounts_ea_proxy(request: Request, response: Response):
+    try:
+        headers = {'Cookie': request.headers.get('Cookie')}
+        possible_header_names = ['user-agent', 'content-type']
+        for name in possible_header_names:
+            if name in request.headers:
+                headers[name] = request.headers.get(name)
+        if 'follow_redirects' in request.headers:
+            follow_redirects = request.headers.get('follow_redirects')
+        else:
+            follow_redirects = False
+        res = await httpx_client_ea.post(
+            url = "/",
+            params = request.query_params,
+            headers = headers,
+            follow_redirects=follow_redirects
+        )
+    except Exception as e:
+        print(traceback.format_exc(limit=1))
+        response.status_code = 504
+        return traceback.format_exc(limit=1)
+    for k,v in res.cookies:
+        response.set_cookie(key=k, value=v)
+    response.headers.update(res.headers)
+    return res.json()
 
 @app.post('/proxy/gateway/', status_code=200)
 async def battlelog_gateway_proxy(request: Request, response: Response):

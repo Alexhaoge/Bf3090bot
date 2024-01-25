@@ -11,6 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 with open('secret.json', 'r', encoding='utf-8') as f_secret:
     secret_dict = json.load(f_secret)
     BLAZE_HOST = secret_dict['BLAZE_HOST']
+    PROXY_HOST = secret_dict['PROXY_HOST']
 BFCHAT_DATA_FOLDER = Path('../bfchat_data').resolve()
 
 def db_op(conn: sqlite3.Connection, sql: str, params: list):
@@ -38,7 +39,7 @@ def upd_remid_sid(res: httpx.Response, remid, sid):
 async def upd_token(remid, sid):
     async with httpx.AsyncClient() as client:
         res_access_token = await client.get(
-            url="https://accounts.ea.com/connect/auth",
+            url="http://{PROXY_HOST}:8000/proxy/accountsea/",
             params= {
                 'client_id': 'ORIGIN_JS_SDK',
                 'response_type': 'token',
@@ -60,16 +61,16 @@ async def upd_token(remid, sid):
 async def upd_sessionId(remid, sid):
     async with httpx.AsyncClient() as client:
         res_authcode = await client.get(       
-            url="https://accounts.ea.com/connect/auth",
+            url="http://{PROXY_HOST}:8000/proxy/accountsea/",
             params= {
                 'client_id': 'sparta-backend-as-user-pc',
                 'response_type': 'code',
                 'release_type': 'none'
             },
             headers= {
+                'follow_redirects': False,
                 'Cookie': f'remid={remid};sid={sid}'
-            },
-            follow_redirects=False
+            }
         )
     # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
     authcode = str.split(res_authcode.headers.get("location"), "=")[1]
@@ -77,7 +78,7 @@ async def upd_sessionId(remid, sid):
 
     async with httpx.AsyncClient() as client:
         res_session = await client.post( 
-            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
+            url="http://{PROXY_HOST}:8000/proxy/gateway/",
             json= {
                 'jsonrpc': '2.0',
                 'method': 'Authentication.getEnvIdViaAuthCode',
@@ -86,7 +87,8 @@ async def upd_sessionId(remid, sid):
                     "locale": "zh-tw",
                 },
                 "id": str(uuid.uuid4())
-            }
+            },
+            timeout=5
         )
     sessionID = res_session.json()['result']['sessionId']
     return remid,sid,sessionID
@@ -118,7 +120,7 @@ async def init_sessionid():
 async def upd_servers(remid, sid, sessionID):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            url=f"http://{BLAZE_HOST}:8000/proxy/gateway/",
+            url=f"http://{PROXY_HOST}:8000/proxy/gateway/",
             json = {
 	            "jsonrpc": "2.0",
 	            "method": "GameServer.searchServers",
@@ -141,7 +143,7 @@ async def upd_servers(remid, sid, sessionID):
 async def upd_detailedServer(remid, sid, sessionID, gameId):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            url=f"http://{BLAZE_HOST}:8000/proxy/gateway/",
+            url=f"http://{PROXY_HOST}:8000/proxy/gateway/",
             json = {
 	            "jsonrpc": "2.0",
 	            "method": "GameServer.getFullServerDetails",
@@ -185,19 +187,17 @@ async def upd_gameId():
     
     tasks = []
     results = []
-    progress = 0
     for game_id in gameIdList:
         remid, sid, sessionID = get_one_random_bf1admin(conn)
         tasks.append(upd_detailedServer(remid, sid, sessionID, game_id))
-        if len(tasks) == 250:
-            print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{progress}/{len(gameIdList)}")
+        if len(tasks) == 50:
+            print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{len(results)}/{len(gameIdList)}")
             temp = await asyncio.gather(*tasks, return_exceptions=True)
             results.extend(filter(lambda x: isinstance(x, dict), temp))
-            progress += len(tasks)
             tasks = []
             await asyncio.sleep(1)
     if tasks:
-        print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{progress}/{len(gameIdList)}")
+        print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{len(results)}/{len(gameIdList)}")
         temp = await asyncio.gather(*tasks, return_exceptions=True)
         results.extend(filter(lambda x: isinstance(x, dict), temp))
     print(f"共获取{len(results)}个私服详细信息")
@@ -271,19 +271,26 @@ async def upd_gameId():
     print('---------------------------------------')
 
     db_admin_pids = [r[0] for r in db_op(conn, 'SELECT pid FROM bf1admins', [])]
-    server_bf1admins = []
+    
+    server_bf1admins_add = []
+    server_bf1admins_del = []
 
     for serverid, adlist in admin_dict.items():
-        pids = list(set(int(ad["personaId"]) for ad in adlist).intersection(db_admin_pids))
-        for pid in pids:
-            server_bf1admins.append((int(serverid), pid))
+        server_bf1admins_exist = set(db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=?;', [serverid]))
+        real_bf1admins_esist = set(int(ad["personaId"]) for ad in adlist).intersection(db_admin_pids)
+        server_bf1admins_del.extend(
+           ((serverid, pid) for pid in list(server_bf1admins_exist.difference(real_bf1admins_esist)))
+        )
+        server_bf1admins_add.extend(
+            ((serverid, pid) for pid in list(real_bf1admins_esist.difference(server_bf1admins_exist)))
+        )
     for serverid, ownlist in owner_dict.items():
         pid = int(ownlist[0]["personaId"])
         if pid in db_admin_pids:
-            server_bf1admins.append((int(serverid), pid))
-    db_op(conn, 'DELETE FROM serverbf1admins;', [])
-    db_op_many(conn, 'INSERT INTO serverbf1admins (serverid, pid) VALUES(?, ?);', 
-               server_bf1admins)
+            server_bf1admins_add.append((int(serverid), pid))
+    
+    db_op_many(conn, 'INSERT OR IGNORE INTO serverbf1admins (serverid, pid) VALUES(?, ?);', server_bf1admins_add)
+    db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=? AND pid=?', server_bf1admins_del)
     conn.close()
 
 def upd_ping():
