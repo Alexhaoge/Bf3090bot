@@ -122,38 +122,13 @@ async def ea_token_proxy(remid: str, sid: str, response: Response):
         print(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
-    for k,v in res.cookies:
-        response.set_cookie(key=k, value=v)
-    return res.json()
-
-@app.get('/proxy/ea/token', status_code=200)
-async def ea_token_proxy(remid: str, sid: str, response: Response):
-    try:
-        res = await httpx_client_ea.get(
-            url="/",
-            params= {
-                'client_id': 'ORIGIN_JS_SDK',
-                'response_type': 'token',
-                'redirect_uri': 'nucleus:rest',
-                'prompt': 'none',
-                'release_type': 'prod'
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
-                'content-type': 'application/json'
-            }
-        )
-    except Exception as e:
-        print(traceback.format_exc(limit=1))
-        response.status_code = 504
-        return traceback.format_exc(limit=1)
-    for k,v in res.cookies:
-        response.set_cookie(key=k, value=v)
+    if len(res.cookies):
+        for k,v in res.cookies:
+            response.set_cookie(key=k, value=v)
     return res.json()
 
 @app.get('/proxy/ea/authcode', status_code=200)
-async def ea_token_proxy(remid: str, sid: str, response: Response):
+async def ea_authcode_proxy(remid: str, sid: str, response: Response):
     try:
         res = await httpx_client_ea.get(
             url="/",
@@ -171,8 +146,9 @@ async def ea_token_proxy(remid: str, sid: str, response: Response):
         print(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
-    for k,v in res.cookies:
-        response.set_cookie(key=k, value=v)
+    if len(res.cookies):
+        for k,v in res.cookies:
+            response.set_cookie(key=k, value=v)
     return {'authcode': str.split(res.headers.get("location"), "=")[1]}
 
 @app.post('/proxy/gateway/', status_code=200)
