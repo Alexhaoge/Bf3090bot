@@ -39,21 +39,9 @@ def upd_remid_sid(res: httpx.Response, remid, sid):
 async def upd_token(remid, sid):
     async with httpx.AsyncClient() as client:
         res_access_token = await client.get(
-            url="http://{PROXY_HOST}:8000/proxy/accountsea/",
-            params= {
-                'client_id': 'ORIGIN_JS_SDK',
-                'response_type': 'token',
-                'redirect_uri': 'nucleus:rest',
-                'prompt': 'none',
-                'release_type': 'prod'
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
-                'content-type': 'application/json'
-            }
+            url="http://{PROXY_HOST}:8000/proxy/ea/token/",
+            params= {'remid': remid, 'sid': sid}
         )
-
     access_token = res_access_token.json()['access_token']
     remid, sid = upd_remid_sid(res_access_token, remid, sid)
     return remid, sid, access_token
@@ -61,19 +49,10 @@ async def upd_token(remid, sid):
 async def upd_sessionId(remid, sid):
     async with httpx.AsyncClient() as client:
         res_authcode = await client.get(       
-            url="http://{PROXY_HOST}:8000/proxy/accountsea/",
-            params= {
-                'client_id': 'sparta-backend-as-user-pc',
-                'response_type': 'code',
-                'release_type': 'none'
-            },
-            headers= {
-                'follow_redirects': False,
-                'Cookie': f'remid={remid};sid={sid}'
-            }
+            url="http://{PROXY_HOST}:8000/proxy/ea/authcode",
+            params= {'remid': remid, 'sid': sid}
         )
-    # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
-    authcode = str.split(res_authcode.headers.get("location"), "=")[1]
+    authcode = res_authcode.json()['location']
     remid, sid = upd_remid_sid(res_authcode, remid, sid)
 
     async with httpx.AsyncClient() as client:
