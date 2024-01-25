@@ -37,27 +37,26 @@ def upd_remid_sid(res: httpx.Response, remid, sid):
     return remid, sid
 
 async def upd_token(remid, sid):
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=3)) as client:
         res_access_token = await client.get(
-            url="http://{PROXY_HOST}:8000/proxy/ea/token/",
-            params= {'remid': remid, 'sid': sid}
+            url=f"http://{PROXY_HOST}:8000/proxy/ea/token/",
+            params= {'remid': remid, 'sid': sid}, 
+            timeout=5,
         )
     access_token = res_access_token.json()['access_token']
     remid, sid = upd_remid_sid(res_access_token, remid, sid)
     return remid, sid, access_token
 
 async def upd_sessionId(remid, sid):
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=3)) as client:
         res_authcode = await client.get(       
-            url="http://{PROXY_HOST}:8000/proxy/ea/authcode",
-            params= {'remid': remid, 'sid': sid}
+            url=f"http://{PROXY_HOST}:8000/proxy/ea/authcode",
+            params= {'remid': remid, 'sid': sid}, timeout=5
         )
-    authcode = res_authcode.json()['location']
-    remid, sid = upd_remid_sid(res_authcode, remid, sid)
-
-    async with httpx.AsyncClient() as client:
+        authcode = res_authcode.json()['location']
+        remid, sid = upd_remid_sid(res_authcode, remid, sid)
         res_session = await client.post( 
-            url="http://{PROXY_HOST}:8000/proxy/gateway/",
+            url=f"http://{PROXY_HOST}:8000/proxy/gateway/",
             json= {
                 'jsonrpc': '2.0',
                 'method': 'Authentication.getEnvIdViaAuthCode',
@@ -76,22 +75,25 @@ async def init_sessionid():
     conn = sqlite3.connect(BFCHAT_DATA_FOLDER/'bot.db')
     admins = [{'pid': r[0], 'remid': r[1], 'sid': r[2]} for r in db_op(conn, "SELECT pid, remid, sid FROM bf1admins;", [])]
     tasks_token = [asyncio.create_task(upd_token(admin['remid'], admin['sid'])) for admin in admins]
-    list_cookies_tokens = await asyncio.gather(*tasks_token) # Update tokens
+    list_cookies_tokens = await asyncio.gather(*tasks_token, return_exceptions=True) # Update tokens
     for i in range(len(admins)):
-        admins[i]['remid'] = list_cookies_tokens[i][0]
-        admins[i]['sid'] = list_cookies_tokens[i][1]
-        admins[i]['token'] = list_cookies_tokens[i][2]
+        if isinstance(list_cookies_tokens[i], tuple):
+            admins[i]['remid'] = list_cookies_tokens[i][0]
+            admins[i]['sid'] = list_cookies_tokens[i][1]
+            admins[i]['token'] = list_cookies_tokens[i][2]
     print('Token updates complete')
 
     tasks_session = [
         asyncio.create_task(upd_sessionId(admin['remid'], admin['sid'])) for admin in admins
     ]
-    list_cookies_sessionIDs = await asyncio.gather(*tasks_session)
+    list_cookies_sessionIDs = await asyncio.gather(*tasks_session, return_exceptions=True)
     for i in range(len(admins)):
-        admins[i]['remid'] = list_cookies_sessionIDs[i][0]
-        admins[i]['sid'] = list_cookies_sessionIDs[i][1]
-        admins[i]['sessionid'] = list_cookies_sessionIDs[i][2]
-    db_op_many(conn, 'UPDATE bf1admins SET remid=:remid, sid=:sid, token=:token, sessionid=:sessionid WHERE pid=:pid', admins)
+        if isinstance(list_cookies_sessionIDs[i], tuple):
+            admins[i]['remid'] = list_cookies_sessionIDs[i][0]
+            admins[i]['sid'] = list_cookies_sessionIDs[i][1]
+            admins[i]['sessionid'] = list_cookies_sessionIDs[i][2]
+    db_op_many(conn, 'UPDATE bf1admins SET remid=:remid, sid=:sid, token=:token, sessionid=:sessionid WHERE pid=:pid', 
+               filter(lambda d: ('sessionid' in d) and ('token' in d), admins))
     print('SessionID updates complete')
     conn.close()
 
@@ -246,8 +248,7 @@ async def upd_gameId():
         json.dump(owner_dict,f,ensure_ascii=False,indent=4)
     print(f"更新服务器所有者完成")
 
-    print(f"共更新{len(serverId_list)}个私服详细信息，耗时{round(time.time() - time_start, 2)}秒")
-    print('---------------------------------------')
+    print(f"共更新{len(serverId_list)}个私服详细信息")
 
     db_admin_pids = [r[0] for r in db_op(conn, 'SELECT pid FROM bf1admins', [])]
     
@@ -255,22 +256,25 @@ async def upd_gameId():
     server_bf1admins_del = []
 
     for serverid, adlist in admin_dict.items():
-        server_bf1admins_exist = set(db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=?;', [serverid]))
+        server_bf1admins_exist = set(int(r[0]) for r in db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=?;', [serverid]))
         real_bf1admins_esist = set(int(ad["personaId"]) for ad in adlist).intersection(db_admin_pids)
         server_bf1admins_del.extend(
-           ((serverid, pid) for pid in list(server_bf1admins_exist.difference(real_bf1admins_esist)))
+           ((int(serverid), pid) for pid in list(server_bf1admins_exist.difference(real_bf1admins_esist)))
         )
         server_bf1admins_add.extend(
-            ((serverid, pid) for pid in list(real_bf1admins_esist.difference(server_bf1admins_exist)))
+            ((int(serverid), pid) for pid in list(real_bf1admins_esist.difference(server_bf1admins_exist)))
         )
     for serverid, ownlist in owner_dict.items():
         pid = int(ownlist[0]["personaId"])
         if pid in db_admin_pids:
             server_bf1admins_add.append((int(serverid), pid))
-    
+    print(server_bf1admins_del)
+    print(server_bf1admins_add)
+    db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=? AND pid=?;', server_bf1admins_del)
     db_op_many(conn, 'INSERT OR IGNORE INTO serverbf1admins (serverid, pid) VALUES(?, ?);', server_bf1admins_add)
-    db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=? AND pid=?', server_bf1admins_del)
     conn.close()
+    print(f'数据库更新完成, 耗时{round(time.time() - time_start, 2)}秒')
+    print('---------------------------------------')
 
 def upd_ping():
         response = requests.get(url=f'http://{BLAZE_HOST}/web1/ping',timeout=10)

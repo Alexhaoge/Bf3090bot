@@ -97,10 +97,10 @@ async def BTR_get_recent_info(player_name: str) -> Optional[list[dict]]:
 
 httpx_client_gateway = httpx.AsyncClient(
     base_url='https://sparta-gw.battlelog.com/jsonrpc/pc/api',
-    limits=httpx.Limits(max_connections=500))
+    limits=httpx.Limits(max_connections=300))
 httpx_client_ea = httpx.AsyncClient(base_url='https://accounts.ea.com/connect/auth')
 
-@app.get('/proxy/ea/token', status_code=200)
+@app.get('/proxy/ea/token/', status_code=200)
 async def ea_token_proxy(remid: str, sid: str, response: Response):
     try:
         res = await httpx_client_ea.get(
@@ -122,12 +122,11 @@ async def ea_token_proxy(remid: str, sid: str, response: Response):
         print(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
-    if len(res.cookies):
-        for k,v in res.cookies:
-            response.set_cookie(key=k, value=v)
+    for k,v in res.cookies.items():
+        response.set_cookie(key=k, value=v)
     return res.json()
 
-@app.get('/proxy/ea/authcode', status_code=200)
+@app.get('/proxy/ea/authcode/', status_code=200)
 async def ea_authcode_proxy(remid: str, sid: str, response: Response):
     try:
         res = await httpx_client_ea.get(
@@ -146,9 +145,8 @@ async def ea_authcode_proxy(remid: str, sid: str, response: Response):
         print(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
-    if len(res.cookies):
-        for k,v in res.cookies:
-            response.set_cookie(key=k, value=v)
+    for k,v in res.cookies.items():
+        response.set_cookie(key=k, value=v)
     return {'authcode': str.split(res.headers.get("location"), "=")[1]}
 
 @app.post('/proxy/gateway/', status_code=200)
@@ -166,7 +164,7 @@ async def battlelog_gateway_proxy(request: Request, response: Response):
         print(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
-    for k,v in res.cookies:
+    for k,v in res.cookies.items():
         response.set_cookie(key=k, value=v)
     return res.json()
 
