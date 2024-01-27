@@ -50,7 +50,7 @@ async def upd_token(remid, sid):
 async def upd_sessionId(remid, sid):
     async with httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=3)) as client:
         res_authcode = await client.get(       
-            url=f"http://{PROXY_HOST}:8000/proxy/ea/authcode",
+            url=f"http://{PROXY_HOST}:8000/proxy/ea/authcode/",
             params= {'remid': remid, 'sid': sid}, timeout=5
         )
         authcode = res_authcode.json()['location']

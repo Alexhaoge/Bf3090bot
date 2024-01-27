@@ -29,9 +29,10 @@ async def token_helper():
         # Fetch admins from db
         admins = [row[0] for row in (await session.execute(select(Bf1Admins))).all()]
         tasks_token = [asyncio.create_task(upd_token(admin.remid, admin.sid)) for admin in admins]
-        list_cookies_tokens = await asyncio.gather(*tasks_token) # Update tokens
-        for i in range(len(admins)):
-            admins[i].remid, admins[i].sid, admins[i].token = list_cookies_tokens[i]
+        list_cookies_tokens = await asyncio.gather(*tasks_token, return_exceptions=True) # Update tokens
+        for i, lct in enumerate(list_cookies_tokens):
+            if not isinstance(lct, Exception):
+                admins[i].remid, admins[i].sid, admins[i].token = lct
         session.add_all(admins) # Write into db
         await session.commit()
         logger.info('Token updates complete')
@@ -42,11 +43,12 @@ async def session_helper():
         tasks_session = [
             asyncio.create_task(upd_sessionId(admin.remid, admin.sid)) for admin in admins
         ]
-        list_cookies_sessionIDs = await asyncio.gather(*tasks_session)
+        list_cookies_sessionIDs = await asyncio.gather(*tasks_session, return_exceptions=True)
         logger.debug('\n'.join([t[2] for t in list_cookies_sessionIDs]))
 
-        for i in range(len(admins)):
-            admins[i].remid, admins[i].sid, admins[i].sessionid = list_cookies_sessionIDs[i]
+        for i, lcs in enumerate(list_cookies_sessionIDs):
+            if not isinstance(lcs, Exception):
+                admins[i].remid, admins[i].sid, admins[i].sessionid = lcs
         session.add_all(admins)
         await session.commit()
         logger.info('SessionID updates complete')

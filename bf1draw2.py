@@ -13,11 +13,11 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
-from .bf1rsp import httpx_client_gateway
+from .bf1rsp import httpx_client_proxy
 
 async def upd_servers1(remid, sid, sessionID, timeout: int = None):
-    response = await httpx_client_gateway.post(
-        url="/",
+    response = await httpx_client_proxy.post(
+        url="/proxy/gateway/",
         json = {
 	        "jsonrpc": "2.0",
 	        "method": "GameServer.searchServers",

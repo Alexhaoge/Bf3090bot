@@ -5,18 +5,20 @@ import datetime,time
 import httpx
 import bs4
 #import geoip2.database
-from typing import Union
+from typing import Union, Tuple
+from pathlib import Path
 
 #reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
+CODE_FOLDER = Path(__file__).parent.resolve()
+with open(CODE_FOLDER/'secret.json', 'r', encoding='utf-8') as f_secret:
+    secret_dict = json.load(f_secret)
+    BLAZE_HOST = secret_dict['BLAZE_HOST']
+    PROXY_HOST = secret_dict['PROXY_HOST']
 httpx_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=200))
-httpx_client_eagt = httpx.AsyncClient(
-    base_url='https://gateway.ea.com',
-    limits=httpx.Limits(max_connections=200))
-httpx_client_ea_account = httpx.AsyncClient(base_url='https://accounts.ea.com/connect/auth')
-httpx_client_gateway = httpx.AsyncClient(
-    base_url='https://sparta-gw.battlelog.com/jsonrpc/pc/api',
+httpx_client_proxy = httpx.AsyncClient(
+    base_url='http://{PROXY_HOST}:8000',
     limits=httpx.Limits(max_connections=500)
-    )
+)
 
 async def getPersonasByName(access_token, player_name) -> tuple | Exception:
         """
@@ -24,25 +26,19 @@ async def getPersonasByName(access_token, player_name) -> tuple | Exception:
         :param player_name:
         :return:
         """
-        url = f"/proxy/identity/personas?namespaceName=cem_ea_id&displayName={player_name}"
-        # 头部信息
-        head = {
-            "Host": "gateway.ea.com",
-            "Connection": "keep-alive",
-            "Accept": "application/json",
-            "X-Expand-Results": "true",
-            "Authorization": f"Bearer {access_token}",
-            "Accept-Encoding": "deflate"
-        }
         try:
-            response = await httpx_client_eagt.get(url=url, headers=head, timeout=10)
+            response = await httpx_client_proxy.get(
+                url='/proxy/ea/gt/', 
+                params={'player': player_name, 'token': access_token}, 
+                timeout=10
+            )
             res =  response.json()
-            id = res['personas']['persona'][0]['personaId']
-            name = res['personas']['persona'][0]['displayName']
-            pidid = res['personas']['persona'][0]['pidId']
-            return id,name,pidid
-        except KeyError:
-            raise RSPException(error_code=-32856)
+            return res['pid'], res['name'], res['pidid']
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                raise RSPException(error_code=-32856)
+            else:
+                raise RSPException(msg=f'getPersonasByName', error_code=e.response.status_code, request_error=True)
 
 async def fetch_data(url,headers):
     response = await httpx_client.get(url=url,headers=headers,timeout=20)
@@ -240,46 +236,26 @@ def upd_remid_sid(res: httpx.Response, remid, sid):
         remid = res_cookies['remid']
     return remid, sid
 
-async def upd_token(remid, sid):
-    res_access_token = await httpx_client_ea_account.get(
-        url="/",
-        params= {
-            'client_id': 'ORIGIN_JS_SDK',
-            'response_type': 'token',
-            'redirect_uri': 'nucleus:rest',
-            'prompt': 'none',
-            'release_type': 'prod'
-        },
-        headers= {
-        'Cookie': f'remid={remid};sid={sid}',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.193 Safari/537.36',
-            'content-type': 'application/json'
-        }
-    )
-
+async def upd_token(remid, sid) -> Tuple[str, str, str]:
+    res_access_token = await httpx_client_proxy.get(
+            url=f"/proxy/ea/token/",
+            params= {'remid': remid, 'sid': sid}, 
+            timeout=5,
+        )
     access_token = res_access_token.json()['access_token']
     remid, sid = upd_remid_sid(res_access_token, remid, sid)
     return remid, sid, access_token
 
-async def upd_sessionId(remid, sid):
-    res_authcode = await httpx_client_ea_account.get(       
-        url="/",
-        params= {
-            'client_id': 'sparta-backend-as-user-pc',
-            'response_type': 'code',
-            'release_type': 'none'
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}'
-        },
-        follow_redirects=False
+async def upd_sessionId(remid, sid) -> Tuple[str, str, str]:
+    res_authcode = await httpx_client_proxy.get(       
+        url=f"/proxy/ea/authcode/",
+        params= {'remid': remid, 'sid': sid}, timeout=5
     )
-    # 这个请求默认会重定向，所以要禁用重定向，并且重定向地址里的code参数就是我们想要的authcode
-    authcode = str.split(res_authcode.headers.get("location"), "=")[1]
+    authcode = res_authcode.json()['location']
+    
     remid, sid = upd_remid_sid(res_authcode, remid, sid)
-
-    res_session = await httpx_client_gateway.post( 
-        url="/",
+    res_session = await httpx_client_proxy.post( 
+        url=f"/proxy/gateway/",
         json= {
             'jsonrpc': '2.0',
             'method': 'Authentication.getEnvIdViaAuthCode',
@@ -288,7 +264,8 @@ async def upd_sessionId(remid, sid):
                 "locale": "zh-tw",
             },
             "id": str(uuid.uuid4())
-        }
+        },
+        timeout=5
     )
     sessionID = res_session.json()['result']['sessionId']
     return remid,sid,sessionID
@@ -304,8 +281,8 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
     """
     kwargs['game'] = 'tunguska'
     try:
-        response = await httpx_client_gateway.post(
-            url = "/",
+        response = await httpx_client_proxy.post(
+            url = "/proxy/gateway/",
             json = {
                 'jsonrpc': '2.0',
                 'method': method_name,
@@ -527,7 +504,8 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
         return response["data"]
 
 __all__ = [
-    'httpx_client', 'httpx_client_gateway', 'httpx_client_eagt', 'httpx_client_ea_account',
+    'BLAZE_HOST', 'PROXY_HOST',
+    'httpx_client', 'httpx_client_proxy',
     'getPersonasByName',
     'fetch_data', 'post_data', 
     'process_top_n', 'BTR_get_recent_info',

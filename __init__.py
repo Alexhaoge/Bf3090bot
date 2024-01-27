@@ -13,7 +13,7 @@ from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 from .rdb import init_db, close_db
 from .redis_helper import redis_client
 from .bf1rsp import (
-    httpx_client, httpx_client_gateway, httpx_client_eagt, httpx_client_ea_account
+    httpx_client, httpx_client_proxy
 )
 
 from .utils import (
@@ -55,9 +55,7 @@ async def close_on_bot_shutdown():
     await close_db()
     await redis_client.close()
     await httpx_client.aclose()
-    await httpx_client_ea_account.aclose()
-    await httpx_client_eagt.aclose()
-    await httpx_client_gateway.aclose()
+    await httpx_client_proxy.aclose()
 
 
 BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)

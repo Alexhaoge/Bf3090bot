@@ -22,6 +22,9 @@ class rItem(BaseModel):
     origin_id: str = None  
     top_n: int = 3  
 
+httpx_client_btr = httpx.AsyncClient(
+    base_url='https://api.tracker.gg/api/v2', 
+    transport=httpx.AsyncHTTPTransport(retries=3))
 @app.post("/report/")
 async def async_bftracker_recent(origin_id: str, pid: int, top_n: int = 3) -> dict:
     games_req = await fetch_re(origin_id)
@@ -97,8 +100,14 @@ async def BTR_get_recent_info(player_name: str) -> Optional[list[dict]]:
 
 httpx_client_gateway = httpx.AsyncClient(
     base_url='https://sparta-gw.battlelog.com/jsonrpc/pc/api',
-    limits=httpx.Limits(max_connections=300))
-httpx_client_ea = httpx.AsyncClient(base_url='https://accounts.ea.com/connect/auth')
+    limits=httpx.Limits(max_connections=400),
+    transport=httpx.AsyncHTTPTransport(retries=2))
+httpx_client_ea = httpx.AsyncClient(
+    base_url='https://accounts.ea.com/connect/auth',
+    transport=httpx.AsyncHTTPTransport(retries=3))
+httpx_client_ea_gt = httpx.AsyncClient(
+    base_url='https://gateway.ea.com', 
+    transport=httpx.AsyncHTTPTransport(retries=2))
 
 @app.get('/proxy/ea/token/', status_code=200)
 async def ea_token_proxy(remid: str, sid: str, response: Response):
@@ -149,6 +158,40 @@ async def ea_authcode_proxy(remid: str, sid: str, response: Response):
         response.set_cookie(key=k, value=v)
     return {'authcode': str.split(res.headers.get("location"), "=")[1]}
 
+@app.post('/proxy/ea/gt/', status_code=200)
+async def ea_gateway_proxy(player: str, token: str, response: Response):
+    try:
+        res = await httpx_client_ea_gt.get(
+            url='/proxy/identity/personas',
+            params={
+                'namespaceName': 'cem_ea_id',
+                'displayName': player
+            },
+            headers={
+                "Host": "gateway.ea.com",
+                "Connection": "keep-alive",
+                "Accept": "application/json",
+                "X-Expand-Results": "true",
+                "Authorization": f"Bearer {token}",
+                "Accept-Encoding": "deflate",
+            },
+            timeout=10
+        )
+        res =  response.json()
+        id = res['personas']['persona'][0]['personaId']
+        name = res['personas']['persona'][0]['displayName']
+        pidid = res['personas']['persona'][0]['pidId']
+        return {'pid': id, 'name': name, 'pidid': pidid}
+    except httpx.HTTPError as e:
+        print(traceback.format_exc(limit=1))
+        response.status_code = 504
+        return traceback.format_exc(limit=1)   
+    except Exception as e:
+        print(traceback.format_exc(limit=1))
+        response.status_code = 404
+        return traceback.format_exc(limit=1)    
+        
+
 @app.post('/proxy/gateway/', status_code=200)
 async def battlelog_gateway_proxy(request: Request, response: Response):
     try:
@@ -171,6 +214,9 @@ async def battlelog_gateway_proxy(request: Request, response: Response):
 @app.on_event("shutdown")
 async def shutdown_event():
     await httpx_client_gateway.aclose()
+    await httpx_client_ea.aclose()
+    await httpx_client_ea_gt.aclose()
+    await httpx_client_btr.aclose()
     print('Client closed!')
 
 if __name__ == '__main__':
