@@ -15,14 +15,13 @@ import traceback
 
 from sqlalchemy.future import select
 from sqlalchemy import func
-from random import choice
 from io import BytesIO
 from PIL import Image
 
-from ..utils import BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CURRENT_FOLDER, request_API
+from ..utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CURRENT_FOLDER, request_API
 from ..bf1rsp import *
 from ..bf1draw import *
-from ..bf1draw2 import draw_server_array2,upd_draw
+from ..bf1draw2 import draw_server_array2
 from ..secret import *
 from ..image import upload_img
 from ..rdb import *
@@ -34,7 +33,8 @@ from .matcher import (
     BF1_PLA,BF1_PLAA,
     BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,BF1_INFO,
     BF1_EX,
-    BF1_DRAW,BF1_ADMINDRAW
+    BF1_DRAW,BF1_ADMINDRAW,
+    BF1_F
 )
 
 code_file_lock = asyncio.Lock()
@@ -486,3 +486,49 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
         except Exception as e:
             logger.warning(traceback.format_exc())
             await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + '未知数据错误\n' + traceback.format_exception_only(e))
+
+@BF1_F.handle()
+async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    logger.debug(message.extract_plain_text())
+    mode = 0
+    if message.extract_plain_text().startswith(f'{PREFIX}'):
+        mode = 2
+    else:
+        serverName = message.extract_plain_text()
+        serverName = html.unescape(serverName)
+        mode = 1
+    logger.debug(f'mode={mode}')
+
+    remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+    if mode == 1:
+        res = await upd_servers(remid, sid, sessionID, serverName)
+        try:
+            if len(res['result']['gameservers']) == 0:
+                await BF1_F.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
+            else:
+                file_dir = await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
+                await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        except RSPException as rsp_exc:
+            await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
+    if mode == 2:
+        groupqq = await check_session(event.group_id)
+        servers = await get_server_num(groupqq)
+        gameids = []
+        for server_ind, server_id in servers:
+            gameid = await get_gameid_from_serverid(server_id)
+            if gameid:
+                gameids.append(gameid)
+        try:
+            file_dir = await asyncio.wait_for(draw_f(gameids,groupqq,remid, sid, sessionID), timeout=15)
+            await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        except RSPException as rsp_exc:
+            await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))

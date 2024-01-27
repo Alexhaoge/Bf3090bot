@@ -11,7 +11,6 @@ import datetime
 import traceback
 
 from sqlalchemy.future import select
-from sqlalchemy import func
 from pathlib import Path
 
 from ..utils import (
@@ -21,13 +20,12 @@ from ..utils import (
 from ..bf1rsp import *
 from ..bf1draw import *
 from ..secret import *
-from ..image import upload_img
 from ..rdb import *
 from ..redis_helper import redis_client
 from ..bf1helper import *
 
 from .matcher import (
-    BF1_F,
+    BF1_ADDBF1ACCOUNT,
     BF1_CHOOSELEVEL,
     BF1_KICK,BF1_KICKALL,
     BF1_BAN,BF1_BANALL,BF1_UNBAN,BF1_UNBANALL,
@@ -39,52 +37,37 @@ from .matcher import (
     BF1_INSPECT
 )
 
-@BF1_F.handle()
-async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
+@BF1_ADDBF1ACCOUNT.handle()
+async def bf1_add_bf1_account(event: GroupMessageEvent, state: T_State):
     message = _command_arg(state) or event.get_message()
-    logger.debug(message.extract_plain_text())
-    mode = 0
-    if message.extract_plain_text().startswith(f'{PREFIX}'):
-        mode = 2
-    else:
-        serverName = message.extract_plain_text()
-        serverName = html.unescape(serverName)
-        mode = 1
-    logger.debug(f'mode={mode}')
-
-    remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
-    if mode == 1:
-        res = await upd_servers(remid, sid, sessionID, serverName)
+    arg = message.extract_plain_text().split(' ')
+    
+    if check_sudo(event.group_id, event.user_id):
+        if len(arg) != 3:
+            await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + f'参数格式错误，应为{PREFIX}bfaccount eaid remid sid')
         try:
-            if len(res['result']['gameservers']) == 0:
-                await BF1_F.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
+            remid, sid, token = await upd_token(arg[1], arg[2])
+            remid, sid, sessionid = await upd_sessionId(remid, sid)
+            pid, name, pidid = await getPersonasByName(token, arg[0])
+        except RSPException as rsp_exc:
+            await BF1_ADDBF1ACCOUNT.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc(2))
+            await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only(e))
+        async with async_db_session() as session:
+            exist_account = (await session.execute(select(Bf1Admins).filter_by(pid=pid))).first()
+            if exist_account:
+                exist_account[0].remid, exist_account[0].sid, exist_account[0].token, exist_account[0].sessionid = remid, sid, token, sessionid
+                session.add(exist_account[0])
+                await session.commit()
+                await BF1_ADDBF1ACCOUNT.send(MessageSegment.reply(event.message_id) + f'已更新服管账号{name}({pid})的coockies')
             else:
-                file_dir = await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
-                await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
-        except RSPException as rsp_exc:
-            await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            return
-        except Exception as e:
-            logger.warning(traceback.format_exc())
-            await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
-    if mode == 2:
-        groupqq = await check_session(event.group_id)
-        servers = await get_server_num(groupqq)
-        gameids = []
-        for server_ind, server_id in servers:
-            gameid = await get_gameid_from_serverid(server_id)
-            if gameid:
-                gameids.append(gameid)
-        try:
-            file_dir = await asyncio.wait_for(draw_f(gameids,groupqq,remid, sid, sessionID), timeout=15)
-            await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
-        except RSPException as rsp_exc:
-            await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
-            return
-        except Exception as e:
-            logger.warning(traceback.format_exc())
-            await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
-
+                session.add(Bf1Admins(pid=pid, remid=remid, sid=sid, token=token, sessionid=sessionid))
+                await session.commit()
+                await BF1_ADDBF1ACCOUNT.send(MessageSegment.reply(event.message_id) + f'已添加服管账号{name}({pid})')
+    else:
+        await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + '请勿在本群使用此命令')
 
 @BF1_CHOOSELEVEL.handle()
 async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):

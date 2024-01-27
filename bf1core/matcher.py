@@ -47,6 +47,7 @@ BF1_DELADMIN = on_command(f'{PREFIX}deladmin', block=True, priority=1, permissio
 BF1_ADMINLIST = on_command(f'{PREFIX}adminlist', aliases={f'{PREFIX}管理列表'}, block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 
 #rsp
+BF1_ADDBF1ACCOUNT = on_command(f'{PREFIX}bfaccount', block=True, priority=1, permission=SUPERUSER)
 BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
 BF1_CHOOSELEVEL = on_command(f'{PREFIX}map', block=True, priority=1)
 BF1_KICK = on_command(f'{PREFIX}k', aliases={f'{PREFIX}kick', f'{PREFIX}踢出'}, block=True, priority=1)
