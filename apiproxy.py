@@ -193,7 +193,7 @@ async def ea_gateway_proxy(player: str, token: str, response: Response):
 async def battlelog_gateway_proxy(request: Request, response: Response):
     try:
         headers = {}
-        if 'X-GatewaySession' in request.headers.keys():
+        if 'X-GatewaySession' in request.headers:
             headers['X-GatewaySession'] = request.headers.get('X-GatewaySession')
         res = await httpx_client_gateway.post(
             url="/",

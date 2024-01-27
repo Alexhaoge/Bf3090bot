@@ -81,6 +81,8 @@ async def init_sessionid():
             admins[i]['remid'] = list_cookies_tokens[i][0]
             admins[i]['sid'] = list_cookies_tokens[i][1]
             admins[i]['token'] = list_cookies_tokens[i][2]
+        else:
+            print(f"token update failed for {admins[i]['pid']}")
     print('Token updates complete')
 
     tasks_session = [
@@ -92,6 +94,8 @@ async def init_sessionid():
             admins[i]['remid'] = list_cookies_sessionIDs[i][0]
             admins[i]['sid'] = list_cookies_sessionIDs[i][1]
             admins[i]['sessionid'] = list_cookies_sessionIDs[i][2]
+        else:
+            print(f"sessionID update failed for {admins[i]['pid']}")
     db_op_many(conn, 'UPDATE bf1admins SET remid=:remid, sid=:sid, token=:token, sessionid=:sessionid WHERE pid=:pid', 
                filter(lambda d: ('sessionid' in d) and ('token' in d), admins))
     print('SessionID updates complete')
@@ -119,7 +123,12 @@ async def upd_servers(remid, sid, sessionID):
             },
             timeout=5
         )
-    return response.json()
+    res_json = response.json()
+    if 'error' in res_json:
+        if "session expired" in res_json['error']['message'] or res_json['error']['code'] == -32501:
+            raise Exception(f'sessionID expired: {sessionID}')
+        raise Exception(res_json['error']['message'])
+    return res_json
 
 async def upd_detailedServer(remid, sid, sessionID, gameId):
     async with httpx.AsyncClient() as client:
@@ -140,8 +149,12 @@ async def upd_detailedServer(remid, sid, sessionID, gameId):
             },
             timeout=5
         )
-
-    return response.json()
+    res_json = response.json()
+    if 'error' in res_json:
+        if "session expired" in res_json['error']['message'] or res_json['error']['code'] == -32501:
+            raise Exception(f'sessionID expired: {sessionID}')
+        raise Exception(res_json['error']['message'])
+    return res_json
 
 def get_one_random_bf1admin(conn) -> Tuple[str, str, str]:
     return db_op(conn, "SELECT remid, sid, sessionid FROM bf1admins ORDER BY RANDOM() LIMIT 1;", [])[0]
@@ -158,6 +171,7 @@ async def upd_gameId():
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:
         if isinstance(result, (Exception, str)):
+            print(result)
             continue
         result: list = result["result"]
         server_list = result['gameservers']
@@ -301,7 +315,7 @@ def renew():
         server_dict[groupqq][server_ind] = serverid
     
     for serverid in info.keys():
-            redis_client.set(f'gameid:{int(serverid)}', int(info[serverid]["server_game_id"]))
+        redis_client.set(f'gameid:{int(serverid)}', int(info[serverid]["server_game_id"]))
     
     with open(BFCHAT_DATA_FOLDER/'bind.json',"w") as f:
         json.dump(server_dict,f,indent=4)
