@@ -37,7 +37,6 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
     for result in results:
         if isinstance(result, Exception):
             continue
-        print(result)
         result: list = result["result"]
         server_list = result['gameservers']
         for server in server_list:
