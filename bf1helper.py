@@ -44,7 +44,7 @@ async def session_helper():
             asyncio.create_task(upd_sessionId(admin.remid, admin.sid)) for admin in admins
         ]
         list_cookies_sessionIDs = await asyncio.gather(*tasks_session, return_exceptions=True)
-        logger.debug('\n'.join([t[2] for t in list_cookies_sessionIDs]))
+        logger.debug('\n'.join([str(t) if isinstance(t, Exception) else t[2] for t in list_cookies_sessionIDs]))
 
         for i, lcs in enumerate(list_cookies_sessionIDs):
             if not isinstance(lcs, Exception):

@@ -16,7 +16,7 @@ with open(CODE_FOLDER/'secret.json', 'r', encoding='utf-8') as f_secret:
     PROXY_HOST = secret_dict['PROXY_HOST']
 httpx_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=200))
 httpx_client_proxy = httpx.AsyncClient(
-    base_url='http://{PROXY_HOST}:8000',
+    base_url=f'http://{PROXY_HOST}:8000',
     limits=httpx.Limits(max_connections=500)
 )
 
@@ -251,7 +251,7 @@ async def upd_sessionId(remid, sid) -> Tuple[str, str, str]:
         url=f"/proxy/ea/authcode/",
         params= {'remid': remid, 'sid': sid}, timeout=5
     )
-    authcode = res_authcode.json()['location']
+    authcode = res_authcode.json()['authcode']
     
     remid, sid = upd_remid_sid(res_authcode, remid, sid)
     res_session = await httpx_client_proxy.post( 

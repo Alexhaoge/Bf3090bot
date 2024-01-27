@@ -13,29 +13,14 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
-from .bf1rsp import httpx_client_proxy
+from .bf1rsp import upd_gateway
 
 async def upd_servers1(remid, sid, sessionID, timeout: int = None):
-    response = await httpx_client_proxy.post(
-        url="/proxy/gateway/",
-        json = {
-	        "jsonrpc": "2.0",
-	        "method": "GameServer.searchServers",
-	        "params": {
-	        "filterJson": "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
-            "game": "tunguska",
-            "limit": 200,
-            "protocolVersion": "3779779"
-	        },
-            "id": str(uuid.uuid4())
-        },
-        headers= {
-            'Cookie': f'remid={remid};sid={sid}',
-            'X-GatewaySession': sessionID
-        },
-        timeout=timeout
+    return await upd_gateway(
+        'GameServer.searchServers', remid, sid, sessionID,
+        filterJson = "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
+        limit = 200, protocolVersion = "3779779"
     )
-    return response.json()
 
 async def upd_draw(remid,sid,sessionID, timeout: int = None):
     time_start = time.time()
@@ -52,6 +37,7 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
     for result in results:
         if isinstance(result, Exception):
             continue
+        print(result)
         result: list = result["result"]
         server_list = result['gameservers']
         for server in server_list:

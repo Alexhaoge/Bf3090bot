@@ -53,7 +53,7 @@ async def upd_sessionId(remid, sid):
             url=f"http://{PROXY_HOST}:8000/proxy/ea/authcode/",
             params= {'remid': remid, 'sid': sid}, timeout=5
         )
-        authcode = res_authcode.json()['location']
+        authcode = res_authcode.json()['authcode']
         remid, sid = upd_remid_sid(res_authcode, remid, sid)
         res_session = await client.post( 
             url=f"http://{PROXY_HOST}:8000/proxy/gateway/",

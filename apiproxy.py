@@ -25,15 +25,16 @@ class rItem(BaseModel):
 httpx_client_btr = httpx.AsyncClient(
     base_url='https://api.tracker.gg/api/v2', 
     transport=httpx.AsyncHTTPTransport(retries=3))
+
 @app.post("/report/")
 async def async_bftracker_recent(origin_id: str, pid: int, top_n: int = 3) -> dict:
-    games_req = await fetch_re(origin_id)
+    games_req = await fetch_re(origin_id, httpx_client_btr)
     
     tasks = []
 
     for i in range(min(top_n,len(games_req["data"]["matches"]))):
         report_id = games_req["data"]["matches"][i]["attributes"]["id"]
-        tasks.append(fetch_id(report_id,pid))
+        tasks.append(fetch_id(report_id,pid, httpx_client_btr))
     
     results = await asyncio.gather(*tasks, return_exceptions=True)
     data = {
@@ -158,15 +159,11 @@ async def ea_authcode_proxy(remid: str, sid: str, response: Response):
         response.set_cookie(key=k, value=v)
     return {'authcode': str.split(res.headers.get("location"), "=")[1]}
 
-@app.post('/proxy/ea/gt/', status_code=200)
+@app.get('/proxy/ea/gt/', status_code=200)
 async def ea_gateway_proxy(player: str, token: str, response: Response):
     try:
         res = await httpx_client_ea_gt.get(
-            url='/proxy/identity/personas',
-            params={
-                'namespaceName': 'cem_ea_id',
-                'displayName': player
-            },
+            url=f'/proxy/identity/personas?namespaceName=cem_ea_id&displayName={player}',
             headers={
                 "Host": "gateway.ea.com",
                 "Connection": "keep-alive",
@@ -177,10 +174,10 @@ async def ea_gateway_proxy(player: str, token: str, response: Response):
             },
             timeout=10
         )
-        res =  response.json()
-        id = res['personas']['persona'][0]['personaId']
-        name = res['personas']['persona'][0]['displayName']
-        pidid = res['personas']['persona'][0]['pidId']
+        res2 =  res.json()
+        id = res2['personas']['persona'][0]['personaId']
+        name = res2['personas']['persona'][0]['displayName']
+        pidid = res2['personas']['persona'][0]['pidId']
         return {'pid': id, 'name': name, 'pidid': pidid}
     except httpx.HTTPError as e:
         print(traceback.format_exc(limit=1))
@@ -195,16 +192,16 @@ async def ea_gateway_proxy(player: str, token: str, response: Response):
 @app.post('/proxy/gateway/', status_code=200)
 async def battlelog_gateway_proxy(request: Request, response: Response):
     try:
+        headers = {}
+        if 'X-GatewaySession' in request.headers.keys():
+            headers['X-GatewaySession'] = request.headers.get('X-GatewaySession')
         res = await httpx_client_gateway.post(
             url="/",
             json = await request.json(),
-            headers= {
-                #'Cookie': f'remid={remid};sid={sid}',
-                'X-GatewaySession': request.headers.get('X-GatewaySession')
-            }
+            headers = headers
         )
     except Exception as e:
-        print(traceback.format_exc(limit=1))
+        print(traceback.format_exc())
         response.status_code = 504
         return traceback.format_exc(limit=1)
     for k,v in res.cookies.items():
