@@ -301,9 +301,9 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
         else:
             return res_json
     except httpx.RequestError as exc:
-        raise RSPException(msg=f"{exc.request.url!r}", request_error=True)
+        raise RSPException(msg=f"{exc.request.url!r}".replace(PROXY_HOST, 'PROXY_HOST'), request_error=True)
     except httpx.HTTPStatusError as exc:
-        raise RSPException(msg=f"{exc.request.url!r}", error_code=exc.response.status_code, request_error=True)
+        raise RSPException(msg=f"{exc.request.url!r}".replace(PROXY_HOST, 'PROXY_HOST'), error_code=exc.response.status_code, request_error=True)
 
 async def upd_welcome(remid, sid, sessionID):
     return await upd_gateway('Onboarding.welcomeMessage', remid, sid, sessionID)
