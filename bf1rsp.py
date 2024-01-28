@@ -510,6 +510,7 @@ __all__ = [
     'fetch_data', 'post_data', 
     'process_top_n', 'BTR_get_recent_info',
     'async_get_server_data', 'RSPException', 
+    'upd_gateway',
     'upd_remid_sid', 'upd_token', 'upd_sessionId',
     'upd_welcome',
     'upd_campaign', 'upd_exchange',
