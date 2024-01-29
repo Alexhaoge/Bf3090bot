@@ -1402,19 +1402,8 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     success_msg = '已配置服务器设置:\n'+ getSettings(settings)
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
             except RSPException as rsp_exc:
-                if rsp_exc.code == 32603:
-                    BF1_UPD.send(MessageSegment.reply(event.message_id) + '已成功发送服务器修改请求')
-                    res_new = await upd_detailedServer(remid, sid, sessionID, gameId)
-                    rspInfo_new = res_new['result']['rspInfo']
-                    maps_new = rspInfo_new['mapRotations'][0]['maps']
-                    name_new = rspInfo_new['serverSettings']['name']
-                    description_new = rspInfo_new['serverSettings']['description']
-                    settings_new = rspInfo_new['serverSettings']['customGameSettings']
-                    if name == name_new and description == description_new and maps == maps_new and settings == settings_new:
-                        BF1_UPD.send(MessageSegment.reply(event.message_id) + '配置生效！' + success_msg)
-                    else:
-                        map_str_new = ' '.join((UpdateDict_1[i["gameMode"]]+UpdateDict_1[i["mapName"]]) for i in maps)
-                        await BF1_UPD.send(MessageSegment.reply(event.message_id) + f"配置生效失败！当前服务器配置如下:\n 名称: {name_new}\n简介: {description_new}\n图池: {map_str_new.rstrip()}\n配置: {getSettings(settings_new)}\n")
+                if int(rsp_exc.code) == -32603:
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '已成功发送服务器修改请求，请换图后验证是否生效\n' + success_msg)
                 else:
                     await BF1_UPD.send(MessageSegment.reply(event.message_id) + '配置失败\n' + rsp_exc.echo())
                 return
