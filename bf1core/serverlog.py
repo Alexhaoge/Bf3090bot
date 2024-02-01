@@ -2,6 +2,7 @@ from nonebot.log import logger
 from nonebot.params import _command_arg
 from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
+from collections import deque
 
 import os
 import re
@@ -23,26 +24,35 @@ async def search_log(pattern: str|re.Pattern, limit: int = 50) -> list:
     """
     Search all log files by regex expression, time exhausting!
     """
+    assert limit > 0
     matching_lines = []
+    q = deque(maxlen=limit)
     async with admin_logger_lock:
         with open(LOGGING_FOLDER/'admin.log', 'r', encoding='UTF-8') as f:
             for line in f:
                 if re.search(pattern, line):
-                    matching_lines.append(line)
-                    if len(matching_lines) == limit:
-                        break
+                    q.append(line)
+    while(len(q)):
+        matching_lines.append(q.pop())
+    n_remain = limit - len(matching_lines)
     if len(matching_lines) < limit:
         backups = sorted(os.listdir(LOGGING_FOLDER), reverse=True)
         for backup in backups:
             if backup != 'admin.log':
+                q.clear()
                 async with admin_logger_lock:
                     with open(LOGGING_FOLDER/backup, 'r', encoding='UTF-8') as f:
                         for line in f:
                             if re.search(pattern, line):
-                                matching_lines.append(line)
-                                if len(matching_lines) == limit:
-                                    break
-    return sorted(matching_lines, reverse=True)
+                                if len(q) == n_remain:
+                                    q.popleft()
+                                q.append(line)
+                n_remain = n_remain - len(q)
+                while(len(q)):
+                    matching_lines.append(q.pop())
+                if n_remain <= 0:
+                    break
+    return matching_lines
 
 @BF1_SLP.handle()
 async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
