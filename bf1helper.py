@@ -162,6 +162,7 @@ async def upd_cache_StatsByPersonaId(remid, sid, sessionid, personaId):
                 'hs': stt['headShots'],
                 'kd': stt['kdr'], 
                 'k': stt['basicStats']['kills'],
+                'kpm': stt["basicStats"]["kpm"],
                 'spm': stt['basicStats']['spm'],
                 'secondsPlayed': stt["basicStats"]["timePlayed"]}),
             ex=3600 + randint(0, 600)
@@ -174,7 +175,7 @@ async def read_or_get_StatsByPersonaId(remid, sid, sessionid, personaId):
     """
     Get playerlist stats (by pid) from Redis, if not found call upd_cache_StatsByPersonaId
     """
-    stats = redis_client.get(f'pstats:{personaId}')
+    stats = await redis_client.get(f'pstats:{personaId}')
     if stats is None:
         stt = (await upd_cache_StatsByPersonaId(remid, sid, sessionid, personaId))['result']
         return {
@@ -184,6 +185,7 @@ async def read_or_get_StatsByPersonaId(remid, sid, sessionid, personaId):
             'hs': stt['headShots'],
             'kd': stt['kdr'], 
             'k': stt['basicStats']['kills'],
+            'kpm': stt["basicStats"]["kpm"],
             'spm': stt['basicStats']['spm'],
             'secondsPlayed': stt["basicStats"]["timePlayed"]
         }
