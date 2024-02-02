@@ -8,10 +8,9 @@ import os
 import zhconv
 import datetime
 import asyncio
-import httpx
 from io import BytesIO
 from .bf1rsp import *
-from .bf1helper import search_all
+from .bf1helper import search_all, upd_cache_StatsByPersonaId
 from .utils import *
 from .image import *
 from .secret import *
@@ -278,7 +277,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
     tasks = []
     
     tasks.append(asyncio.create_task(upd_blazestat(personaId,'s3')))
-    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    tasks.append(asyncio.create_task(upd_cache_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_WeaponsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_VehiclesByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
@@ -610,7 +609,7 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
     tasks = []
 
     tasks.append(asyncio.create_task(upd_blazestat(personaId,'s3')))
-    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    tasks.append(asyncio.create_task(upd_cache_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_WeaponsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_VehiclesByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
@@ -1457,7 +1456,7 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
 async def draw_r(remid, sid, sessionID, personaId, playerName):
     print("draw_r"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     tasks = []
-    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    tasks.append(asyncio.create_task(upd_cache_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
 
     personaIds=[]
@@ -1759,7 +1758,7 @@ async def draw_faq():
 async def draw_re(remid, sid, sessionID, personaId, playerName):
     print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     tasks = []
-    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    tasks.append(asyncio.create_task(upd_cache_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
 
     personaIds=[]

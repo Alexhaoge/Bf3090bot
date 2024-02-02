@@ -3,6 +3,7 @@ import logging
 import json
 import datetime
 import traceback
+from random import randint
 
 from nonebot.adapters import Event
 from nonebot.log import logger
@@ -144,6 +145,51 @@ async def get_gameid_from_serverid(serverid: int) -> int | None:
         return int(gameid)
     else:
         logger.warning(f'Warning:gameid for {serverid} not find!')
+
+async def upd_cache_StatsByPersonaId(remid, sid, sessionid, personaId):
+    """
+    Get players stats by pid, then store it in Redis (only those needed for playerlist)
+    """
+    res = await upd_StatsByPersonaId(remid, sid, sessionid, personaId)
+    try:
+        stt = res["result"]
+        await redis_client.set(
+            f'pstats:{personaId}',
+            json.dumps({
+                'win': stt['basicStats']['wins'],
+                'loss': stt['basicStats']['losses'],
+                'acc': stt['accuracyRatio'],
+                'hs': stt['headShots'],
+                'kd': stt['kdr'], 
+                'k': stt['basicStats']['kills'],
+                'spm': stt['basicStats']['spm'],
+                'secondsPlayed': stt["basicStats"]["timePlayed"]}),
+            ex=3600 + randint(0, 600)
+        )
+    except:
+        logger.warning(traceback.format_exc())
+    return res
+
+async def read_or_get_StatsByPersonaId(remid, sid, sessionid, personaId):
+    """
+    Get playerlist stats (by pid) from Redis, if not found call upd_cache_StatsByPersonaId
+    """
+    stats = redis_client.get(f'pstats:{personaId}')
+    if stats is None:
+        stt = (await upd_cache_StatsByPersonaId(remid, sid, sessionid, personaId))['result']
+        return {
+            'win': stt['basicStats']['wins'],
+            'loss': stt['basicStats']['losses'],
+            'acc': stt['accuracyRatio'],
+            'hs': stt['headShots'],
+            'kd': stt['kdr'], 
+            'k': stt['basicStats']['kills'],
+            'spm': stt['basicStats']['spm'],
+            'secondsPlayed': stt["basicStats"]["timePlayed"]
+        }
+    else:
+        return json.loads(stats)
+
 
 async def add_vban(personaId: int, groupqq: int, serverId: int, reason: str, user_id: int):
     """
@@ -385,7 +431,9 @@ __all__ =[
     'reply_message_id',
     'admin_logging_helper',
     'check_admin', 'check_sudo',
-    'check_session', 'check_server_id', 'get_gameid_from_serverid',
+    'check_session', 'check_server_id',
+    'get_gameid_from_serverid',
+    'upd_cache_StatsByPersonaId', 'read_or_get_StatsByPersonaId',
     'get_user_pid',
     'add_vban', 'del_vban', 'search_vban',
     'search_a', 'search_all',
