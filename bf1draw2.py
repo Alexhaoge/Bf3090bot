@@ -35,9 +35,9 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
         tasks.append(upd_servers1(remid, sid, sessionID, timeout))
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:
-        if isinstance(result, Exception):
+        if not isinstance(result, dict):
             continue
-        result: list = result["result"]
+        result = result["result"]
         server_list = result['gameservers']
         for server in server_list:
             if server["gameId"] not in gameIdList and int(server["slots"]["Soldier"]["current"])!=0:
@@ -195,5 +195,5 @@ def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
 
 __all__ = [
-    'upd_servers1', 'upd_draw', 'draw_server_array_matplotlib', 'draw_server_array2'
+    'upd_draw', 'draw_server_array_matplotlib', 'draw_server_array2'
 ]

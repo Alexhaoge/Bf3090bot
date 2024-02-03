@@ -298,6 +298,8 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
         res_json = response.json()
         if 'error' in res_json:
             raise RSPException(msg=res_json['error']['message'], error_code=res_json['error']['code'])
+        elif isinstance(res_json, str):
+            raise RSPException(msg=res_json, error_code=response.status_code, request_error=True)
         else:
             return res_json
     except httpx.RequestError as exc:

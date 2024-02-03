@@ -350,9 +350,9 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             if not server_ind:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             personaName = arg[1]
-            try:
-                reason = zhconv.convert(arg[2], 'zh-tw')
-            except:
+            if len(arg) > 2:
+                reason = zhconv.convert(' '.join(arg[2:]), 'zh-tw')
+            else:
                 reason = zhconv.convert('违反规则', 'zh-tw')
 
             if len(reason.encode('utf-8')) > 32:
@@ -387,7 +387,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             server_id = pl_json['serverid'] # Playerlist cache will store serverid instead of server_ind
             gameId = await get_gameid_from_serverid(server_id)
             if len(arg) > 1:
-                reason = zhconv.convert(arg[1], 'zh-tw')
+                reason = zhconv.convert(' '.join(arg[1: ]), 'zh-tw')
             else:
                 reason = zhconv.convert('违反规则', 'zh-tw')
 
@@ -432,9 +432,9 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
         personaName = arg[0]
-        try:
-            reason = zhconv.convert(arg[1], 'zh-tw')
-        except:
+        if len(arg) > 1:
+            reason = zhconv.convert(' '.join(arg[1:]), 'zh-tw')
+        else:
             reason = zhconv.convert('违反规则', 'zh-tw')
         if len(reason.encode('utf-8')) > 32:
             await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + '理由过长')
@@ -570,7 +570,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             
             if len(arg) > 2:
-                reason = 'Vban:' + zhconv.convert(arg[2], 'zh-tw')
+                reason = 'Vban:' + zhconv.convert(' '.join(arg[2:]), 'zh-tw')
             else:
                 reason = 'Vbanned by admin'
             if len(reason.encode('utf-8')) > 32:
@@ -602,7 +602,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             pl = pl_json['pl']
             server_id = pl_json['serverid'] # Playerlist cache will store serverid instead of server_ind
             if len(arg) > 1:
-                reason = 'Vban:' + zhconv.convert(arg[1], 'zh-tw')
+                reason = 'Vban:' + zhconv.convert(' '.join(arg[1:]), 'zh-tw')
             else:
                 reason = 'Vbanned by admin'
             if len(reason.encode('utf-8')) > 32:
@@ -643,7 +643,7 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
     if admin_perm:
         personaName = arg[0]
         if len(arg) > 1:
-            reason = 'Vban:' + zhconv.convert(arg[1], 'zh-tw')
+            reason = 'Vban:' + zhconv.convert(' '.join(arg[1:]), 'zh-tw')
         else:
             reason = 'Vbanned by admin'
 
@@ -1360,13 +1360,15 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '无法获取服务器信息\n' + traceback.format_exception_only(e))
-
+            
+            logger.debug('arg correct')
             success_msg = ''
             try:
                 if arg[1] == "desc":
                     description = zhconv.convert(arg[2], 'zh-hant')
                     if len(description) > 256 or len(description.encode('utf-8')) > 512:
-                        await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '简介过长')
+                        await BF1_UPD.send(MessageSegment.reply(event.message_id) + '简介过长')
+                        return
                     success_msg = '已配置简介: '+ description
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
                 elif arg[1] == "name":
@@ -1393,6 +1395,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                             )
                         except:
                             continue
+                    logger.debug(maps)
                     success_msg = '已配置图池:\n'+ msg.rstrip()
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
                 elif arg[1] == "set":
@@ -1410,8 +1413,10 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '配置失败\n' + traceback.format_exception_only(e))
+            else:
+                await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '配置成功\n' + success_msg)
     else:
-        await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')     
+        await BF1_UPD.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
 
 
 @BF1_INSPECT.handle()
