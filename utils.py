@@ -3,8 +3,8 @@ import httpx
 from pathlib import Path
 import os
 from .config import Config
-from nonebot import get_driver
-
+from nonebot import get_driver, logger
+from loguru import Record
 
 MapTeamDict = {
         "MP_MountainFort": {"Chinese": "格拉巴山", "Team1": "ITA", "Team2": "AHU"},
@@ -634,4 +634,13 @@ def ToSettings(setstrlist:list):
     
     return settings
 
-
+def main_log_filter(record: "Record"):
+    """
+        Override default logger filter, level can be change by `config.log_level` in `pyproject.toml`
+        For nonebot_plugin_picstatus, only log with level greater than warning (30) will be recorded.
+    """
+    log_level = record["extra"].get("nonebot_log_level", "INFO")
+    levelno = logger.level(log_level).no if isinstance(log_level, str) else log_level
+    if record['name'] == 'nonebot_plugin_picstatus':
+        return record["level"].no > 30
+    return record["level"].no >= levelno

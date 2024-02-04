@@ -38,7 +38,7 @@ async def search_log(pattern: str|re.Pattern, limit: int = 50) -> list:
     if len(matching_lines) < limit:
         backups = sorted(os.listdir(LOGGING_FOLDER), reverse=True)
         for backup in backups:
-            if backup != 'admin.log':
+            if backup.startswith('admin.log') and backup != 'admin.log':
                 q.clear()
                 async with admin_logger_lock:
                     with open(LOGGING_FOLDER/backup, 'r', encoding='UTF-8') as f:

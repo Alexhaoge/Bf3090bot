@@ -1,8 +1,9 @@
 import logging
+import sys
 from logging.handlers import TimedRotatingFileHandler
 
-from nonebot import get_driver
-from nonebot import on_command
+from nonebot import get_driver, on_command, logger, require
+from nonebot.log import logger_id, default_format
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
@@ -18,7 +19,7 @@ from .bf1rsp import (
 
 from .utils import (
     PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
-    CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER
+    CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER, main_log_filter
 )
 
 from . import bf1helper, bfv, bf2042
@@ -31,10 +32,11 @@ driver = get_driver()
 @driver.on_startup
 async def init_on_bot_startup():
     # Logging config
+    LOGGING_FOLDER.mkdir(exist_ok=True)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.ERROR)
+    ## Setup bf1 server admin logger
     admin_logger = logging.getLogger('adminlog')
     admin_logger.setLevel(logging.INFO)
-    LOGGING_FOLDER.mkdir(exist_ok=True)
     admin_logger_handler = TimedRotatingFileHandler(
         LOGGING_FOLDER/'admin.log',
         when='D', interval=3, backupCount=150
@@ -43,6 +45,15 @@ async def init_on_bot_startup():
         logging.Formatter("%(asctime)s | %(message)s", "%Y-%m-%d %H:%M:%S")
     )
     admin_logger.addHandler(admin_logger_handler)
+    ## Suppress logging on plugin basis
+    logger.remove(logger_id)
+    logger.add(sys.stdout, level=0, diagnose=True, format=default_format, filter=main_log_filter)
+    ## Redirect error to log file for better tracing
+    logger.add(LOGGING_FOLDER/"error.log", 
+               level="ERROR",
+               format=default_format,
+               backtrace=True,
+               rotation="1 week")
     # DB setup
     await init_db()
     # Bot scheduled jobs initial runs
@@ -83,3 +94,13 @@ async def bf_help(event:MessageEvent, state:T_State):
     pic = await md_to_pic(md_help, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=1200)
 
     await BF_HELP.send(MessageSegment.image(pic))
+
+# Register picstatus command for access control
+require('nonebot_plugin_picstatus')
+require("nonebot_plugin_access_control_api")
+from nonebot_plugin_access_control_api.service import create_plugin_service
+from nonebot_plugin_picstatus import __main__
+
+plugin_service = create_plugin_service("nonebot_plugin_ac_demo")
+picstatus_group = plugin_service.create_subservice('picstatus')
+picstatus_group.patch_matcher(__main__.stat_matcher)
