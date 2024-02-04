@@ -4,7 +4,10 @@ from pathlib import Path
 import os
 from .config import Config
 from nonebot import get_driver, logger
-from loguru import Record
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from loguru import Record
 
 MapTeamDict = {
         "MP_MountainFort": {"Chinese": "格拉巴山", "Team1": "ITA", "Team2": "AHU"},

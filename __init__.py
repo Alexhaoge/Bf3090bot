@@ -95,12 +95,8 @@ async def bf_help(event:MessageEvent, state:T_State):
 
     await BF_HELP.send(MessageSegment.image(pic))
 
-# Register picstatus command for access control
-require('nonebot_plugin_picstatus')
-require("nonebot_plugin_access_control_api")
-from nonebot_plugin_access_control_api.service import create_plugin_service
-from nonebot_plugin_picstatus import __main__
+# Register command for access control
+# require("nonebot_plugin_access_control_api")
+# from nonebot_plugin_access_control_api.service import create_plugin_service
 
-plugin_service = create_plugin_service("nonebot_plugin_ac_demo")
-picstatus_group = plugin_service.create_subservice('picstatus')
-picstatus_group.patch_matcher(__main__.stat_matcher)
+# plugin_service = create_plugin_service("bf3090bot")
