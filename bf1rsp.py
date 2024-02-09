@@ -459,6 +459,13 @@ async def upd_servers(remid, sid, sessionID, serverName, limit: int = 7):
         limit=limit, protocolVersion="3779779"
     )
 
+async def upd_servers_full(remid, sid, sessionID, timeout: int = None):
+    return await upd_gateway(
+        'GameServer.searchServers', remid, sid, sessionID,
+        filterJson = "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
+        limit = 200, protocolVersion = "3779779"
+    )
+
 async def upd_Stats(personaIds):
     response = await httpx_client.post(
         url="https://api.gametools.network/bf1/multiple?raw=false&format_values=true",
@@ -528,7 +535,7 @@ __all__ = [
     'upd_getPersonasByIds', 'upd_getActiveTagsByPersonaIds',
     'upd_WeaponsByPersonaId', 'upd_VehiclesByPersonaId', 'upd_StatsByPersonaId', 
     'upd_loadout',
-    'upd_servers',
+    'upd_servers', 'upd_servers_full'
     'upd_Stats',
     'upd_Emblem',
     'get_playerList_byGameid'

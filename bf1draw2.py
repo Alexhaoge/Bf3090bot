@@ -1,9 +1,6 @@
 import json
 import numpy as np
 import matplotlib.dates as mdates
-import asyncio
-import time
-import uuid
 
 from io import BytesIO
 from base64 import b64encode
@@ -13,71 +10,6 @@ from datetime import datetime, timezone, timedelta
 from PIL import Image
 
 from .utils import BF1_SERVERS_DATA
-from .bf1rsp import upd_gateway
-
-async def upd_servers1(remid, sid, sessionID, timeout: int = None):
-    return await upd_gateway(
-        'GameServer.searchServers', remid, sid, sessionID,
-        filterJson = "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
-        limit = 200, protocolVersion = "3779779"
-    )
-
-async def upd_draw(remid,sid,sessionID, timeout: int = None):
-    time_start = time.time()
-    print(datetime.now())
-    nameList = []
-    gameIdList = []
-    mapList = []
-    maxList = []
-    numList = []
-    tasks = []
-    for _ in range(30):
-        tasks.append(upd_servers1(remid, sid, sessionID, timeout))
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    for result in results:
-        if not isinstance(result, dict):
-            continue
-        result = result["result"]
-        server_list = result['gameservers']
-        for server in server_list:
-            if server["gameId"] not in gameIdList and int(server["slots"]["Soldier"]["current"])!=0:
-                nameList.append(server["name"])
-                gameIdList.append(server["gameId"])
-                numList.append(server["slots"]["Soldier"]["current"])
-                maxList.append(server["slots"]["Soldier"]["max"])
-                mapList.append(server["mapName"])
-
-    print(f"共获取{len(gameIdList)}个私服")
-    
-    draw_dict = {}
-
-    for i in range(len(gameIdList)):
-        serverInfo = {
-            "server_name": f"{nameList[i]}",
-            "serverMax": f"{maxList[i]}",
-            "serverAmount": f"{numList[i]}",
-            "map": f"{mapList[i]}"
-            }
-        draw_dict[f"{gameIdList[i]}"] = serverInfo
-
-    try:
-        with open(BF1_SERVERS_DATA/'draw.json','r',encoding='UTF-8') as f:
-            data = json.load(f)
-    except:
-        data = {}
-    data[f"{datetime.now().isoformat()}"] = draw_dict 
-    data_keys = list(data.keys())
-    for i in data_keys:
-        try:    
-            if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
-                data.pop(i)
-        except:
-            continue
-    
-    with open(BF1_SERVERS_DATA/'draw.json','w',encoding='UTF-8') as f:
-        json.dump(data,f,indent=4,ensure_ascii=False)
-    
-    return draw_dict
 
 def draw_server_array_matplotlib(res: dict) -> str:
     local_tz = datetime.now(timezone.utc).astimezone().tzinfo

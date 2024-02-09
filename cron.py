@@ -324,7 +324,6 @@ def renew():
 
 async def start_job():
     scheduler = AsyncIOScheduler()
-    global sessionID,remid,sid
 
     scheduler.add_job(upd_gameId, 'interval', minutes=30)
     scheduler.add_job(upd_ping, 'interval', seconds=30)

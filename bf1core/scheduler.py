@@ -5,6 +5,7 @@ from nonebot.params import _command_arg
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Bot
 from nonebot.typing import T_State
 
+import time
 import json
 import asyncio
 import datetime
@@ -14,9 +15,8 @@ from nonebot_plugin_apscheduler import scheduler
 
 from sqlalchemy.future import select
 
-from ..bf1draw2 import upd_draw
 from ..utils import BF1_SERVERS_DATA
-from ..bf1rsp import *
+from ..bf1rsp import upd_servers_full, upd_kickPlayer, upd_getPersonasByIds, RSPException
 from ..bf1draw import *
 from ..secret import *
 from ..rdb import *
@@ -81,13 +81,62 @@ async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
         await BF1_SERVER_ALARMOFF.send('你不是本群组的管理员')
 
 
-######################################## Schedule job parts #########################################
-async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, draw_dict: dict): 
+######################################## Schedule job helper functions #########################################
+draw_lock = asyncio.Lock()
+
+async def upd_draw(remid,sid,sessionID, timeout: int = None):
+    time_start = time.time()
+    print(datetime.now())
+
+    tasks = []
+    for _ in range(30):
+        tasks.append(upd_servers_full(remid, sid, sessionID, timeout))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    draw_dict = {}
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        result = result["result"]
+        server_list = result['gameservers']
+        for server in server_list:
+            gameid = str(server["gameId"])
+            if gameid not in draw_dict and int(server["slots"]["Soldier"]["current"])!=0:
+                draw_dict[gameid] = {
+                    "server_name": server["name"],
+                    "serverMax":server["slots"]["Soldier"]["max"],
+                    "serverAmount": server["slots"]["Soldier"]["current"],
+                    "map": server["mapName"]
+                }
+                await redis_client.hset('draw_dict', gameid, json.dumps(draw_dict[gameid]))
+
+    print(f"共获取{len(draw_dict)}个私服")
+
+    try:
+        with open(BF1_SERVERS_DATA/'draw.json','r',encoding='UTF-8') as f:
+            data = json.load(f)
+    except:
+        data = {}
+    data[f"{datetime.now().isoformat()}"] = draw_dict 
+    data_keys = list(data.keys())
+    for i in data_keys:
+        try:    
+            if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
+                data.pop(i)
+        except:
+            continue
+    
+    async with draw_lock:
+        with open(BF1_SERVERS_DATA/'draw.json','w',encoding='UTF-8') as f:
+            json.dump(data,f,indent=4,ensure_ascii=False)
+
+
+async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot): 
     with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
         zh_cn = json.load(f)
     try:
         gameId = await get_gameid_from_serverid(serverid)
-        status = draw_dict[f"{gameId}"]
+        status = json.loads(await redis_client.hget('draw_dict', str(gameId)))
     except:
         logger.debug(f'No data for gameid:{gameId}')
     else:
@@ -112,7 +161,7 @@ async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot, dra
             logger.error(traceback.format_exc(2))
             return 0
 
-async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dict):
+async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict):
     tasks = []
     report_list = []
     personaIds = []
@@ -171,7 +220,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                     reason = report_dict["reason"]
                     personaId = report_dict["personaId"]
                     groupqq = report_dict["groupqq"]
-                    name = draw_dict[f"{gameId}"]["server_name"]
+                    name = json.loads(await redis_client.hget('draw_dict', str(gameId)))["server_name"]
                     if res_pid and str(personaId) in res_pid['result']:
                         eaid = res_pid['result'][str(personaId)]['displayName']
                     else:
@@ -186,7 +235,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict, draw_dict: dic
                     continue
 
 
-async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
+async def start_vban(sgids: list, vbans: dict):
     try:
         #pljson = await upd_blazeplforvban([t[1] for t in sgids])
         pljson = await Blaze2788Pro([t[1] for t in sgids])
@@ -195,7 +244,7 @@ async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
         logger.warning('Vban Blaze error for ' + ','.join([str(t[1]) for t in sgids]))
     else:
         try:
-            await kick_vbanPlayer(pljson, sgids,vbans,draw_dict) 
+            await kick_vbanPlayer(pljson, sgids,vbans) 
         except RSPException as rsp_exc:
             logger.warning('Vban RSP exception: ' + rsp_exc.echo() + '\n' + ','.join([str(t[1]) for t in sgids]))
         except Exception as e:
@@ -203,8 +252,8 @@ async def start_vban(sgids: list, vbans: dict, draw_dict: dict):
             logger.warning('Vban exception during execution: ' + traceback.format_exception_only(e) + \
                            '\n' + ','.join([str(t[1]) for t in sgids]))
 
-async def upd_vbanPlayer(draw_dict:dict):
-    alive_servers = list(draw_dict.keys())
+async def upd_vbanPlayer():
+    alive_servers = await redis_client.hkeys('draw_dict')
     serverid_gameIds = []
     vbans = {}
     async with async_db_session() as session:
@@ -230,13 +279,15 @@ async def upd_vbanPlayer(draw_dict:dict):
             sgids.append(serverid_gameIds[i])
         else:
             logger.debug(sgids)
-            await start_vban(sgids,vbans,draw_dict)
+            await start_vban(sgids,vbans)
             #await asyncio.sleep(4) 
             sgids = []
     if 0 < len(sgids) < 10:
         logger.debug(sgids)
-        await start_vban(sgids,vbans,draw_dict)
+        await start_vban(sgids,vbans)
 
+
+######################################## Schedule jobs #########################################
 
 @scheduler.scheduled_job("interval", minutes=15, id=f"job_reset_alarm_session")
 async def bf1_reset_alarm_session():
@@ -256,11 +307,10 @@ async def bf1_init_session():
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_0", misfire_grace_time=120)
 async def bf1_alarm(timeout: int = 20):
-    global draw_dict
     tasks = []
 
     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
-    draw_dict = await upd_draw(remid,sid,sessionID,timeout)
+    await upd_draw(remid,sid,sessionID,timeout)
     logger.info('Update draw dict complete')
     
     start_time = datetime.datetime.now()
@@ -284,10 +334,10 @@ async def bf1_alarm(timeout: int = 20):
         for ind, serverid in servers:
             alarm_amount = await redis_client.hget(f'alarmamount:{groupqq}', ind)
             if (not alarm_amount) or (int(alarm_amount) < 3):
-                res = await get_server_status(groupqq, ind, serverid, bot, draw_dict)
+                res = await get_server_status(groupqq, ind, serverid, bot)
                 if res == 1:
                     await asyncio.sleep(2)
-                #tasks.append(asyncio.create_task(get_server_status(groupqq, ind, serverid, bot, draw_dict)))
+                #tasks.append(asyncio.create_task(get_server_status(groupqq, ind, serverid, bot)))
     if len(tasks) != 0:
         await asyncio.wait(tasks)
     
@@ -301,7 +351,7 @@ async def bf1_upd_vbanPlayer():
     # await upd_ping()
     # await asyncio.sleep(10)
 
-    await upd_vbanPlayer(draw_dict)
+    await upd_vbanPlayer()
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
     logger.info(f"Vban用时：{thr_time}秒")
