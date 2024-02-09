@@ -535,7 +535,7 @@ __all__ = [
     'upd_getPersonasByIds', 'upd_getActiveTagsByPersonaIds',
     'upd_WeaponsByPersonaId', 'upd_VehiclesByPersonaId', 'upd_StatsByPersonaId', 
     'upd_loadout',
-    'upd_servers', 'upd_servers_full'
+    'upd_servers', 'upd_servers_full',
     'upd_Stats',
     'upd_Emblem',
     'get_playerList_byGameid'

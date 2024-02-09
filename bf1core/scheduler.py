@@ -86,7 +86,7 @@ draw_lock = asyncio.Lock()
 
 async def upd_draw(remid,sid,sessionID, timeout: int = None):
     time_start = time.time()
-    print(datetime.now())
+    print(datetime.datetime.now())
 
     tasks = []
     for _ in range(30):
@@ -117,11 +117,11 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
             data = json.load(f)
     except:
         data = {}
-    data[f"{datetime.now().isoformat()}"] = draw_dict 
+    data[f"{datetime.datetime.now().isoformat()}"] = draw_dict 
     data_keys = list(data.keys())
     for i in data_keys:
         try:    
-            if (datetime.now() - datetime.fromisoformat(i)).days >= 1:
+            if (datetime.datetime.now() - datetime.datetime.fromisoformat(i)).days >= 1:
                 data.pop(i)
         except:
             continue
