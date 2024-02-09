@@ -2,7 +2,7 @@ import logging
 import sys
 from logging.handlers import TimedRotatingFileHandler
 
-from nonebot import get_driver, on_command, logger, require
+from nonebot import get_driver, on_command, logger
 from nonebot.log import logger_id, default_format
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
@@ -94,9 +94,3 @@ async def bf_help(event:MessageEvent, state:T_State):
     pic = await md_to_pic(md_help, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=1200)
 
     await BF_HELP.send(MessageSegment.image(pic))
-
-# Register command for access control
-# require("nonebot_plugin_access_control_api")
-# from nonebot_plugin_access_control_api.service import create_plugin_service
-
-# plugin_service = create_plugin_service("bf3090bot")

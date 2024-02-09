@@ -12,7 +12,6 @@ import asyncio
 
 from sqlalchemy.future import select
 
-from ..bf1draw2 import draw_server_array2,upd_draw
 from ..utils import BF1_SERVERS_DATA
 from ..bf1rsp import *
 from ..bf1draw import *
@@ -21,10 +20,10 @@ from ..image import upload_img
 from ..rdb import *
 from ..redis_helper import redis_client
 from ..bf1helper import *
-from .matcher import del_user,add_user,approve_req,welcome_user,get_user
+from .matcher import del_user, bye_user, add_user,approve_req,welcome_user,get_user
 
 @del_user.handle()
-async def user_bye(event: GroupDecreaseNoticeEvent):
+async def groupmember_del(event: GroupDecreaseNoticeEvent):
     async with async_db_session() as session:
         group_row = (await session.execute(select(ChatGroups).filter_by(groupqq=event.group_id))).first()
         if group_row:
@@ -34,10 +33,13 @@ async def user_bye(event: GroupDecreaseNoticeEvent):
             for row in user_rec:
                 await session.delete(row[0])
             await session.commit()
+
+@bye_user.handle()
+async def user_bye(event: GroupDecreaseNoticeEvent):
     if event.sub_type == 'leave':
-        await del_user.send(f'{event.user_id}退群了。')
+        await bye_user.send(f'{event.user_id}退群了。')
     else: 
-        await del_user.send(f'{event.user_id}被{event.operator_id}送走了。')
+        await bye_user.send(f'{event.user_id}被{event.operator_id}送走了。')
 
 @add_user.handle()
 async def user_add_request(event: GroupRequestEvent):

@@ -1,10 +1,13 @@
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
-from nonebot import on_command,on_notice, on_request
+from nonebot import on_command,on_notice, on_request, require
 from nonebot.rule import Rule,to_me
 
+require("nonebot_plugin_access_control_api")
+from nonebot_plugin_access_control_api.service import create_plugin_service
+
 from ..utils import PREFIX
-from ..bf1helper import *
+from ..bf1helper import _is_add_user, _is_del_user, _is_get_user
 
 #help
 BF1_PING = on_command(f"{PREFIX}ping",aliases={f'{PREFIX}原神'},block=True, priority=1)
@@ -73,7 +76,8 @@ BF1_UPD = on_command(f'{PREFIX}配置', block=True, priority=1)
 BF1_INSPECT = on_command(f'{PREFIX}查岗', block=True, priority=1)
 
 #grouprsp
-del_user = on_notice(Rule(_is_del_user), priority=1, block=True)
+del_user = on_notice(Rule(_is_del_user), priority=2, block=False)
+bye_user = on_notice(Rule(_is_del_user), priority=1, block=False)
 get_user = on_notice(Rule(_is_get_user), priority=1, block=True)
 add_user = on_request(Rule(_is_add_user), priority=1, block=True)
 welcome_user = on_command(f'{PREFIX}配置入群欢迎', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
@@ -83,7 +87,105 @@ approve_req = on_command('y',rule = to_me ,aliases={'n'},priority=1, block=True)
 BF1_SERVER_ALARM = on_command(f'{PREFIX}打开预警', block=True, priority=1)
 BF1_SERVER_ALARMOFF = on_command(f'{PREFIX}关闭预警', block=True, priority=1)
 
-#serverlog
+#server admin logging query
 BF1_SLP = on_command(f'{PREFIX}slog', aliases={f'{PREFIX}搜日志', f'{PREFIX}sl'}, block=True, priority=1)
 BF1_SLF = on_command(f'{PREFIX}log', aliases={f'{PREFIX}服务器日志'}, block=True, priority=1)
 BF1_SLK = on_command(f'{PREFIX}slogkey', aliases={f'{PREFIX}slk'}, block=True, priority=1)
+
+
+############# Service groups registration for access control ###############
+plugin_service = create_plugin_service("bf3090bot")
+
+# Chat group management 
+group_subservice = plugin_service.create_subservice('group')
+approve_req_subservice = group_subservice.create_subservice('approv_req')
+approve_req_subservice.patch_matcher(add_user)
+approve_req_subservice.patch_matcher(approve_req)
+
+add_user_subservice = group_subservice.create_subservice('add_user')
+add_user_subservice.patch_matcher(get_user)
+add_user_subservice.patch_matcher(welcome_user)
+
+bye_user_subservice = group_subservice.create_subservice('bye_user')
+bye_user_subservice.patch_matcher(bye_user)
+
+# Server logging module
+adminlog_subservice = plugin_service.create_subservice('adminlog')
+adminlog_subservice.patch_matcher(BF1_SLP)
+adminlog_subservice.patch_matcher(BF1_SLF)
+adminlog_subservice.patch_matcher(BF1_SLK)
+
+# Alarm module
+alarm_subservice = plugin_service.create_subservice('alarm')
+alarm_subservice.patch_matcher(BF1_SERVER_ALARM)
+alarm_subservice.patch_matcher(BF1_SERVER_ALARMOFF)
+
+# Bot admin control and group initialization
+bot_admin_initial = plugin_service.create_subservice('bot_admin_initial')
+bot_admin_initial.patch_matcher(BF1_INIT)
+bot_admin_initial.patch_matcher(BF1_ADDADMIN)
+bot_admin_initial.patch_matcher(BF1_DELADMIN)
+
+# Report module
+report_subservice = plugin_service.create_subservice('report')
+report_subservice.patch_matcher(BF1_REPORT)
+
+# Player statistics query module
+stat_subservice = plugin_service.create_subservice('stat')
+stat_subservice.patch_matcher(BF1_SA)
+stat_subservice.patch_matcher(BF1_TYC)
+stat_subservice.patch_matcher(BF1_WP)
+stat_subservice.patch_matcher(BF1_S)
+stat_subservice.patch_matcher(BF1_R)
+stat_subservice.patch_matcher(BF1_RE)
+
+# BF global info query module
+info_subservice = plugin_service.create_subservice('info')
+info_subservice.patch_matcher(BF1_PLA)
+info_subservice.patch_matcher(BF1_PLAA)
+info_subservice.patch_matcher(BF_STATUS)
+info_subservice.patch_matcher(BF1_STATUS)
+info_subservice.patch_matcher(BF1_MODE)
+info_subservice.patch_matcher(BF1_MAP)
+info_subservice.patch_matcher(BF1_INFO)
+info_subservice.patch_matcher(BF1_EX)
+
+draw_subservice = info_subservice.create_subservice('draw')
+draw_subservice.patch_matcher(BF1_DRAW)
+draw_subservice.patch_matcher(BF1_ADMINDRAW)
+
+# BF1 server management module
+rsp_subservice = plugin_service.create_subservice('rsp')
+# rsp_subservice.patch_matcher(BF1_F) # unsure about access level of .f
+rsp_subservice.patch_matcher(BF1_CHOOSELEVEL)
+rsp_subservice.patch_matcher(BF1_MOVE)
+rsp_subservice.patch_matcher(BF1_KICK)
+rsp_subservice.patch_matcher(BF1_KICKALL)
+
+ban_subservice = rsp_subservice.create_subservice('ban')
+ban_subservice.patch_matcher(BF1_BAN)
+ban_subservice.patch_matcher(BF1_BANALL)
+ban_subservice.patch_matcher(BF1_UNBAN)
+ban_subservice.patch_matcher(BF1_UNBANALL)
+
+vban_subservice = rsp_subservice.create_subservice('vban')
+vban_subservice.patch_matcher(BF1_VBAN)
+vban_subservice.patch_matcher(BF1_VBANALL)
+vban_subservice.patch_matcher(BF1_UNVBAN)
+vban_subservice.patch_matcher(BF1_UNVBANALL)
+
+vip_subservice = rsp_subservice.create_subservice('vip')
+vip_subservice.patch_matcher(BF1_VIP)
+vip_subservice.patch_matcher(BF1_UNVIP)
+vip_subservice.patch_matcher(BF1_VIPLIST)
+vip_subservice.patch_matcher(BF1_CHECKVIP)
+
+pl_subservice = rsp_subservice.create_subservice('pl')
+pl_subservice.patch_matcher(BF1_PL)
+pl_subservice.patch_matcher(BF1_ADMINPL)
+pl_subservice.patch_matcher(BF1_PLA)
+pl_subservice.patch_matcher(BF1_PLAA)
+pl_subservice.patch_matcher(BF1_INSPECT)
+
+server_setting_subservice = rsp_subservice.create_subservice('upd')
+server_setting_subservice.patch_matcher(BF1_UPD)
