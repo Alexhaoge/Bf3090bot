@@ -206,8 +206,8 @@ async def add_vban(personaId: int, groupqq: int, serverId: int, reason: str, use
                 processor = user_id, notify_group = groupqq
             ))
         else:
-            exist_vban[0].reason = reason,
-            exist_vban[0].processor = user_id
+            exist_vban[0].reason = str(reason),
+            exist_vban[0].processor = int(user_id)
             exist_vban[0].time = datetime.datetime.now()
             session.add(exist_vban[0])
         await session.commit()

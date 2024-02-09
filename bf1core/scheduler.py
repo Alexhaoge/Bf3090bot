@@ -108,7 +108,8 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
                     "serverAmount": server["slots"]["Soldier"]["current"],
                     "map": server["mapName"]
                 }
-                await redis_client.hset('draw_dict', gameid, json.dumps(draw_dict[gameid]))
+                await redis_client.hmset(f'draw_dict:{gameid}', draw_dict[gameid])
+                await redis_client.expire(f'draw_dict:{gameid}', time=120)
 
     print(f"共获取{len(draw_dict)}个私服")
 
@@ -136,7 +137,7 @@ async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot):
         zh_cn = json.load(f)
     try:
         gameId = await get_gameid_from_serverid(serverid)
-        status = json.loads(await redis_client.hget('draw_dict', str(gameId)))
+        status = await redis_client.hgetall(f'draw_dict:{gameId}')
     except:
         logger.debug(f'No data for gameid:{gameId}')
     else:
@@ -220,7 +221,7 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict):
                     reason = report_dict["reason"]
                     personaId = report_dict["personaId"]
                     groupqq = report_dict["groupqq"]
-                    name = json.loads(await redis_client.hget('draw_dict', str(gameId)))["server_name"]
+                    name = await redis_client.hget(f'draw_dict:{gameId}', "server_name")
                     if res_pid and str(personaId) in res_pid['result']:
                         eaid = res_pid['result'][str(personaId)]['displayName']
                     else:
@@ -253,7 +254,7 @@ async def start_vban(sgids: list, vbans: dict):
                            '\n' + ','.join([str(t[1]) for t in sgids]))
 
 async def upd_vbanPlayer():
-    alive_servers = await redis_client.hkeys('draw_dict')
+    alive_servers = await redis_client.keys('draw_dict:*')
     serverid_gameIds = []
     vbans = {}
     async with async_db_session() as session:

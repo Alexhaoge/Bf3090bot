@@ -16,11 +16,9 @@ redis_client = redis.Redis.from_pool(redis_pool)
 
 # 'pstats:{pid}': {'win': , 'loss': , 'acc': , 'hs': , 'kd': , 'k': , 'kpm': , 'spm': , 'secondsPlayed': }
 
-# 'draw_dict': {str(gameid): json.dumps(
-    # {
-    #     "server_name": server["name"],
-    #     "serverMax":server["slots"]["Soldier"]["max"],
-    #     "serverAmount": server["slots"]["Soldier"]["current"],
-    #     "map": server["mapName"]
-    # }
-# )}
+# 'draw_dict:str(gameid)': {
+#     "server_name": server["name"],
+#     "serverMax":server["slots"]["Soldier"]["max"],
+#     "serverAmount": server["slots"]["Soldier"]["current"],
+#     "map": server["mapName"]
+# }
