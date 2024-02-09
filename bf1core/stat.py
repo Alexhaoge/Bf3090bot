@@ -324,7 +324,7 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
 
 @BF1_RE.handle()
 async def bf1_recent1(event:GroupMessageEvent, state:T_State):
-    BF1_RE.send(MessageSegment.reply(event.message_id) + f'此功能暂时关闭，查询最近对局请使用{PREFIX}r')    
+    await BF1_RE.send(MessageSegment.reply(event.message_id) + f'此功能暂时关闭，查询最近对局请使用{PREFIX}r')    
     return
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)

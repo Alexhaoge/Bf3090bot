@@ -1,7 +1,7 @@
 from redis import asyncio as redis
 from .utils import REDIS_URL
 
-redis_pool = redis.ConnectionPool.from_url(REDIS_URL)
+redis_pool = redis.ConnectionPool.from_url(REDIS_URL, charset="utf-8", decode_responses=True)
 redis_client = redis.Redis.from_pool(redis_pool)
 
 ############## Redis storage description ################

@@ -12,7 +12,7 @@ from nonebot.permission import SUPERUSER
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from .rdb import init_db, close_db
-from .redis_helper import redis_client
+from .redis_helper import redis_client, redis_pool
 from .bf1rsp import (
     httpx_client, httpx_client_proxy
 )
@@ -64,7 +64,8 @@ async def init_on_bot_startup():
 @driver.on_shutdown
 async def close_on_bot_shutdown():
     await close_db()
-    await redis_client.close()
+    await redis_client.aclose()
+    await redis_pool.aclose()
     await httpx_client.aclose()
     await httpx_client_proxy.aclose()
 
