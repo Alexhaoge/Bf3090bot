@@ -21,6 +21,7 @@ def draw_server_array_matplotlib(res: dict) -> str:
     ax.xaxis.set_major_formatter(xfmt)
     img = BytesIO()
     plt.savefig(img, format='png')
+    plt.close('all')
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
 
 def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
@@ -124,6 +125,7 @@ def draw_server_array2(gameid: str, endtime: datetime = None) -> str:
     # Save figure and return in base64
     img = BytesIO()
     plt.savefig(img, format='png')
+    plt.close('all')
     return 'base64://' + b64encode(img.getvalue()).decode('ascii')
 
 __all__ = [

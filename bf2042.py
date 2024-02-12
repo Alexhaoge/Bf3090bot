@@ -79,7 +79,7 @@ async def bf2042_ls(event: GroupMessageEvent, state: T_State):
 @BF2042F.handle()
 async def bf2042_handler(event: MessageEvent, state: T_State):
     message = _command_arg(state) or event.get_message()
-    args = message.extract_plain_text().strip().split(' ')
+    args = message.extract_plain_text().strip().split()
     player = args[0]
     if player == 'me' and isinstance(event, GroupMessageEvent):
         user = event.get_user_id()

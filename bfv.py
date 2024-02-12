@@ -99,7 +99,7 @@ async def bfv_server(event:MessageEvent, state:T_State):
 @BFVF.handle()
 async def bfv_handler(event:MessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    args = message.extract_plain_text().strip().split(' ')
+    args = message.extract_plain_text().strip().split()
     player = args[0]
     if player == 'me' and isinstance(event, GroupMessageEvent):
         user = event.get_user_id()

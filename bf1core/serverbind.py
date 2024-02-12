@@ -45,7 +45,7 @@ async def bf1_init(event:GroupMessageEvent, state:T_State):
 @BF1_BIND.handle()
 async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',1)
+    arg = message.extract_plain_text().split(maxsplit=1)
     server_ind = arg[0]
     server_keyword = html.unescape(arg[1])
     groupqq = await check_session(event.group_id)
@@ -96,7 +96,7 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
 @BF1_REBIND.handle()
 async def bf1_rebindserver(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',1)
+    arg = message.extract_plain_text().split(maxsplit=1)
     server_ind = arg[0]
     new_server_ind = html.unescape(arg[1])
     groupqq = await check_session(event.group_id)
@@ -115,7 +115,7 @@ async def bf1_rebindserver(event:GroupMessageEvent, state:T_State):
 @BF1_ADDBIND.handle()
 async def bf1_addbindserver(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',1)
+    arg = message.extract_plain_text().split(maxsplit=1)
     server_ind = arg[0]
     new_server_ind = html.unescape(arg[1])
     groupqq = await check_session(event.group_id)
@@ -135,7 +135,7 @@ async def bf1_addbindserver(event:GroupMessageEvent, state:T_State):
 async def bf1_admin(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
-    adminqqs = message.extract_plain_text().split(' ')
+    adminqqs = message.extract_plain_text().split()
     failed_qqs = []
     success_qqs = []
     async with async_db_session() as session:
@@ -161,7 +161,7 @@ async def bf1_admin(event:GroupMessageEvent, state:T_State):
 async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     deleted_qqs = []
     async with async_db_session() as session:
         for admin_str in arg:

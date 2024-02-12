@@ -144,7 +144,7 @@ async def get_gameid_from_serverid(serverid: int) -> int | None:
     if gameid:
         return int(gameid)
     else:
-        logger.warning(f'Warning:gameid for {serverid} not find!')
+        logger.warning(f'gameid for {serverid} not find!')
 
 async def upd_cache_StatsByPersonaId(remid, sid, sessionid, personaId):
     """

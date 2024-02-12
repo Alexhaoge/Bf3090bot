@@ -40,7 +40,7 @@ from .matcher import (
 @BF1_ADDBF1ACCOUNT.handle()
 async def bf1_add_bf1_account(event: GroupMessageEvent, state: T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     
     if check_sudo(event.group_id, event.user_id):
         if len(arg) != 3:
@@ -72,7 +72,7 @@ async def bf1_add_bf1_account(event: GroupMessageEvent, state: T_State):
 @BF1_CHOOSELEVEL.handle()
 async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
     
@@ -149,19 +149,18 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
 @BF1_KICK.handle()
 async def bf1_kick(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg1 = message.extract_plain_text().split(' ',maxsplit=2)
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
         if reply_message_id(event) == None: # single kick
-            server_ind, server_id = await check_server_id(groupqq,arg1[0])
+            server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
 
-            reason = zhconv.convert(arg1[2], 'zh-hant') if len(arg1) > 2 else zhconv.convert('违反规则', 'zh-hant')
+            reason = zhconv.convert(' '.join(arg[2: ]), 'zh-hant') if len(arg) > 2 else zhconv.convert('违反规则', 'zh-hant')
             if len(reason.encode('utf-8')) > 32:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '理由过长')
             
@@ -170,7 +169,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
             if not remid:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'bot没有权限，输入.bot查询服管情况。')
             try:
-                personaId,name,_ = await getPersonasByName(access_token, arg1[1])
+                personaId,name,_ = await getPersonasByName(access_token, arg[1])
                 res = await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
             except RSPException as rsp_exc:
                 await BF1_KICK.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
@@ -275,7 +274,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
 @BF1_KICKALL.handle()
 async def bf1_kickall(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',maxsplit=1)
+    arg = message.extract_plain_text().split(maxsplit=1)
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -338,7 +337,7 @@ async def get_kickall(bot: Bot, event: GroupMessageEvent, state: T_State, msg: M
 @BF1_BAN.handle()
 async def bf1_ban(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',maxsplit=2)
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -425,7 +424,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
 @BF1_BANALL.handle()
 async def bf1_banall(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -478,7 +477,7 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
 @BF1_UNBANALL.handle()
 async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -524,7 +523,7 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
 @BF1_UNBAN.handle()
 async def bf1_unban(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -558,7 +557,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
 @BF1_VBAN.handle()
 async def bf1_vban(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ',maxsplit=2)
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -577,6 +576,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
 
             personaName = arg[1]
+            print(arg)
             # gameId = await get_gameid_from_serverid(server_id)
             remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id)
             if not remid:
@@ -635,7 +635,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
 @BF1_VBANALL.handle()
 async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -675,7 +675,7 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
 @BF1_UNVBANALL.handle()
 async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
 
     admin_perm = await check_admin(groupqq, event.user_id)
@@ -708,7 +708,7 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
 @BF1_UNVBAN.handle()
 async def bf1_unvban(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
 
     admin_perm = await check_admin(groupqq, event.user_id)
@@ -741,7 +741,7 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
 @BF1_MOVE.handle()
 async def bf1_move(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
 
     admin_perm = await check_admin(groupqq, event.user_id)
@@ -847,7 +847,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
 @BF1_VIP.handle()
 async def bf1_vip(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
 
     admin_perm = await check_admin(groupqq, event.user_id)
@@ -983,7 +983,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
 @BF1_VIPLIST.handle()
 async def bf1_viplist(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
 
     admin_perm = await check_admin(groupqq, event.user_id)
@@ -1017,7 +1017,7 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
 @BF1_CHECKVIP.handle()
 async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     session = await check_session(event.group_id)
 
     admin_perm = await check_admin(session, event.user_id)
@@ -1098,7 +1098,7 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
 @BF1_UNVIP.handle()
 async def bf1_unvip(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
 
     admin_perm = await check_admin(groupqq, event.user_id)
@@ -1164,7 +1164,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
 @BF1_PL.handle()
 async def bf_pl(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -1223,7 +1223,7 @@ async def bf_adminpl(event:GroupMessageEvent, state:T_State):
 @BF1_PLS.handle()
 async def bf_pls(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -1255,7 +1255,7 @@ async def bf_pls(event:GroupMessageEvent, state:T_State):
 @BF1_PLSS.handle()
 async def bf_plss(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
@@ -1287,7 +1287,7 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
 async def bf_upd(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     message = html.unescape(message.extract_plain_text())
-    arg = message.split(" ",maxsplit=2)
+    arg = message.split(maxsplit=2)
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 

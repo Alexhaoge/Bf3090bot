@@ -81,7 +81,7 @@ async def user_add(event: GroupMessageEvent):
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:
-        message = event.get_message().extract_plain_text().split(' ')
+        message = event.get_message().extract_plain_text().split()
         bots = nonebot.get_bots()
         sign = 0
         for bot in bots.values():

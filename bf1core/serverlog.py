@@ -91,7 +91,7 @@ async def search_adminlog_byserver(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
 
     admin_perm = await check_admin(groupqq, user_id)
     if admin_perm:

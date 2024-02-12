@@ -31,7 +31,7 @@ draw_dict = {}
 async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     try:
-        arg = message.extract_plain_text().split(' ')
+        arg = message.extract_plain_text().split()
         groupqq = int(arg[0])
     except:
         groupqq = event.group_id
@@ -135,23 +135,23 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
 async def get_server_status(groupqq: int, ind: str, serverid: int, bot: Bot): 
     with open(BF1_SERVERS_DATA/'zh-cn.json','r', encoding='utf-8') as f:
         zh_cn = json.load(f)
+    gameId = await get_gameid_from_serverid(serverid)
     try:
-        gameId = await get_gameid_from_serverid(serverid)
-        status = await redis_client.hgetall(f'draw_dict:{gameId}')
-    except:
-        logger.debug(f'No data for gameid:{gameId}')
-    else:
+        status = (await redis_client.hgetall(f'draw_dict:{gameId}'))
         playerAmount = int(status['serverAmount'])
         maxPlayers = int(status['serverMax'])
-        map = zh_cn[status['map']]
-        #print(playerAmount,maxPlayers,map)
-        #print(f'{bot}{session}群{i+1}服人数{playerAmount}')
+        Map = zh_cn[str(status['map'])]
+    except:
+        logger.debug(f'No data for gameId:{gameId}')
+    else:
+        #print(playerAmount,maxPlayers,Map)
+        #print(f'{bot}{groupqq}群{ind}服人数{playerAmount}')
         try:
             #if True: # Test
             if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
                 alarm_amount = await redis_client.hincrby(f'alarmamount:{groupqq}', ind)
                 try:
-                    await bot.send_group_msg(group_id=groupqq, message=f'第{alarm_amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{map}。')
+                    await bot.send_group_msg(group_id=groupqq, message=f'第{alarm_amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{Map}。')
                     return 1
                 except Exception as e:
                     logger.warning(e)
@@ -254,7 +254,6 @@ async def start_vban(sgids: list, vbans: dict):
                            '\n' + ','.join([str(t[1]) for t in sgids]))
 
 async def upd_vbanPlayer():
-    alive_servers = await redis_client.keys('draw_dict:*')
     serverid_gameIds = []
     vbans = {}
     async with async_db_session() as session:
@@ -262,7 +261,8 @@ async def upd_vbanPlayer():
         vban_servers = set(r[0].serverid for r in vban_rows)
         for serverid in vban_servers:
             gameId = await get_gameid_from_serverid(serverid)
-            if str(gameId) in alive_servers:
+            is_alive = await redis_client.exists(f'draw_dict:{gameId}')
+            if is_alive > 0:
                 serverid_gameIds.append((serverid, gameId))
                 vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
         for vban_row in vban_rows:

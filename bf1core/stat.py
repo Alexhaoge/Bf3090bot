@@ -109,7 +109,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
 @BF1_TYC.handle()
 async def bf1_tyc(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     user_id = event.user_id
     groupqq = await check_session(event.group_id)
     usercard = event.sender.card

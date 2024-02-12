@@ -43,7 +43,7 @@ code_file_lock = asyncio.Lock()
 async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = CommandArg()):
     message = _command_arg(state) or event.get_message()
     user_id = event.user_id
-    code = message.extract_plain_text().split(' ')[0]
+    code = message.extract_plain_text().split()[0]
     groupqq = await check_session(event.group_id)
 
     async with code_file_lock:
@@ -448,7 +448,7 @@ async def bf1_ex(event:GroupMessageEvent, state:T_State):
 @BF1_DRAW.handle()
 async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     user_id = event.user_id
 
