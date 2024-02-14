@@ -517,6 +517,8 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
             await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
     if mode == 2:
         groupqq = await check_session(event.group_id)
+        if not groupqq:
+            raise Exception('本群组未初始化')
         servers = await get_server_num(groupqq)
         gameids = []
         for server_ind, server_id in servers:
