@@ -320,8 +320,8 @@ async def bf1_alarm(timeout: int = 20):
     for groupqq_b in alarm_session_set:
         groupqq = int(groupqq_b)
         bot = None
-        bots = nonebot.get_bots()
-        for bot in bots.values():
+        bots = nonebot.get_bots().values()
+        for bot in bots:
             try:
                 botlist = await bot.get_group_list()
             except:
