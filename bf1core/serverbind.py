@@ -6,6 +6,7 @@ from nonebot.typing import T_State
 import html
 import traceback
 from sqlalchemy.future import select
+from sqlalchemy.orm import relationship, selectinload
 from sqlalchemy import or_
 
 from ..bf1rsp import *
@@ -131,7 +132,7 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
     groupqq = await check_session(int(arg[0]))
     if not groupqq:
         await BF1_BIND2.finish(MessageSegment.reply(event.message_id) + '该群组未初始化')
-    logger.info(groupqq, server_ind, str(server_keyword))
+    logger.info(f'{groupqq}, {server_ind}, {server_keyword}')
     remid, sid, sessionID, _ = await get_one_random_bf1admin()
     try:
         result = await upd_servers(remid, sid, sessionID, server_keyword)
@@ -281,7 +282,7 @@ async def bf1_unbind_invoke(event: GroupMessageEvent, state: T_State):
     server_ind = arg[1]
     server_ind, server_id = await check_server_id(main_groupqq, server_ind)
     if not server_id:
-        await BF1_UNBIND.finish(f"服务器{server_ind}不存在")
+        await BF1_UNBIND.finish(f"服务器{arg[1]}不存在")
     state['groupqq'] = groupqq
     state['main_groupqq'] = main_groupqq
     state['server_id'] = server_id
@@ -290,14 +291,15 @@ async def bf1_unbind_invoke(event: GroupMessageEvent, state: T_State):
     async with async_db_session() as session:
         related_vbans = (await session.execute(
             select(ServerVBans).filter_by(serverid=server_id, notify_group=main_groupqq))).all()
-        await BF1_UNBIND.send(MessageSegment.reply(event.message_id) + f'服务器{server_ind}({server_id})的Vbans中有{len(ServerVBans)}个与群组{groupqq}关联，是否删除？')
+        await BF1_UNBIND.send(MessageSegment.reply(event.message_id) + f'服务器{server_ind}({server_id})的Vbans中有{len(related_vbans)}个与群组{groupqq}关联，是否删除？')
 
 @BF1_UNBIND.got('msg', prompt='发送"y"删除并解绑，"n"保留并解绑，发送其他内容撤销解绑')
 async def bf1_unbind_confirm(event: GroupMessageEvent, state: T_State, msg: Message = ArgStr("msg")):
     server_id = state['server_id']
+    server_ind = state['server_ind']
     groupqq = state['groupqq']
     main_groupqq = state['main_groupqq']
-    async with async_db_op() as session:
+    async with async_db_session() as session:
         related_vbans = (await session.execute(
             select(ServerVBans).filter_by(serverid=server_id, notify_group=main_groupqq))).all()
         if msg == 'y' or msg == 'Y':
@@ -306,17 +308,17 @@ async def bf1_unbind_confirm(event: GroupMessageEvent, state: T_State, msg: Mess
             n_del = len(related_vbans)  
         elif msg == 'n' or msg == 'N':
             for r in related_vbans:
-                r[0].notify_groupqq = None
-                session.add(r[0])
+                r[0].notify_group = None
             n_del = 0
         else:
             await session.rollback()
+            await BF1_UNBIND.send(MessageSegment.reply(event.message_id) + '操作已取消')   
             return
         
         gsbind = (await session.execute(select(GroupServerBind).filter_by(serverid=server_id, groupqq=main_groupqq))).first()
-        await session.delete(gsbind)
+        await session.delete(gsbind[0])
         await session.commit()
-        await BF1_UNBIND.finish(MessageSegment.reply(event.message_id) + f'从群组{main_groupqq}解绑{state['server_ind']}({server_id})成功，并删除{n_del}个vban')   
+        await BF1_UNBIND.finish(MessageSegment.reply(event.message_id) + f'从群组{main_groupqq}解绑{server_ind}({server_id})成功，并删除{n_del}个vban')   
 
 @BF1_RMSERVER.handle()
 async def bf1_remove_server_invoke(event: GroupMessageEvent, state: T_State):
@@ -347,41 +349,44 @@ async def bf1_remove_server_invoke(event: GroupMessageEvent, state: T_State):
         related_binds = (await session.execute(
             select(GroupServerBind).filter_by(serverid=server_id))).all()
         state['server_id'] = server[0].serverid
-        BF1_RMSERVER.send(MessageSegment.reply(event.message_id)\
-                          +f'删除该服务器将同时删除数据库内{len(related_vbans)}条Vban记录, \
-                            {len(related_vips)}条VIP记录(不执行unvip), \
-                            并从{len(related_binds)}个群解绑该服务器')
+        await BF1_RMSERVER.send(MessageSegment.reply(event.message_id)\
+                          +f'删除该服务器将同时删除数据库内{len(related_vbans)}条Vban记录, '\
+                          +f'{len(related_vips)}条VIP记录(不执行unvip), ' \
+                          +f'并从{len(related_binds)}个群解绑该服务器')
 
 
-@BF1_RMSERVER.got('msg', prompt='发送"y"确认删除服务器，发送其他内容撤销解绑')
+@BF1_RMSERVER.got('msg', prompt='发送"y"确认删除服务器，发送其他内容撤销删服')
 async def bf1_rmserver_confirm(event: GroupMessageEvent, state: T_State, msg: Message = ArgStr("msg")):
     server_id = state['server_id']
-    async with async_db_op() as session:
-        server = (await session.execute(select(Servers).filter_by(serverid=server_id))).first()
-        try:
-            related_vbans = (await session.execute(
-                select(ServerVBans).filter_by(serverid=server_id))).all()
-            related_vips = (await session.execute(
-                select(ServerVips).filter_by(serverid=server_id))).all()
-            related_binds = (await session.execute(
-                select(GroupServerBind).filter_by(serverid=server_id))).all()
-            related_bfadmins = (await session.execute(
-                select(ServerBf1Admins).filter_by(serverid=server_id))).all()
-            for r in related_vbans:
-                await session.delete(r[0])
-            for r in related_vips:
-                await session.delete(r[0])
-            for r in related_binds:
-                await session.delete(r[0])
-            for r in related_bfadmins:
-                await session.delete(r[0])
-            await session.delete(server[0])
-        except Exception as e:
-            await session.rollback()
-            BF1_RMSERVER.finish(MessageSegment.reply(event.message_id) + f'删除服务器{server_id}失败\n' + traceback.format_exception_only(e))   
-        else:
-            await session.commit()
-            await BF1_RMSERVER.finish(MessageSegment.reply(event.message_id) + f'删除服务器{server_id}成功，请注意服务器实际VIP需要使用插件手动清除')   
+    if msg == 'y' or msg == 'Y':
+        async with async_db_session() as session:
+            server = (await session.execute(select(Servers).filter_by(serverid=server_id))).first()
+            try:
+                related_vbans = (await session.execute(
+                    select(ServerVBans).filter_by(serverid=server_id))).all()
+                related_vips = (await session.execute(
+                    select(ServerVips).filter_by(serverid=server_id))).all()
+                related_binds = (await session.execute(
+                    select(GroupServerBind).filter_by(serverid=server_id))).all()
+                related_bfadmins = (await session.execute(
+                    select(ServerBf1Admins).filter_by(serverid=server_id))).all()
+                for r in related_vbans:
+                    await session.delete(r[0])
+                for r in related_vips:
+                    await session.delete(r[0])
+                for r in related_binds:
+                    await session.delete(r[0])
+                for r in related_bfadmins:
+                    await session.delete(r[0])
+                await session.delete(server[0])
+            except Exception as e:
+                await session.rollback()
+                await BF1_RMSERVER.finish(MessageSegment.reply(event.message_id) + f'删除服务器{server_id}失败\n' + traceback.format_exception_only(e))   
+            else:
+                await session.commit()
+                await BF1_RMSERVER.finish(MessageSegment.reply(event.message_id) + f'删除服务器{server_id}成功，请注意服务器实际VIP需要使用插件手动清除')
+    else:
+        await BF1_RMSERVER.send(MessageSegment.reply(event.message_id) + '操作取消')
 
 @BF1_RMGROUP.handle()
 async def bf1_remove_group_invoke(event: GroupMessageEvent, state: T_State):
@@ -398,31 +403,45 @@ async def bf1_remove_group_invoke(event: GroupMessageEvent, state: T_State):
         related_groups = (await session.execute(select(ChatGroups).filter(ChatGroups.groupqq!=groupqq, ChatGroups.bind_to_group==groupqq))).all()
         if len(related_groups):
             await BF1_RMGROUP.finish(MessageSegment.reply(event.message_id)+f'群组{groupqq}被以下群组关联，请修改后再执行删除操作\n'\
-                                     + '\n'.join(r[0].groupqq for r in related_groups))
+                                     + '\n'.join(str(r[0].groupqq) for r in related_groups))
         state['groupqq'] = groupqq
-        BF1_RMGROUP.send(MessageSegment.reply(event.message_id)\
-                          +f'删除群组{groupqq}, 将同时删除数据库内{len(group[0].admins)}条群组管理记录, \
-                            {len(group[0].members)}条群成员记录, \
-                            并解绑{len(group[0].admins)}个服务器')
+        admins = (await session.execute(select(GroupAdmins).filter_by(groupqq=groupqq))).all()
+        members = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq))).all()
+        binds = (await session.execute(select(GroupServerBind).filter_by(groupqq=groupqq))).all()
+        await BF1_RMGROUP.send(MessageSegment.reply(event.message_id)\
+                            + f'删除群组{groupqq}\n'\
+                            + f'将同时删除数据库内{len(admins)}条群组管理记录\n'\
+                            + f'{len(members)}条群成员记录' \
+                            + f'并解绑{len(binds)}个服务器')
 
 
-@BF1_RMGROUP.got('msg', prompt='发送"y"确认删除群，发送其他内容撤销解绑')
+@BF1_RMGROUP.got('msg', prompt='发送"y"确认删除群，发送其他内容撤销删群')
 async def bf1_rmgroup_confirm(event: GroupMessageEvent, state: T_State, msg: Message = ArgStr("msg")):
     groupqq = state['groupqq']
-    async with async_db_op() as session:
-        group = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
-        try:
-            for r in group.admins:
-                await session.delete(r)
-            for r in group.members:
-                await session.delete(r)
-            for r in group.servers:
-                await session.delete(r)
-            await session.delete(groupqq)
-        except Exception as e:
-            await session.rollback()
-            BF1_RMGROUP.finish(MessageSegment.reply(event.message_id) + f'删除群组{groupqq}失败\n' + traceback.format_exception_only(e))   
-        else:
-            await session.commit()
-            await BF1_RMGROUP.finish(MessageSegment.reply(event.message_id) + f'删除群组{groupqq}成功')  
+    if msg == 'y' or msg == 'Y':
+        async with async_db_session() as session:
+            group = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq).options(
+                    selectinload(ChatGroups.admins),
+                    selectinload(ChatGroups.members),
+                    selectinload(ChatGroups.servers)
+                ))).first()
+            try:
+                related_vbans = (await session.execute(select(ServerVBans).filter_by(notify_group=groupqq))).all()
+                for r in related_vbans:
+                    r[0].notify_group = None
+                for r in group[0].admins:
+                    await session.delete(r)
+                for r in group[0].members:
+                    await session.delete(r)
+                for r in group[0].servers:
+                    await session.delete(r)
+                await session.delete(group[0])
+            except Exception as e:
+                await session.rollback()
+                await BF1_RMGROUP.finish(MessageSegment.reply(event.message_id) + f'删除群组{groupqq}失败\n' + traceback.format_exception_only(e))   
+            else:
+                await session.commit()
+                await BF1_RMGROUP.finish(MessageSegment.reply(event.message_id) + f'删除群组{groupqq}成功')  
+    else:
+        await BF1_RMGROUP.send(MessageSegment.reply(event.message_id) + '操作取消')
  
