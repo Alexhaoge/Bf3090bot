@@ -2189,7 +2189,7 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
         draw.text(xy=(10,60*i), text=str(i+1)+'. '+logtime ,fill=(0, 0, 100, 255),font=font_0)
         
     userName_res = await upd_getPersonasByIds(remid, sid, sessionID,pids)
-    names = {str(pid): userName_res['result'][str(pid)]['displayName'] for pid in pids}
+    names = {str(pid): (userName_res['result'][str(pid)]['displayName'] if str(pid) in userName_res['result'] else str(pid)) for pid in pids}
     
     for i in range(len(logs)):
         logtime = logs[i].split("|")[0].strip()
