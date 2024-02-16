@@ -264,10 +264,18 @@ async def upd_gameId():
 
     print(f"共更新{len(serverId_list)}个私服详细信息")
 
-    db_admin_pids = [r[0] for r in db_op(conn, 'SELECT pid FROM bf1admins', [])]
+    db_admin_pids = set(r[0] for r in db_op(conn, 'SELECT pid FROM bf1admins', []))
     
     server_bf1admins_add = []
     server_bf1admins_del = []
+
+    for serverid, ownlist in owner_dict.items():
+        pid = int(ownlist[0]["personaId"])
+        if pid in db_admin_pids:
+            server_bf1admins_exist = db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=? AND pid=?;', [serverid, pid])
+            if not len(server_bf1admins_exist):
+                server_bf1admins_add.append((int(serverid), pid))
+            admin_dict[serverid].append(ownlist[0])
 
     for serverid, adlist in admin_dict.items():
         server_bf1admins_exist = set(int(r[0]) for r in db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=?;', [serverid]))
@@ -278,10 +286,7 @@ async def upd_gameId():
         server_bf1admins_add.extend(
             ((int(serverid), pid) for pid in list(real_bf1admins_esist.difference(server_bf1admins_exist)))
         )
-    for serverid, ownlist in owner_dict.items():
-        pid = int(ownlist[0]["personaId"])
-        if pid in db_admin_pids:
-            server_bf1admins_add.append((int(serverid), pid))
+    
     print(server_bf1admins_del)
     print(server_bf1admins_add)
     db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=? AND pid=?;', server_bf1admins_del)

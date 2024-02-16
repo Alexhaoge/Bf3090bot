@@ -113,7 +113,7 @@ async def check_session(groupqq: int) -> int:
         group_rec = (await session.execute(select(ChatGroups).filter_by(groupqq=int(groupqq)))).first()
     return int(group_rec[0].bind_to_group) if group_rec else 0
 
-async def check_server_id(groupqq: int, server_ind: str) -> Tuple[str, int] | None:
+async def check_server_id(groupqq: int, server_ind: str) -> Tuple[str, int] | Tuple[None, None]:
     """
     Return the true server_ind, serverid from group server alias
     """

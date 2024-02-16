@@ -61,9 +61,9 @@ class ChatGroups(Base):
     bind_to_group = Column(BigInteger, ForeignKey(groupqq)) # Primary group qq
     welcome = Column(String, default='', nullable=True)
     alarm = Column(Boolean, default=0)
-    members = relationship("GroupMembers")
-    admins = relationship("GroupAdmins")
-    servers = relationship("GroupServerBind")
+    members = relationship("GroupMembers", back_populates='chatgroup')
+    admins = relationship("GroupAdmins", back_populates='chatgroup')
+    servers = relationship("GroupServerBind", back_populates='chatgroup')
 
 
 class GroupMembers(Base):
@@ -74,6 +74,7 @@ class GroupMembers(Base):
     qq = Column(BigInteger, nullable=False)
     groupqq = Column(BigInteger, ForeignKey('groups.groupqq'))
     pid = Column(BigInteger, nullable=False)
+    chatgroup = relationship("ChatGroups", back_populates='members')
     __table_args__ = (
         PrimaryKeyConstraint(groupqq, qq),
         {}
@@ -85,6 +86,7 @@ class GroupAdmins(Base):
     qq = Column(BigInteger)
     groupqq = Column(BigInteger, ForeignKey('groups.groupqq'))
     perm = Column(Integer, nullable=True, default=0) # Reserved column for finner grade access control
+    chatgroup = relationship("ChatGroups", back_populates='admins')
     __table_args__ = (
         PrimaryKeyConstraint(groupqq, qq),
         {}
@@ -98,6 +100,7 @@ class GroupServerBind(Base):
     ind = Column(String, nullable=False)
     alias = Column(String, nullable=True)
     whitelist = Column(String, nullable=True)
+    chatgroup = relationship("ChatGroups", back_populates='servers')
     # Reserved column for access control group server bind
     # purpose: restrict admin access to a server that does not belong
     # to this chat group yet bind to monitor
