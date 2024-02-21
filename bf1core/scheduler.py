@@ -99,7 +99,7 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
             continue
         result = result["result"]
         server_list = result['gameservers']
-        for server in server_list:
+        for i, server in enumerate(server_list):
             gameid = str(server["gameId"])
             if gameid not in draw_dict and int(server["slots"]["Soldier"]["current"])!=0:
                 draw_dict[gameid] = {
@@ -109,7 +109,7 @@ async def upd_draw(remid,sid,sessionID, timeout: int = None):
                     "map": server["mapName"]
                 }
                 await redis_client.hmset(f'draw_dict:{gameid}', draw_dict[gameid])
-                await redis_client.expire(f'draw_dict:{gameid}', time=120)
+                await redis_client.expire(f'draw_dict:{gameid}', time=180+(i%20))
 
     print(f"共获取{len(draw_dict)}个私服")
 
@@ -221,7 +221,11 @@ async def kick_vbanPlayer(pljson: dict, sgids: list, vbans: dict):
                     reason = report_dict["reason"]
                     personaId = report_dict["personaId"]
                     groupqq = report_dict["groupqq"]
+                    if not groupqq:
+                        continue
                     name = await redis_client.hget(f'draw_dict:{gameId}', "server_name")
+                    if not name:
+                        name = f'gameid:{gameId}'
                     if res_pid and str(personaId) in res_pid['result']:
                         eaid = res_pid['result'][str(personaId)]['displayName']
                     else:

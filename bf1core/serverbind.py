@@ -46,10 +46,10 @@ async def bf1_init(event:GroupMessageEvent, state:T_State):
     await BF1_INIT.send(MessageSegment.reply(event.message_id) + f'初始化完成：{main_groupqq}')
 
 @BF1_INIT2.handle()
-async def bf1_init(event:GroupMessageEvent, state:T_State):
+async def bf1_init2(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split(maxsplit=1)
-    if arg.startswith(f'{PREFIX}'):
+    if arg[0].startswith(f'{PREFIX}'):
         await BF1_INIT2.send(MessageSegment.reply(event.message_id)+'参数格式不正确')
     if len(arg) > 1:
         groupqq, main_groupqq = int(arg[0]), int(arg[1])
