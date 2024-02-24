@@ -117,6 +117,8 @@ async def check_server_id(groupqq: int, server_ind: str) -> Tuple[str, int] | Tu
     """
     Return the true server_ind, serverid from group server alias
     """
+    if not groupqq:
+        return None, None
     server_id = str(server_ind)
     async with async_db_session() as session:
         group_server = (await session.execute(
