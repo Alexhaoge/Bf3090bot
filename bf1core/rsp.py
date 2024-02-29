@@ -12,9 +12,10 @@ import traceback
 
 from sqlalchemy.future import select
 from pathlib import Path
+from PIL import Image
 
 from ..utils import (
-    PREFIX, BF1_SERVERS_DATA,  MapTeamDict,
+    PREFIX, BF1_SERVERS_DATA,  MapTeamDict, CURRENT_FOLDER,
     getSettings, UpdateDict, UpdateDict_1, ToSettings
 )
 from ..bf1rsp import *
@@ -1328,12 +1329,11 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
 
             sets = getSettings(settings)
 
-            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png' 
-            file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'               
-            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n配置: {sets}\n" + MessageSegment.image(file_dir) + MessageSegment.image(file_dir1))
+            im = Image.open(Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png')    
+            im1 = Image.open(Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png')
+                  
+            await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f"名称: {name}\n简介: {description}\n图池: {map.rstrip()}\n配置: {sets}\n" + MessageSegment.image(base64img(im)) + MessageSegment.image(base64img(im1)))
         elif len(arg) < 3 or arg[1] not in ["name","desc","map","set"]:
-            file_dir = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info.png'
-            file_dir1 = Path('file:///') / BF1_SERVERS_DATA/'Caches'/f'info1.png'
             await BF1_UPD.finish(MessageSegment.reply(event.message_id) + ".配置 <服务器> info\n.配置 <服务器> name <名称>\n.配置 <服务器> desc <简介>\n.配置 <服务器> map <地图>\n.配置 <服务器> set <设置>\n示例: \n1).配置 1 map 1z 2z 3z 15z 21z\n2).配置 1 set 1-off 2-off 40-50%\n3).配置 1 set 默认值\n详细配置图请输入.配置 <服务器> info查询\n请谨慎配置行动服务器\n请确认配置内容的合法性:\n服务器名纯英文需低于64字节\n简介需低于256字符且低于512字节\n为避免混淆，服务器设置均按默认值为基础来修改，与服务器现有配置无关。")
         else:
             server_ind, server_id = await check_server_id(groupqq,arg[0])
