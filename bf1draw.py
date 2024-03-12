@@ -959,7 +959,7 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
     pljson = await get_blazeplbyid(remid,sid,sessionID,gameId)
     detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
     vipList = detailedServer['result']["rspInfo"]['vipList']
-    adminList = detailedServer['result']["rspInfo"]['adminList']
+    adminList = detailedServer['result']["rspInfo"]['adminList'] + detailedServer['result']['rspInfo']['owner']
 
     async with async_db_session() as session:
         server_row = (await session.execute(select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()
@@ -1123,7 +1123,7 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
         draw.text(xy=(800,90+30*i), text=f'{int(stat1[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
         draw.text(xy=(865,90+30*i), text=f'{stat1[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
         
-        f['pl'].append({'slot': i+1, 'rank': stat1[i]['rank'], 'kd': stat1[i]['killDeath'], 'kp': stat1[i]['killsPerMinute'], 'id': stat1[i]['id']})
+        f['pl'].append({'slot': i+1, 'rank': stat1[i]['rank'], 'kd': stat1[i]['killDeath'], 'kp': stat1[i]['killsPerMinute'], 'id': stat1[i]['id'], 'name': stat1[i]["userName"]})
     
     position = (60, 110)
     img.paste(textbox, position, textbox)
@@ -1239,7 +1239,7 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
         draw.text(xy=(800,90+30*i), text=f'{int(stat2[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
         draw.text(xy=(865,90+30*i), text=f'{stat2[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
 
-        f['pl'].append({'slot': i+33, 'rank': stat2[i]['rank'], 'kd': stat2[i]['killDeath'], 'kp': stat2[i]['killsPerMinute'], 'id': stat2[i]['id']})
+        f['pl'].append({'slot': i+33, 'rank': stat2[i]['rank'], 'kd': stat2[i]['killDeath'], 'kp': stat2[i]['killsPerMinute'], 'id': stat2[i]['id'], 'name': stat2[i]["userName"]})
     
     position = (960, 110)
     img.paste(textbox1, position, textbox1)
@@ -1352,7 +1352,7 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
             draw.text(xy=(800+900*(i%2),30*(i//2)), text=f'{int(stat3[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
             draw.text(xy=(865+900*(i%2),30*(i//2)), text=f'{stat3[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
 
-            f['pl'].append({'slot': i+65, 'rank': stat3[i]['rank'], 'kd': stat3[i]['killDeath'], 'kp': stat3[i]['killsPerMinute'], 'id': stat3[i]['id']})
+            f['pl'].append({'slot': i+65, 'rank': stat3[i]['rank'], 'kd': stat3[i]['killDeath'], 'kp': stat3[i]['killsPerMinute'], 'id': stat3[i]['id'], 'name': stat3[i]["userName"]})
         
         draw.line((0, 32+30*(i//2), 1860, 32+30*(i//2)), fill=(128, 128, 128, 255), width=4)
         img.paste(textbox2, (60,1176), textbox2)
@@ -1441,12 +1441,12 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
             draw.text(xy=(800+900*(i%2),30*(i//2)), text=f'{int(stat4[i]["secondsPlayed"])//3600}' ,fill=(255, 255, 255, 255),font=font_2)
             draw.text(xy=(865+900*(i%2),30*(i//2)), text=f'{stat4[i]["loc"]}' ,fill=(255, 255, 255, 255),font=font_2)
             
-            f['pl'].append({'slot': i+69, 'rank': stat4[i]['rank'], 'kd': stat4[i]['killDeath'], 'kp': stat4[i]['killsPerMinute'], 'id': stat4[i]['id']})
+            f['pl'].append({'slot': i+69, 'rank': stat4[i]['rank'], 'kd': stat4[i]['killDeath'], 'kp': stat4[i]['killsPerMinute'], 'id': stat4[i]['id'], 'name': stat4[i]["userName"]})
         
         draw.line((0, 32+30*(i//2), 1860, 32+30*(i//2)), fill=(128, 128, 128, 255), width=4)
         img.paste(textbox2, (60,1176 if len(stat3)==0 else 1176+10+30*((len(stat3)+1)//2)), textbox2)
     
-    f['pl'].append({'slot': 100, 'rank': 0, 'kd': 0, 'kp': 0, 'id': 0})
+    f['pl'].append({'slot': 100, 'rank': 0, 'kd': 0, 'kp': 0, 'id': 0, 'name': None})
     f['serverid'] = server_id
     f['serverind'] = server_ind
 

@@ -41,7 +41,7 @@ BF1_R= on_command(f'{PREFIX}r', aliases={f'{PREFIX}对局'}, block=True, priorit
 BF1_RE= on_command(f'{PREFIX}最近', block=True, priority=1)
 
 #serverbind
-BF1_INIT = on_command(f'{PREFIX}init', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
+BF1_INIT = on_command(f'{PREFIX}init', block=True, priority=1, permission=SUPERUSER)
 BF1_INIT2 = on_command(f'{PREFIX}sudoinit', block=True, priority=1, permission=SUPERUSER)
 BF1_BIND = on_command(f'{PREFIX}绑服', block=True, priority=1, permission=SUPERUSER)
 BF1_BIND2 = on_command(f'{PREFIX}管理绑服', block=True, priority=1, permission=SUPERUSER)
@@ -104,11 +104,11 @@ plugin_service = create_plugin_service("bf3090bot")
 # Chat group management 
 group_subservice = plugin_service.create_subservice('group')
 approve_req_subservice = group_subservice.create_subservice('approv_req')
-approve_req_subservice.patch_matcher(add_user)
-approve_req_subservice.patch_matcher(approve_req)
+# approve_req_subservice.patch_matcher(add_user)
+# approve_req_subservice.patch_matcher(approve_req)
 
 add_user_subservice = group_subservice.create_subservice('add_user')
-add_user_subservice.patch_matcher(get_user)
+#add_user_subservice.patch_matcher(get_user)
 add_user_subservice.patch_matcher(welcome_user)
 
 bye_user_subservice = group_subservice.create_subservice('bye_user')

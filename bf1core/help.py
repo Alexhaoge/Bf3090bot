@@ -24,7 +24,7 @@ async def bf_help(event:MessageEvent, state:T_State):
 
     pic = await md_to_pic(md_help, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=900)
 
-    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + '捐赠地址：https://afdian.net/a/Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。\n使用EAC功能请直接输入.举报 id。\n更多问题请输入.FAQ查询或加群908813634问我。')
+    await BF1_HELP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(pic) + 'bot使用完全免费但欢迎捐赠，捐赠地址：https://afdian.net/a/Mag1Catz，所有收益将用于服务器运行。输入.code [代码]可以更换查战绩背景。\n使用EAC功能请直接输入.举报 id。\n更多问题请输入.FAQ查询或加群908813634问我。')
 
 @BF1_FAQ.handle()
 async def bf_faq(event:MessageEvent, state:T_State):
