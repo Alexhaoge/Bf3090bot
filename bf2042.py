@@ -17,14 +17,14 @@ import time
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md, \
     get_classes_data_md
-from .utils import PREFIX, BF2042_PLAYERS_DATA, CODE_FOLDER, ASSETS_FOLDER, request_API
+from .utils import PREFIX, BF2042_PLAYERS_DATA, CODE_FOLDER, ASSETS_FOLDER, request_GT_API
 
 GAME = 'bf2042'
 LANG = 'zh-cn'
 
 
 def get_player_data(player_name: str) -> dict:
-    res = request_API(GAME, 'stats', {'name': player_name})
+    res = request_GT_API(GAME, 'stats', {'name': player_name})
     return res
 
 

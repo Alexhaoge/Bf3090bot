@@ -18,7 +18,7 @@ from sqlalchemy import func
 from io import BytesIO
 from PIL import Image
 
-from ..utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CURRENT_FOLDER, request_API
+from ..utils import PREFIX, BF1_PLAYERS_DATA, BF1_SERVERS_DATA, CURRENT_FOLDER, request_GT_API
 from ..bf1rsp import *
 from ..bf1draw import *
 from ..bf1draw2 import draw_server_array2
@@ -272,13 +272,13 @@ async def bf_plaa(event:GroupMessageEvent, state:T_State):
 async def bf_status(event:GroupMessageEvent, state:T_State):
     try:
         tasks = []
-        tasks.append(asyncio.create_task(request_API('bf1942','status')))
-        tasks.append(asyncio.create_task(request_API('bf2','status',{"platform":"pc"})))
-        tasks.append(asyncio.create_task(request_API('bf3','status')))
-        tasks.append(asyncio.create_task(request_API('bf4','status',{"platform":"pc"})))
-        tasks.append(asyncio.create_task(request_API('bf1','status',{"platform":"pc"})))
-        tasks.append(asyncio.create_task(request_API('bfv','status',{"platform":"pc"})))
-        tasks.append(asyncio.create_task(request_API('bf2042','status')))
+        tasks.append(asyncio.create_task(request_GT_API('bf1942','status')))
+        tasks.append(asyncio.create_task(request_GT_API('bf2','status',{"platform":"pc"})))
+        tasks.append(asyncio.create_task(request_GT_API('bf3','status')))
+        tasks.append(asyncio.create_task(request_GT_API('bf4','status',{"platform":"pc"})))
+        tasks.append(asyncio.create_task(request_GT_API('bf1','status',{"platform":"pc"})))
+        tasks.append(asyncio.create_task(request_GT_API('bfv','status',{"platform":"pc"})))
+        tasks.append(asyncio.create_task(request_GT_API('bf2042','status')))
         bf1942_json, bf2_json, bf3_json, bf4_json, bf1_json, bf5_json, bf2042_json = await asyncio.gather(*tasks)
 
         try:
@@ -455,7 +455,7 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
     _, server_id = await check_server_id(groupqq,arg[0])
     gameId = await get_gameid_from_serverid(server_id)
         
-        # server_array = await request_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
+        # server_array = await request_GT_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
     try:
         img = draw_server_array2(str(gameId))
         await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))

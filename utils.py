@@ -99,6 +99,7 @@ PREFIX = config.bfchat_prefix
 
 DATABASE_URL = config.database_url
 REDIS_URL = config.redis_url
+GAMETOOL_URL = config.gametool_url
 
 CURRENT_FOLDER = Path(config.bfchat_dir).resolve()
 CURRENT_FOLDER.mkdir(exist_ok=True)
@@ -117,23 +118,22 @@ LOGGING_FOLDER.mkdir(exist_ok=True)
 SUPERUSERS = [int(su) for su in global_config.superusers]
 SUDOGROUPS = [int(g) for g in global_config.sudogroups]
 
-API_SITE = "https://api.gametools.network/"
 
 with open(CURRENT_FOLDER/"wp_guid.json","r",encoding="utf-8")as f:
     wp_guid = json.load(f)
 with open(CURRENT_FOLDER/"skininfo.json","r",encoding="utf-8")as f:
     skininfo = json.load(f)
 
-async def request_API(game, prop='stats', params={}):
+httpx_gt_client = httpx.AsyncClient(base_url=GAMETOOL_URL, limits=httpx.Limits(max_connections=50))
+async def request_GT_API(game, prop='stats', params={}):
     """
     Depreacated
     """
-    url = API_SITE+f'{game}/{prop}'
-    async with httpx.AsyncClient() as client:
-        res = await client.get(url,params=params,timeout=20)
+    url = GAMETOOL_URL+f'{game}/{prop}'
+    res = await httpx_gt_client.get(url,params=params,timeout=20)
     return res.json()
 
-    return str1
+
 def get_wp_info(message:str,user_id:int):
     wpmode = 0
     match message:

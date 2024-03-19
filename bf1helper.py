@@ -19,7 +19,7 @@ from .rdb import *
 from .redis_helper import redis_client
 from .utils import (
     BF1_SERVERS_DATA, SUPERUSERS, SUDOGROUPS,
-    request_API
+    request_GT_API
 )
 
 GAME = 'bf1'
@@ -290,7 +290,7 @@ async def update_or_bind_player_name(
                     playerName = usercard
                     personaId,userName,pidid = await getPersonasByName(access_token, playerName)
                 except Exception as e:
-                    ret_dict['err'] = f'您还未绑定，尝试绑定{usercard}失败\n' + \
+                    ret_dict['err'] = f'您还未绑定，尝试绑定{usercard}失败\n请使用.bind加游戏用户名手动绑定\n' + \
                         (e.echo() if isinstance(e, RSPException) else str(e))
                     return ret_dict
                 ret_dict['msg'] = f'您还未绑定，尝试绑定{usercard}成功'
@@ -307,10 +307,10 @@ async def update_or_bind_player_name(
     return ret_dict
 
 async def get_bf1status(game:str):
-    return await request_API(game,'status',{"platform":"pc"})
+    return await request_GT_API(game,'status',{"platform":"pc"})
 
 async def get_player_id(player_name:str)->dict:
-    return await request_API(GAME,'player',{'name':player_name})
+    return await request_GT_API(GAME,'player',{'name':player_name})
 
 async def get_pl(gameID:str)->dict:
     response = await httpx_client.get(
@@ -322,19 +322,19 @@ async def get_pl(gameID:str)->dict:
     return response.json()
 
 async def get_player_data(player_name:str)->dict:
-    return await request_API(GAME,'all',{'name':player_name,'lang':LANG})
+    return await request_GT_API(GAME,'all',{'name':player_name,'lang':LANG})
 
 async def get_player_databyID(personaId)->dict:
-    return await request_API(GAME,'all',{'playerid':personaId,'lang':LANG})
+    return await request_GT_API(GAME,'all',{'playerid':personaId,'lang':LANG})
 
 async def get_server_data(server_name:str)->dict:
-    return await request_API(GAME,'servers',{'name':server_name,'lang':LANG,"platform":"pc","limit":20})
+    return await request_GT_API(GAME,'servers',{'name':server_name,'lang':LANG,"platform":"pc","limit":20})
 
 async def get_detailedServer_data(server_name:str)->dict:
-    return await request_API(GAME,'detailedserver',{'name':server_name})
+    return await request_GT_API(GAME,'detailedserver',{'name':server_name})
 
 async def get_detailedServer_databyid(server_name)->dict:
-    return await request_API(GAME,'detailedserver',{'gameid':server_name})
+    return await request_GT_API(GAME,'detailedserver',{'gameid':server_name})
 
 async def _is_del_user(event: Event) -> bool:
     return isinstance(event, GroupDecreaseNoticeEvent)

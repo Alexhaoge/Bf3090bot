@@ -19,7 +19,7 @@ from .bf1rsp import (
 
 from .utils import (
     PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
-    CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER, main_log_filter
+    CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER, main_log_filter, httpx_gt_client
 )
 
 from . import bf1helper, bfv, bf2042
@@ -68,6 +68,7 @@ async def close_on_bot_shutdown():
     await redis_pool.aclose()
     await httpx_client.aclose()
     await httpx_client_proxy.aclose()
+    await httpx_gt_client.aclose()
 
 
 BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)

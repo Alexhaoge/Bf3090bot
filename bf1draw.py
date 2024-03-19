@@ -959,7 +959,8 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
     pljson = await get_blazeplbyid(remid,sid,sessionID,gameId)
     detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
     vipList = detailedServer['result']["rspInfo"]['vipList']
-    adminList = detailedServer['result']["rspInfo"]['adminList'] + detailedServer['result']['rspInfo']['owner']
+    adminList = detailedServer['result']["rspInfo"]['adminList']
+    adminList.append(detailedServer['result']['rspInfo']['owner'])
 
     async with async_db_session() as session:
         server_row = (await session.execute(select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()

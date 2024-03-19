@@ -18,16 +18,16 @@ import time
 
 from .config import Config
 from .template import apply_template, get_vehicles_data_md, get_weapons_data_md, get_group_list, get_server_md
-from .utils import PREFIX, BFV_PLAYERS_DATA, ASSETS_FOLDER, CODE_FOLDER, request_API
+from .utils import PREFIX, BFV_PLAYERS_DATA, ASSETS_FOLDER, CODE_FOLDER, request_GT_API
 
 GAME = 'bfv'
 LANG = 'zh-cn'
 
 def get_player_data(player_name:str)->dict:
-    return request_API(GAME,'all',{'name':player_name,'lang':LANG})
+    return request_GT_API(GAME,'all',{'name':player_name,'lang':LANG})
 
 def get_server_data(server_name:str)->dict:
-    return request_API(GAME,'servers',{'name':server_name,'lang':LANG,"platform":"pc","limit":20})
+    return request_GT_API(GAME,'servers',{'name':server_name,'lang':LANG,"platform":"pc","limit":20})
 
 
 BFV_BIND = on_command(f'{PREFIX}bfv bind', block=True, priority=1)
