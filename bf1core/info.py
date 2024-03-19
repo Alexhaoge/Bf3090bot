@@ -547,7 +547,11 @@ async def bf1_fadmin(event:GroupMessageEvent, state:T_State):
     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
 
     try:
-        res = await upd_servers(remid, sid, sessionID, serverName)
+        res_search = await upd_servers(remid, sid, sessionID, serverName)
+        res_servers = res_search['result']['gameservers']
+        server_fullname = res_servers[0]['name']
+        gameId = res_servers[0]['gameId']
+        res = await upd_detailedServer(remid, sid, sessionID, gameId)
         adminlist = (i['displayName'] for i in res['result']['rspInfo']['adminList'])
     except RSPException as rsp_exc:
         await BF1_FADMIN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
@@ -556,4 +560,4 @@ async def bf1_fadmin(event:GroupMessageEvent, state:T_State):
         await BF1_FADMIN.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
                                 + traceback.format_exception_only(e))
     else:
-        await BF1_FADMIN.send(MessageSegment.reply(event.message_id) + '\n'.join(adminlist))
+        await BF1_FADMIN.send(MessageSegment.reply(event.message_id) + server_fullname + '\n' + '\n'.join(adminlist))

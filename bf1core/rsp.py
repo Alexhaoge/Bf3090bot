@@ -1188,7 +1188,7 @@ async def bf1_whitelist(event: GroupMessageEvent, state: T_State):
         async with async_db_session() as session:
             server_row = (await session.execute(
                 select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()
-            if server_row.whitelist:
+            if server_row[0].whitelist:
                 msg = f'{arg[0]}服白名单:\n'
                 remid, sid, sessionID, _ = await get_one_random_bf1admin()
                 wl_pids = [int(s) for s in server_row[0].whitelist.split(',')]
