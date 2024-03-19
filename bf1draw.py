@@ -967,7 +967,12 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
         whiteList = []
         if server_row:
             if server_row[0].whitelist:
-                whiteList = server_row[0].whitelist.split(',')
+                whiteList_pid = server_row[0].whitelist.split(',')
+                wl_json = await upd_getPersonasByIds(remid, sid, sessionID, whiteList_pid)
+                if 'error' in wl_json:
+                    logging.debug('Whitelist query failed')
+                else:
+                    whiteList = [value['displayName'] for value in wl_json['result'].values()]
         else:
             logging.debug('whitelist not found')
 
@@ -976,7 +981,7 @@ async def draw_pl2(groupqq: int, server_ind: str, server_id: int, gameId: int,
         member_json = await upd_getPersonasByIds(remid, sid, sessionID,personaIds)
         if 'error' in member_json:
             memberList = []
-            logging.debug('memberList not found')
+            logging.debug('memberList query failed')
         else:
             member_json = member_json['result']
             memberList = [value['displayName'] for value in member_json.values()]

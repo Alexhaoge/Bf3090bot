@@ -35,7 +35,8 @@ from .matcher import (
     BF1_VIP,BF1_VIPLIST,BF1_CHECKVIP,BF1_UNVIP,
     BF1_PL,BF1_ADMINPL,BF1_PLS,BF1_PLSS,
     BF1_UPD,
-    BF1_INSPECT
+    BF1_INSPECT,
+    BF1_WHITELIST, BF1_ADDWL, BF1_RMWL
 )
 
 @BF1_ADDBF1ACCOUNT.handle()
@@ -866,7 +867,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
         if reply_message_id(event) == None:
             server_ind, server_id = await check_server_id(groupqq,arg[0])
             if not server_ind:
-                await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+                await BF1_VIP.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             personaName = arg[1]
             access_token = (await get_one_random_bf1admin())[3]
             try:
@@ -1001,7 +1002,7 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
     if admin_perm:
         server_ind, server_id = await check_server_id(groupqq,arg[0])
         if not server_ind:
-            await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+            await BF1_VIPLIST.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         dt_now = datetime.datetime.now()
         async with async_db_session() as session:
             vip_rows = (await session.execute(select(ServerVips).filter_by(serverid=server_id))).all()
@@ -1035,7 +1036,7 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
     if admin_perm:
         server_ind, server_id = await check_server_id(session,arg[0])
         if not server_ind:
-            await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+            await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
 
         gameid = await get_gameid_from_serverid(server_id)
         remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
@@ -1172,6 +1173,104 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
     else:
         await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
+
+@BF1_WHITELIST.handle()
+async def bf1_whitelist(event: GroupMessageEvent, state: T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split()
+    groupqq = await check_session(event.group_id)
+
+    admin_perm = await check_admin(groupqq, event.user_id)
+    if admin_perm:
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
+        if not server_ind:
+            await BF1_WHITELIST.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+        async with async_db_session() as session:
+            server_row = (await session.execute(
+                select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id))).first()
+            if server_row.whitelist:
+                msg = f'{arg[0]}服白名单:\n'
+                remid, sid, sessionID, _ = await get_one_random_bf1admin()
+                wl_pids = [int(s) for s in server_row[0].whitelist.split(',')]
+                wl_json = await upd_getPersonasByIds(remid, sid, sessionID, wl_pids)
+                if 'error' in wl_json:
+                    logger.warning('Whitelist query failed')
+                    msg += server_row[0].whitelist
+                else:
+                    msg += '\n'.join(value['displayName'] for value in wl_json['result'].values())
+            else:
+                msg = f'{arg[0]}服白名单为空'
+        await BF1_WHITELIST.send(MessageSegment.reply(event.message_id) + msg)
+    else:
+        await BF1_WHITELIST.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+
+@BF1_ADDWL.handle()
+async def bf1_addwhitelist(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    groupqq = await check_session(event.group_id)
+    arg = message.extract_plain_text().split(maxsplit=1)
+    admin_perm = await check_admin(groupqq, event.user_id)
+    if admin_perm:
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
+        if not server_ind:
+            await BF1_WHITELIST.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+        access_token = (await get_one_random_bf1admin())[3]
+        try:
+            personaId,personaName,_ = await getPersonasByName(access_token, arg[1])
+        except RSPException as rsp_exc:
+            await BF1_ADDWL.send(MessageSegment.reply(event.message_id) + '玩家id错误\n' + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_ADDWL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n'+ traceback.format_exception_only(e))
+
+    async with async_db_session() as session:
+        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id)
+        exist_server = (await session.execute(stmt)).first()
+        if exist_server[0].whitelist:
+            wl_set = set(int(s) for s in exist_server[0].whitelist.split(','))
+            if personaId not in wl_set:
+                wl_set.add(personaId)
+                exist_server[0].whitelist = ','.join(str(i) for i in iter(wl_set))
+        else:
+            exist_server[0].whitelist = str(personaId)
+        session.add(exist_server[0])
+        await session.commit()
+    await BF1_ADDWL.send(MessageSegment.reply(event.message_id) + f'成功将添加{personaName}到{arg[0]}服白名单')
+
+@BF1_RMWL.handle()
+async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    groupqq = await check_session(event.group_id)
+    arg = message.extract_plain_text().split(maxsplit=1)
+    admin_perm = await check_admin(groupqq, event.user_id)
+    if admin_perm:
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
+        if not server_ind:
+            await BF1_WHITELIST.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+        access_token = (await get_one_random_bf1admin())[3]
+        try:
+            personaId,personaName,_ = await getPersonasByName(access_token, arg[1])
+        except RSPException as rsp_exc:
+            await BF1_RMWL.send(MessageSegment.reply(event.message_id) + '玩家id错误\n' + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_RMWL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n'+ traceback.format_exception_only(e))
+
+    async with async_db_session() as session:
+        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id)
+        exist_server = (await session.execute(stmt)).first()
+        if exist_server[0].whitelist:
+            wl_set = set(int(s) for s in exist_server[0].whitelist.split(','))
+        if personaId in wl_set:
+            wl_set.remove(personaId)
+            exist_server[0].whitelist = ','.join(str(i) for i in iter(wl_set))
+            session.add(exist_server[0])
+            await session.commit()
+            await BF1_RMWL.send(MessageSegment.reply(event.message_id) + f"已从{arg[0]}服白名单删除{personaName}")
+        else:
+            await BF1_RMWL.send(MessageSegment.reply(event.message_id) + f'{personaName}不在{arg[0]}服白名单中')
 
 
 @BF1_PL.handle()

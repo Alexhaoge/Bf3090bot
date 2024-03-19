@@ -92,7 +92,6 @@ async def user_add(event: GroupMessageEvent):
                     break
             if sign == 1:
                 break
-        (BF1_SERVERS_DATA/f'{event.group_id}_apply').mkdir(exist_ok=True)
         message_id = reply_message_id(event)
         logger.debug(message_id)
         if message_id != None:

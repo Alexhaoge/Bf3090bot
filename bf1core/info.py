@@ -31,10 +31,10 @@ from .matcher import (
     BF1_REPORT,
     BF1_BOT,
     BF1_PLA,BF1_PLAA,
-    BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,BF1_INFO,
+    BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,
     BF1_EX,
     BF1_DRAW,BF1_ADMINDRAW,
-    BF1_F
+    BF1_F, BF1_INFO, BF1_FADMIN
 )
 
 code_file_lock = asyncio.Lock()
@@ -419,7 +419,8 @@ async def bf1_info(event:GroupMessageEvent, state:T_State):
         res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
         userName = res1['result'][f'{ownerid}']['displayName']
     except RSPException as rsp_exc:
-        await BF1_INFO.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_INFO.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_INFO.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
@@ -534,3 +535,25 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         except Exception as e:
             logger.warning(traceback.format_exc())
             await BF1_F.finish(MessageSegment.reply(event.message_id) + '未查询到数据\n' + traceback.format_exception_only(e))
+
+@BF1_FADMIN.handle()
+async def bf1_fadmin(event:GroupMessageEvent, state:T_State):
+    if not check_sudo(event.group_id, event.user_id):
+        return
+
+    message = _command_arg(state) or event.get_message()
+    serverName = message.extract_plain_text()
+    serverName = html.unescape(serverName)
+    remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+
+    try:
+        res = await upd_servers(remid, sid, sessionID, serverName)
+        adminlist = (i['displayName'] for i in res['result']['rspInfo']['adminList'])
+    except RSPException as rsp_exc:
+        await BF1_FADMIN.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        await BF1_FADMIN.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
+                                + traceback.format_exception_only(e))
+    else:
+        await BF1_FADMIN.send(MessageSegment.reply(event.message_id) + '\n'.join(adminlist))
