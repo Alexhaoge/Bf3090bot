@@ -192,6 +192,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
             server_id = pl_json['serverid'] # Playerlist cache will store serverid instead of server_ind
             slots = []
             personaIds = []
+            usernames = []
             mode = 0
 
             gameId = await get_gameid_from_serverid(server_id)
@@ -204,38 +205,44 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 for i in pl:
                     if i['rank'] > int(arg[0].split(">")[1]):
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
             elif arg[0].startswith('rank大于'):
                 reason = f'rank limit {arg[0].split("大于")[1]}'
                 for i in pl:
                     if i['rank'] > int(arg[0].split("大于")[1]):
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
             elif arg[0].startswith('kd>'):
                 reason = f'kd limit {arg[0].split(">")[1]}'
                 for i in pl:
                     if i['kd'] > float(arg[0].split(">")[1]):
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
             elif arg[0].startswith('kd大于'):
                 reason = f'kd limit {arg[0].split("大于")[1]}'
                 for i in pl:
                     if i['kd'] > float(arg[0].split("大于")[1]):
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
             elif arg[0].startswith('kp大于'):
                 reason = f'kp limit {arg[0].split("大于")[1]}'
                 for i in pl:
                     if i['kp'] > float(arg[0].split("大于")[1]):
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
             elif arg[0].startswith('kp>'):
                 reason = f'kp limit {arg[0].split(">")[1]}'
                 for i in pl:
                     if i['kp'] > float(arg[0].split(">")[1]):
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
             elif arg[0] == 'all':
                 mode = 1
                 reason = zhconv.convert(' '.join(arg[1:]) if len(arg)>1 else '清服', 'zh-hant')
                 for i in pl:
                     if i['id']!=0:
                         personaIds.append(i['id'])
-                    print(personaIds)
+                        usernames.append(i['name'])
             else:
                 if arg[-1].isdigit():
                     reason = zhconv.convert('违反规则', 'zh-hant')
@@ -252,6 +259,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 for i in pl:
                     if i['slot'] in slots:
                         personaIds.append(i['id'])
+                        usernames.append(i['name'])
 
             if len(reason.encode('utf-8')) > 32:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '理由过长')
@@ -268,7 +276,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                     admin_logging_helper('kickall' if arg[0] == 'all' else 'kick', user_id, event.group_id, 
                                          main_groupqq=groupqq, server_ind=pl_json['serverind'],
                                          server_id=server_id, pid=pid, reason=reason)
-            await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出{cnt}个玩家，理由：{reason}')
+            await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出{cnt}个玩家，理由：{reason}\n' + '\n'.join(usernames))
     else:
         await BF1_KICK.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -813,10 +821,12 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
             server_id = pl_json['serverid'] # Playerlist cache will store serverid instead of server_ind
             teamIds = []
             personaIds = []
+            usernames = []
             players_to_move = set((int(i) if i.isdigit() else -1 for i in arg))
             for i in pl:
                 if int(i['slot']) in players_to_move:
                     personaIds.append(i['id'])
+                    usernames.append(i['name'])
                     if int(i['slot']) < 33:
                         teamIds.append(1)
                     else:
@@ -833,15 +843,15 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                     res = await upd_movePlayer(remid, sid, sessionID, gameId, personaIds[i], teamIds[i])
                     cnt += 1
                 except RSPException as rsp_exc:
-                    error_message = rsp_exc.echo()
+                    error_message = '部分玩家移动失败:' + rsp_exc.echo()
                     break
                 except Exception as e:
-                    error_message = traceback.format_exception_only(e)
+                    error_message = '部分玩家移动失败:' + traceback.format_exception_only(e)
                     break
                 else:
                     admin_logging_helper('move', event.user_id, event.group_id, main_groupqq=groupqq,
                                          server_ind=pl_json['serverind'], server_id=server_id, pid=personaIds[i])
-            await BF1_MOVE.send(MessageSegment.reply(event.message_id) + f'已移动{cnt}个玩家。{error_message}')
+            await BF1_MOVE.send(MessageSegment.reply(event.message_id) + f'已移动{cnt}个玩家:\n' + '\n'.join(usernames) + error_message)
     else:
         await BF1_MOVE.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -1161,6 +1171,8 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
                              server_ind=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation)
     else:
         await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+
+
 
 @BF1_PL.handle()
 async def bf_pl(event:GroupMessageEvent, state:T_State):
