@@ -10,7 +10,7 @@ import datetime
 from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
 
-from btr import fetch_id, fetch_re
+from btr import fetch_id, fetch_re, btr_url
 
 app=FastAPI()
 
@@ -23,7 +23,7 @@ class rItem(BaseModel):
     top_n: int = 3  
 
 httpx_client_btr = httpx.AsyncClient(
-    base_url='https://api.tracker.gg/api/v2', 
+    base_url=btr_url, 
     transport=httpx.AsyncHTTPTransport(retries=3))
 
 @app.post("/report/")

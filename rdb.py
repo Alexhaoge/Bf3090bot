@@ -149,6 +149,7 @@ class BotVipCodes(Base):
     __tablename__ = "botvipcodes"
     code = Column(String, primary_key=True)
     pid = Column(BigInteger, nullable=False)
+    qq = Column(BigInteger, nullable=True)
 
 ###################### Table Ends ##########################
 

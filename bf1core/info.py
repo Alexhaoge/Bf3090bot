@@ -56,19 +56,30 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
             code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
             if code_r:
                 exist_pid = code_r[0].pid
-                if int(exist_pid) != int(personaId):
+                valid = False
+                if int(exist_pid) == int(personaId):
+                    if not code_r[0].qq:
+                        valid = True
+                        code_r[0].qq = user_id
+                        session.add(code_r[0])
+                        await session.commit()
+                    elif player_r[0].qq == code_r[0].qq:
+                        valid = True
+                if valid:
+                    state["personaId"] = personaId
+                else:
                     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
                     try:
                         res = await upd_getPersonasByIds(remid, sid, sessionID, [exist_pid])
                         userName = res['result'][f'{exist_pid}']['displayName']
                     except Exception as e:
-                        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已被他人使用，使用者pid为{exist_pid}')
-                    await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}。')
-                else:
-                    state["personaId"] = personaId
+                        await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已被他人使用，使用者pid为{exist_pid}' \
+                                              + (f'({code_r[0].qq})' if code_r[0].qq else ''))
+                    await BF1_CODE.finish(MessageSegment.reply(event.message_id) + f'这个code已经被使用过，使用者id为：{userName}' \
+                                              + (f'({code_r[0].qq})' if code_r[0].qq else ''))
             else:        
                 if code in codearg:
-                    session.add(BotVipCodes(code=code, pid=personaId))
+                    session.add(BotVipCodes(code=code, pid=personaId, qq=user_id))
                     await session.commit()
                     state["personaId"] = personaId
 
