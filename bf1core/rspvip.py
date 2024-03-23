@@ -373,7 +373,10 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
-    days = int(arg[0])
+    try:
+        days = int(arg[0])
+    except:
+        days = 1
     if len(arg) > 1:
         priority = int(arg[1])
     else:
@@ -390,12 +393,19 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
             pl = pl_json['pl']
             server_id = pl_json['serverid']
             server_ind = pl_json['serverind']
-
+            
             remid, sid, sessionID, _ = await get_one_random_bf1admin()
             gameId = await get_gameid_from_serverid(server_id)
-            detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
-            adminList = [int(admin['personaId']) for admin in detailedServer['result']["rspInfo"]['adminList']]
-            adminList.append(int(detailedServer['result']['rspInfo']['owner']['personaId']))
+            try:
+                detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
+                adminList = [int(admin['personaId']) for admin in detailedServer['result']["rspInfo"]['adminList']]
+                adminList.append(int(detailedServer['result']['rspInfo']['owner']['personaId']))
+            except RSPException as rsp_exc:
+                await BF1_VIPGM.send(MessageSegment.reply(event.message_id) + '获取服务器信息失败，请稍后再试\n' + rsp_exc.echo())
+                return
+            except Exception as e:
+                logger.warning(traceback.format_exc())
+                await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + '获取服务器信息失败，请稍后再试\n' + traceback.format_exception_only(e))
 
             async with async_db_session() as session:
                 member_rows = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq))).all()
