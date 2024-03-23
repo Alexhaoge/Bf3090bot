@@ -368,8 +368,8 @@ async def bf1_vipall(event:GroupMessageEvent, state:T_State):
 
 @BF1_VIPGM.handle()
 async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
-    if not check_sudo(event.group_id, event.user_id):
-        return
+    # if not check_sudo(event.group_id, event.user_id):
+    #     return
     message = _command_arg(state) or event.get_message()
     arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
