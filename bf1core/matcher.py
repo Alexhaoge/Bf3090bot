@@ -55,12 +55,14 @@ BF1_ADDADMIN = on_command(f'{PREFIX}addadmin', block=True, priority=1, permissio
 BF1_DELADMIN = on_command(f'{PREFIX}deladmin', block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 BF1_ADMINLIST = on_command(f'{PREFIX}adminlist', aliases={f'{PREFIX}管理列表'}, block=True, priority=1, permission=GROUP_OWNER | SUPERUSER)
 
-#rsp
+############## rsp ################
 BF1_ADDBF1ACCOUNT = on_command(f'{PREFIX}bfaccount', block=True, priority=1, permission=SUPERUSER)
 BF1_F= on_command(f'{PREFIX}f', block=True, priority=1)
 BF1_CHOOSELEVEL = on_command(f'{PREFIX}map', block=True, priority=1)
+BF1_MOVE = on_command(f'{PREFIX}move', block=True, priority=1)
 BF1_KICK = on_command(f'{PREFIX}k', aliases={f'{PREFIX}kick', f'{PREFIX}踢出'}, block=True, priority=1)
 BF1_KICKALL = on_command(f'{PREFIX}kickall', aliases={f'{PREFIX}炸服', f'{PREFIX}清服'}, block=True, priority=1)
+
 BF1_BAN = on_command(f'{PREFIX}ban', block=True, priority=1)
 BF1_BANALL = on_command(f'{PREFIX}bana',aliases={f'{PREFIX}banall', f'{PREFIX}ba'}, block=True, priority=1)
 BF1_UNBAN = on_command(f'{PREFIX}unban', block=True, priority=1)
@@ -69,14 +71,18 @@ BF1_VBAN = on_command(f'{PREFIX}vban', aliases={f'{PREFIX}vb'}, block=True, prio
 BF1_VBANALL = on_command(f'{PREFIX}vbana',aliases={f'{PREFIX}vbanall', f'{PREFIX}vba'}, block=True, priority=1)
 BF1_UNVBAN = on_command(f'{PREFIX}unvban', aliases={f'{PREFIX}uvb',f'{PREFIX}uvban'} , block=True, priority=1)
 BF1_UNVBANALL = on_command(f'{PREFIX}unvbana',aliases={f'{PREFIX}unvbanall', f'{PREFIX}uvba',f'{PREFIX}unvba'}, block=True, priority=1)
-BF1_MOVE = on_command(f'{PREFIX}move', block=True, priority=1)
+
 BF1_VIP = on_command(f'{PREFIX}vip', block=True, priority=1)
 BF1_VIPLIST = on_command(f'{PREFIX}viplist', block=True, priority=1)
 BF1_CHECKVIP = on_command(f'{PREFIX}checkvip', block=True, priority=1)
 BF1_UNVIP = on_command(f'{PREFIX}unvip', block=True, priority=1)
+BF1_VIPALL = on_command(f'{PREFIX}vipall', block=True, priority=1)
+BF1_VIPGM = on_command(f'{PREFIX}vipgm', aliases={f'{PREFIX}暖服恰v'}, block=True, priority=1)
+
 BF1_ADDWL = on_command(f'{PREFIX}addwl', aliases={f'{PREFIX}加白名单', f'{PREFIX}加白', f'{PREFIX}上白'}, block=True, priority=1)
 BF1_RMWL = on_command(f'{PREFIX}rmwl', aliases={f'{PREFIX}下白', f'{PREFIX}下白名单'}, block=True, priority=1)
 BF1_WHITELIST = on_command(f'{PREFIX}whitelist', aliases={f'{PREFIX}白名单'}, block=True, priority=1)
+
 BF1_PL = on_command(f'{PREFIX}pl', block=True, priority=1)
 BF1_ADMINPL = on_command(f'{PREFIX}adminpl', block=True, priority=1)
 BF1_PLS = on_command(f'{PREFIX}查黑队', block=True, priority=1)
@@ -188,6 +194,8 @@ vban_subservice.patch_matcher(BF1_UNVBANALL)
 
 vip_subservice = rsp_subservice.create_subservice('vip')
 vip_subservice.patch_matcher(BF1_VIP)
+vip_subservice.patch_matcher(BF1_VIPALL)
+vip_subservice.patch_matcher(BF1_VIPGM)
 vip_subservice.patch_matcher(BF1_UNVIP)
 vip_subservice.patch_matcher(BF1_VIPLIST)
 vip_subservice.patch_matcher(BF1_CHECKVIP)

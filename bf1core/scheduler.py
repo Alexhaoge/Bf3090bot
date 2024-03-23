@@ -38,7 +38,7 @@ async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
     user_id = event.user_id
     groupqq_main = await check_session(groupqq)
     if not groupqq_main:
-        await BF1_SERVER_ALARM.finish(MessageSegment.reply(event.message_id) + '本群组未初始化')
+        await BF1_SERVER_ALARM.finish(MessageSegment.reply(event.message_id) + f'群组{groupqq}未初始化')
     admin_perm = await check_admin(groupqq_main, user_id)
     if admin_perm:
         await redis_client.sadd('alarmsession', groupqq)
