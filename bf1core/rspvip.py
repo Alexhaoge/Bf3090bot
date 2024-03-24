@@ -361,7 +361,8 @@ async def bf1_vipall(event:GroupMessageEvent, state:T_State):
                 if not row[0].permanent:
                     row[0].days += days
             await session.commit()
-        
+        admin_logging_helper('vipall', event.user_id, event.group_id, main_groupqq=groupqq,
+                             server_ind=server_ind, server_id=server_id, day=days)
         await BF1_VIPALL.send(MessageSegment.reply(event.message_id) + f'为{arg[0]}服所有限时VIP延长{days}天')
     else:
         await BF1_VIPALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
@@ -431,6 +432,8 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
                                     days = days, permanent = False, enabled = False, priority = priority
                                 )
                                 session.add(new_vip)
+                            admin_logging_helper('vipgm', event.user_id, event.group_id, main_groupqq=groupqq,
+                                server_ind=server_ind, server_id=server_id, pid=p['id'], priority=priority)
                 await session.commit()
 
             if not len(vip_members):
