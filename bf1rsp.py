@@ -14,10 +14,15 @@ with open(CODE_FOLDER/'secret.json', 'r', encoding='utf-8') as f_secret:
     secret_dict = json.load(f_secret)
     BLAZE_HOST = secret_dict['BLAZE_HOST']
     PROXY_HOST = secret_dict['PROXY_HOST']
+    BTR_PROXY_HOST = secret_dict['BTR_PROXY_HOST']
 httpx_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=200))
 httpx_client_proxy = httpx.AsyncClient(
     base_url=f'http://{PROXY_HOST}:8000',
     limits=httpx.Limits(max_connections=500)
+)
+httpx_client_btr_proxy = httpx.AsyncClient(
+    base_url=f'http://{BTR_PROXY_HOST}:8000',
+    limits=httpx.Limits(max_connections=50)
 )
 
 async def getPersonasByName(access_token, player_name) -> tuple | Exception:
@@ -514,7 +519,7 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
 
 __all__ = [
     'BLAZE_HOST', 'PROXY_HOST',
-    'httpx_client', 'httpx_client_proxy',
+    'httpx_client', 'httpx_client_proxy', 'httpx_client_btr_proxy',
     'getPersonasByName',
     'fetch_data', 'post_data', 
     'process_top_n', 'BTR_get_recent_info',

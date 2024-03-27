@@ -14,7 +14,7 @@ from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 from .rdb import init_db, close_db
 from .redis_helper import redis_client, redis_pool
 from .bf1rsp import (
-    httpx_client, httpx_client_proxy
+    httpx_client, httpx_client_proxy, httpx_client_btr_proxy
 )
 
 from .utils import (
@@ -68,6 +68,7 @@ async def close_on_bot_shutdown():
     await redis_pool.aclose()
     await httpx_client.aclose()
     await httpx_client_proxy.aclose()
+    await httpx_client_btr_proxy.aclose()
     await httpx_gt_client.aclose()
 
 
