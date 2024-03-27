@@ -10,7 +10,7 @@ from pathlib import Path
 
 #reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
 CODE_FOLDER = Path(__file__).parent.resolve()
-with open(CODE_FOLDER/'secret.json', 'r', encoding='utf-8') as f_secret:
+with open(CODE_FOLDER/'../secret.json', 'r', encoding='utf-8') as f_secret:
     secret_dict = json.load(f_secret)
     BLAZE_HOST = secret_dict['BLAZE_HOST']
     PROXY_HOST = secret_dict['PROXY_HOST']

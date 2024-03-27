@@ -302,13 +302,13 @@ async def bf1_reset_alarm_session():
         await redis_client.delete(*keys_to_del)
     logger.info('Alarm session reset')
 
-@scheduler.scheduled_job("interval", hours=2, id=f"job_2")
-async def bf1_init_token():
-    await token_helper()
+# @scheduler.scheduled_job("interval", hours=2, id=f"job_2")
+# async def bf1_init_token():
+#     await token_helper()
 
-@scheduler.scheduled_job("interval", hours=12, id=f"job_3")
-async def bf1_init_session():
-    await session_helper()
+# @scheduler.scheduled_job("interval", hours=12, id=f"job_3")
+# async def bf1_init_session():
+#     await session_helper()
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_0", misfire_grace_time=120)
 async def bf1_alarm(timeout: int = 20):

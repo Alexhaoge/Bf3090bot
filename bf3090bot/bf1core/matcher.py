@@ -153,8 +153,9 @@ stat_subservice.patch_matcher(BF1_SA)
 stat_subservice.patch_matcher(BF1_TYC)
 stat_subservice.patch_matcher(BF1_WP)
 stat_subservice.patch_matcher(BF1_S)
-stat_subservice.patch_matcher(BF1_R)
-stat_subservice.patch_matcher(BF1_RE)
+recent_subservice = stat_subservice.create_subservice('recent')
+recent_subservice.patch_matcher(BF1_R)
+recent_subservice.patch_matcher(BF1_RE)
 
 # BF global info query module
 info_subservice = plugin_service.create_subservice('info')

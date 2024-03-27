@@ -1,0 +1,28 @@
+[project]
+name = "bf3090bot"
+version = "RC1"
+description = "3090bot for Battlefield player statstics query and server management"
+readme = "README.md"
+requires-python = ">=3.8, <4.0"
+
+dependencies = [
+    "sqlalchemy>=1.4,<=2.0",
+    "redis",
+    "aiosqlite",
+    "requests",
+    "httpx",
+    "numpy",
+    "matplotlib",
+    "zhconv",
+    "aiohttp",
+    "beautifulsoup4",
+    "asyncpg"
+]
+
+[tool.nonebot]
+adapters = [
+    { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
+]
+plugins = ["bf3090bot", "nonebot_plugin_apscheduler", "nonebot_plugin_picstatus", "nonebot_plugin_alias", "nonebot_plugin_blacklist", "nonebot_plugin_htmlrender", "nonebot_plugin_access_control"]
+plugin_dirs = []
+builtin_plugins = []

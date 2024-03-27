@@ -1,0 +1,13 @@
+[Unit]
+Description=bf3090bot api proxy
+Documentation=https://gitee.com/mag1catz/bf3090bot/
+After=syslog.target network.target
+
+[Service]
+User=openblas
+Environment="PATH=/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin"
+ExecStart=/home/openblas/bf3090bot/apiproxy/start-apiproxy.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
