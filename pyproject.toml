@@ -16,7 +16,8 @@ dependencies = [
     "zhconv",
     "aiohttp",
     "beautifulsoup4",
-    "asyncpg"
+    "asyncpg",
+    "psycopg"
 ]
 
 [tool.nonebot]

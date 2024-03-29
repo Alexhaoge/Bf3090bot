@@ -4,6 +4,14 @@ from .utils import REDIS_URL
 redis_pool = redis.ConnectionPool.from_url(REDIS_URL, decode_responses=True)
 redis_client = redis.Redis(connection_pool=redis_pool, decode_responses=True)
 
+async def registrate_consumer_group(redis_client, group_name):
+    try:
+        await redis_client.xgroup_create('alarmstream', group_name, '$', mkstream=True)
+        await redis_client.xgroup_create('vbanstream', group_name, '$', mkstream=True)
+    except redis.exceptions.ResponseError as e:
+        if "BUSYGROUP Consumer Group name already exists" not in str(e):
+            raise e
+
 ############## Redis storage description ################
 
 # 'gameid:{serverid}': {gameid}
@@ -22,3 +30,8 @@ redis_client = redis.Redis(connection_pool=redis_pool, decode_responses=True)
 #     "serverAmount": server["slots"]["Soldier"]["current"],
 #     "map": server["mapName"]
 # }
+
+# 'alarmstream' Stream for alarms
+# 'vbanstream' Stream for vbans
+# Each nonebot backend instance has its own consumer group for both initialized at startup
+# with the group name cg{NONEBOT_PORT}

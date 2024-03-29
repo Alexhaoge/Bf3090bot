@@ -97,6 +97,7 @@ global_config = get_driver().config
 config = Config(**global_config.dict())
 PREFIX = config.bfchat_prefix
 
+NONEBOT_PORT = config.port
 DATABASE_URL = config.database_url
 REDIS_URL = config.redis_url
 GAMETOOL_URL = config.gametool_url

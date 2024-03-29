@@ -9,7 +9,7 @@ import re
 import asyncio
 import traceback
 
-from ..utils import PREFIX, LOGGING_FOLDER
+from ..utils import PREFIX, LOGGING_FOLDER, NONEBOT_PORT
 from ..bf1rsp import *
 from ..bf1draw import *
 from ..secret import *
@@ -28,7 +28,7 @@ async def search_log(pattern: str|re.Pattern, limit: int = 50) -> list:
     matching_lines = []
     q = deque(maxlen=limit)
     async with admin_logger_lock:
-        with open(LOGGING_FOLDER/'admin.log', 'r', encoding='UTF-8') as f:
+        with open(LOGGING_FOLDER/f'admin_{NONEBOT_PORT}.log', 'r', encoding='UTF-8') as f:
             for line in f:
                 if re.search(pattern, line):
                     q.append(line)
@@ -38,7 +38,7 @@ async def search_log(pattern: str|re.Pattern, limit: int = 50) -> list:
     if len(matching_lines) < limit:
         backups = sorted(os.listdir(LOGGING_FOLDER), reverse=True)
         for backup in backups:
-            if backup.startswith('admin.log') and backup != 'admin.log':
+            if backup.startswith('admin') and backup != f'admin_{NONEBOT_PORT}.log':
                 q.clear()
                 async with admin_logger_lock:
                     with open(LOGGING_FOLDER/backup, 'r', encoding='UTF-8') as f:

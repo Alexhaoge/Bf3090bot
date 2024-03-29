@@ -8,7 +8,7 @@ from random import randint
 from nonebot.adapters import Event
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import (
-    GroupMessageEvent, GroupDecreaseNoticeEvent, GroupIncreaseNoticeEvent, GroupRequestEvent
+    Bot, GroupMessageEvent, GroupDecreaseNoticeEvent, GroupIncreaseNoticeEvent, GroupRequestEvent
 )
 from typing import Tuple, List
 from sqlalchemy.future import select
@@ -108,10 +108,10 @@ async def check_admin(groupqq: int, user_id: int) -> int:
 def check_sudo(groupqq: int, user_id: int) -> int:
     return (user_id in SUPERUSERS) or (groupqq in SUDOGROUPS)
     
-async def check_session(groupqq: int) -> int:
+async def check_session(groupqq: int) -> int | None:
     async with async_db_session() as session:
         group_rec = (await session.execute(select(ChatGroups).filter_by(groupqq=int(groupqq)))).first()
-    return int(group_rec[0].bind_to_group) if group_rec else 0
+    return int(group_rec[0].bind_to_group) if group_rec else None
 
 async def check_server_id(groupqq: int, server_ind: str) -> Tuple[str, int] | Tuple[None, None]:
     """
@@ -345,17 +345,17 @@ async def _is_get_user(event: Event) -> bool:
 async def _is_add_user(event: Event) -> bool:
     return isinstance(event, GroupRequestEvent)
 
-async def getbotforAps(bots,session:int):
-    sign = 0
+async def getbotforAps(bots,session:int) -> Bot | None:
+    ret_bot = None
     for bot in bots.values():
         botlist = await bot.get_group_list()
         for i in botlist:
             if int(i["group_id"]) == session:
-                sign = 1
+                ret_bot = bot
                 break
-        if sign == 1:
+        if ret_bot:
             break
-    return bot    
+    return ret_bot
     
 async def load_alarm_session_from_db():
     async with async_db_session() as session:

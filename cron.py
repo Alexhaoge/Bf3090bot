@@ -1,80 +1,32 @@
-import json,asyncio,datetime
-import requests,httpx
-import sqlite3
+import json, asyncio, datetime, requests
+import psycopg
 import redis
-import uuid,time
+import time
+import logging
+import traceback
+from dotenv import dotenv_values
 from pathlib import Path
-from typing import *
 from PIL import Image
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-with open('secret.json', 'r', encoding='utf-8') as f_secret:
-    secret_dict = json.load(f_secret)
-    BLAZE_HOST = secret_dict['BLAZE_HOST']
-    PROXY_HOST = secret_dict['PROXY_HOST']
-BFCHAT_DATA_FOLDER = Path('../bfchat_data').resolve()
+from cronlib.db import *
+from cronlib.api import *
+from cronlib.cron_secret import *
 
-def db_op(conn: sqlite3.Connection, sql: str, params: list):
-    cur = conn.cursor()
-    res = conn.execute(sql, params).fetchall()
-    cur.connection.commit()
-    cur.close()
-    return res    
+config = dotenv_values('.env.prod')
+BFCHAT_DATA_FOLDER = Path(config['BFCHAT_DIR']).resolve()
+BLAZE_HOST = config['BLAZE_HOST']
+PROXY_HOST = config['PROXY_HOST']
+db_url = config['psycopg_database']
 
-def db_op_many(conn: sqlite3.Connection, sql: str, params: list):
-    cur = conn.cursor()
-    res = conn.executemany(sql, params).fetchall()
-    cur.connection.commit()
-    cur.close()
-    return res    
+with open(BFCHAT_DATA_FOLDER/'bf1_servers/zh-cn.json','r', encoding='utf-8') as f:
+    zh_cn_mapname = json.load(f)
 
-def upd_remid_sid(res: httpx.Response, remid, sid):
-    res_cookies = res.cookies
-    if 'sid' in res_cookies:
-        sid = res_cookies['sid']
-    if 'remid' in res_cookies:
-        remid = res_cookies['remid']
-    return remid, sid
-
-async def upd_token(remid, sid):
-    async with httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=3)) as client:
-        res_access_token = await client.get(
-            url=f"http://{PROXY_HOST}:8000/proxy/ea/token/",
-            params= {'remid': remid, 'sid': sid}, 
-            timeout=5,
-        )
-    access_token = res_access_token.json()['access_token']
-    remid, sid = upd_remid_sid(res_access_token, remid, sid)
-    return remid, sid, access_token
-
-async def upd_sessionId(remid, sid):
-    async with httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=3)) as client:
-        res_authcode = await client.get(       
-            url=f"http://{PROXY_HOST}:8000/proxy/ea/authcode/",
-            params= {'remid': remid, 'sid': sid}, timeout=5
-        )
-        authcode = res_authcode.json()['authcode']
-        remid, sid = upd_remid_sid(res_authcode, remid, sid)
-        res_session = await client.post( 
-            url=f"http://{PROXY_HOST}:8000/proxy/gateway/",
-            json= {
-                'jsonrpc': '2.0',
-                'method': 'Authentication.getEnvIdViaAuthCode',
-                'params': {
-                    'authCode': authcode,
-                    "locale": "zh-tw",
-                },
-                "id": str(uuid.uuid4())
-            },
-            timeout=5
-        )
-    sessionID = res_session.json()['result']['sessionId']
-    return remid,sid,sessionID
-
-async def init_sessionid():
-    conn = sqlite3.connect(BFCHAT_DATA_FOLDER/'bot.db')
+##################################  Cookies  ##################################
+async def refresh_cookie_and_sessionid():
+    conn = psycopg.connect(db_url)
     admins = [{'pid': r[0], 'remid': r[1], 'sid': r[2]} for r in db_op(conn, "SELECT pid, remid, sid FROM bf1admins;", [])]
-    tasks_token = [asyncio.create_task(upd_token(admin['remid'], admin['sid'])) for admin in admins]
+    tasks_token = [asyncio.create_task(upd_token(admin['remid'], admin['sid'], PROXY_HOST)) for admin in admins]
     list_cookies_tokens = await asyncio.gather(*tasks_token, return_exceptions=True) # Update tokens
     for i in range(len(admins)):
         if isinstance(list_cookies_tokens[i], tuple):
@@ -86,7 +38,7 @@ async def init_sessionid():
     print('Token updates complete')
 
     tasks_session = [
-        asyncio.create_task(upd_sessionId(admin['remid'], admin['sid'])) for admin in admins
+        asyncio.create_task(upd_sessionId(admin['remid'], admin['sid'], PROXY_HOST)) for admin in admins
     ]
     list_cookies_sessionIDs = await asyncio.gather(*tasks_session, return_exceptions=True)
     for i in range(len(admins)):
@@ -96,78 +48,23 @@ async def init_sessionid():
             admins[i]['sessionid'] = list_cookies_sessionIDs[i][2]
         else:
             print(f"sessionID update failed for {admins[i]['pid']}")
-    db_op_many(conn, 'UPDATE bf1admins SET remid=:remid, sid=:sid, token=:token, sessionid=:sessionid WHERE pid=:pid', 
+    db_op_many(conn, 'UPDATE bf1admins SET remid=%(remid)s, sid=%(sid)s, token=%(token)s, sessionid=%(sessionid)s WHERE pid=%(pid)s', 
                filter(lambda d: ('sessionid' in d) and ('token' in d), admins))
     print('SessionID updates complete')
     conn.close()
 
 
-async def upd_servers(remid, sid, sessionID):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url=f"http://{PROXY_HOST}:8000/proxy/gateway/",
-            json = {
-	            "jsonrpc": "2.0",
-	            "method": "GameServer.searchServers",
-	            "params": {
-		        "filterJson": "{\"serverType\":{\"OFFICIAL\": \"off\"}}",
-                "game": "tunguska",
-                "limit": 200,
-                "protocolVersion": "3779779"
-	            },
-                "id": str(uuid.uuid4())
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'X-GatewaySession': sessionID
-            },
-            timeout=5
-        )
-    res_json = response.json()
-    if 'error' in res_json:
-        if "session expired" in res_json['error']['message'] or res_json['error']['code'] == -32501:
-            raise Exception(f'sessionID expired: {sessionID}')
-        raise Exception(res_json['error']['message'])
-    return res_json
-
-async def upd_detailedServer(remid, sid, sessionID, gameId):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url=f"http://{PROXY_HOST}:8000/proxy/gateway/",
-            json = {
-	            "jsonrpc": "2.0",
-	            "method": "GameServer.getFullServerDetails",
-	            "params": {
-		        "game": "tunguska",
-                "gameId": f"{gameId}"
-	            },
-                "id": str(uuid.uuid4())
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'X-GatewaySession': sessionID
-            },
-            timeout=5
-        )
-    res_json = response.json()
-    if 'error' in res_json:
-        if "session expired" in res_json['error']['message'] or res_json['error']['code'] == -32501:
-            raise Exception(f'sessionID expired: {sessionID}')
-        raise Exception(res_json['error']['message'])
-    return res_json
-
-def get_one_random_bf1admin(conn) -> Tuple[str, str, str]:
-    return db_op(conn, "SELECT remid, sid, sessionid FROM bf1admins ORDER BY RANDOM() LIMIT 1;", [])[0]
-
-async def upd_gameId():
-    conn = sqlite3.connect(BFCHAT_DATA_FOLDER/'bot.db')
+################################## owner/admin/ban/vip ##################################
+async def refresh_serverInfo():
     time_start = time.time()
+    conn = psycopg.connect(db_url)
+    redis_client = redis_connection_helper()
     print(datetime.datetime.now())
     gameIdList = []
     tasks = []
     for _ in range(30):
         remid, sid, sessionID = get_one_random_bf1admin(conn)
-        tasks.append(upd_servers(remid, sid, sessionID))
+        tasks.append(upd_servers(remid, sid, sessionID, PROXY_HOST))
     results = await asyncio.gather(*tasks, return_exceptions=True)
     for result in results:
         if isinstance(result, (Exception, str)):
@@ -184,7 +81,7 @@ async def upd_gameId():
     results = []
     for game_id in gameIdList:
         remid, sid, sessionID = get_one_random_bf1admin(conn)
-        tasks.append(upd_detailedServer(remid, sid, sessionID, game_id))
+        tasks.append(upd_detailedServer(remid, sid, sessionID, game_id, PROXY_HOST))
         if len(tasks) == 50:
             print(f"开始获取私服详细信息，共{len(tasks)}个，总进度{len(results)}/{len(gameIdList)}")
             temp = await asyncio.gather(*tasks, return_exceptions=True)
@@ -272,13 +169,13 @@ async def upd_gameId():
     for serverid, ownlist in owner_dict.items():
         pid = int(ownlist[0]["personaId"])
         if pid in db_admin_pids:
-            server_bf1admins_exist = db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=? AND pid=?;', [serverid, pid])
+            server_bf1admins_exist = db_op(conn, "SELECT pid FROM serverbf1admins WHERE serverid=%s AND pid=%s;", [serverid, pid])
             if not len(server_bf1admins_exist):
                 server_bf1admins_add.append((int(serverid), pid))
             admin_dict[serverid].append(ownlist[0])
 
     for serverid, adlist in admin_dict.items():
-        server_bf1admins_exist = set(int(r[0]) for r in db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=?;', [serverid]))
+        server_bf1admins_exist = set(int(r[0]) for r in db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=%s;', [serverid]))
         real_bf1admins_esist = set(int(ad["personaId"]) for ad in adlist).intersection(db_admin_pids)
         server_bf1admins_del.extend(
            ((int(serverid), pid) for pid in list(server_bf1admins_exist.difference(real_bf1admins_esist)))
@@ -289,12 +186,19 @@ async def upd_gameId():
     
     print(server_bf1admins_del)
     print(server_bf1admins_add)
-    db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=? AND pid=?;', server_bf1admins_del)
-    db_op_many(conn, 'INSERT OR IGNORE INTO serverbf1admins (serverid, pid) VALUES(?, ?);', server_bf1admins_add)
+    db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=%s AND pid=%s;', server_bf1admins_del)
+    db_op_many(conn, 'INSERT INTO serverbf1admins (serverid, pid) VALUES(%s, %s) ON CONFLICT (serverid, pid) DO NOTHING;', server_bf1admins_add)
+
+    for serverid in server_dict.keys():
+        redis_client.set(f'gameid:{int(serverid)}', int(server_dict[serverid]["server_game_id"]))
+
     conn.close()
+    redis_client.close()
     print(f'数据库更新完成, 耗时{round(time.time() - time_start, 2)}秒')
     print('---------------------------------------')
 
+
+##################################  BLAZE  ##################################
 def upd_ping():
         response = requests.get(url=f'http://{BLAZE_HOST}/web1/ping',timeout=10)
         return response
@@ -305,36 +209,259 @@ def upd_ping2():
         response1 = requests.get(url=f'http://{BLAZE_HOST}/web3/ping',timeout=10)
         return response1
 
-def renew():
-    redis_client = redis.Redis()
-    conn = sqlite3.connect(BFCHAT_DATA_FOLDER/'bot.db')
-    with open(BFCHAT_DATA_FOLDER/'bf1_servers/info.json','r') as f:
-        info = json.load(f)
 
-    gsbinds = db_op(conn, 'SELECT groupqq, ind, serverid FROM groupservers;', [])
-
-    server_dict = {}
-    for groupqq, server_ind, serverid in gsbinds:
-        if not groupqq in server_dict:
-            server_dict[groupqq] = {}
-        server_dict[groupqq][server_ind] = serverid
-    
-    for serverid in info.keys():
-        redis_client.set(f'gameid:{int(serverid)}', int(info[serverid]["server_game_id"]))
-    
-    with open(BFCHAT_DATA_FOLDER/'bind.json',"w") as f:
-        json.dump(server_dict,f,indent=4)
+################################## Alarm reset ##################################
+def bf1_reset_alarm_session():
+    redis_client = redis_connection_helper()
+    conn = psycopg.connect(db_url)
+    alarm_sessions = db_op(conn, 'SELECT groupqq FROM groups WHERE alarm=true;', [])
+    alarm_groupqqs = [r[0] for r in alarm_sessions]
+    if len(alarm_groupqqs):
+        redis_client.sadd("alarmsession", *alarm_groupqqs)
+    keys_to_del = [f"alarmamount:{groupqq}" for groupqq in alarm_groupqqs]
+    if len(keys_to_del):
+        redis_client.delete(*keys_to_del)
+    logging.info('Alarm session reset')
     redis_client.close()
     conn.close()
 
+
+################################## draw and alarm ##################################
+draw_lock = asyncio.Lock()
+async def upd_draw():
+    redis_client = redis_connection_helper()
+    conn = psycopg.connect(db_url)
+    logging.info(datetime.datetime.now())
+
+    tasks = []
+    remid, sid, sessionID = get_one_random_bf1admin(conn)
+    conn.close()
+    for _ in range(30):
+        tasks.append(upd_servers(remid, sid, sessionID, PROXY_HOST))
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    draw_dict = {}
+    for result in results:
+        if not isinstance(result, dict):
+            continue
+        result = result["result"]
+        server_list = result['gameservers']
+        for i, server in enumerate(server_list):
+            gameid = str(server["gameId"])
+            if gameid not in draw_dict and int(server["slots"]["Soldier"]["current"])!=0:
+                draw_dict[gameid] = {
+                    "server_name": server["name"],
+                    "serverMax":server["slots"]["Soldier"]["max"],
+                    "serverAmount": server["slots"]["Soldier"]["current"],
+                    "map": server["mapName"]
+                }
+                redis_client.hset(f'draw_dict:{gameid}', mapping=draw_dict[gameid])
+                redis_client.expire(f'draw_dict:{gameid}', time=180+(i%20))
+
+    print(f"draw_dict:共获取{len(draw_dict)}个私服")
+    redis_client.close()
+
+    try:
+        with open(BFCHAT_DATA_FOLDER/'bf1_servers/draw.json','r',encoding='UTF-8') as f:
+            data = json.load(f)
+    except:
+        data = {}
+    data[f"{datetime.datetime.now().isoformat()}"] = draw_dict 
+    data_keys = list(data.keys())
+    for i in data_keys:
+        try:    
+            if (datetime.datetime.now() - datetime.datetime.fromisoformat(i)).days >= 1:
+                data.pop(i)
+        except:
+            continue
+    
+    async with draw_lock:
+        with open(BFCHAT_DATA_FOLDER/'bf1_servers/draw.json','w',encoding='UTF-8') as f:
+            json.dump(data,f,indent=4,ensure_ascii=False)
+
+def get_server_status(groupqq: int, ind: str, serverid: int, redis_client: redis.Redis): 
+    gameId = get_gameid_from_serverid(redis_client, serverid)
+    try:
+        status = redis_client.hgetall(f'draw_dict:{gameId}')
+        playerAmount = int(status['serverAmount'])
+        maxPlayers = int(status['serverMax'])
+        mapName = zh_cn_mapname[str(status['map'])]
+    except:
+        logging.debug(f'No data for gameId:{gameId}')
+    else:
+        try:
+            #if True: # Test
+            if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
+                alarm_amount = redis_client.hincrby(f'alarmamount:{groupqq}', ind)
+                redis_client.xadd("alarmstream", {'grouppqq': groupqq, 'ind': ind, 'player': playerAmount, 'map': mapName, 'alarm': alarm_amount},
+                                  maxlen=500)
+        except:
+            logging.error(traceback.format_exc(2))
+
+def trigger_alarm():
+    start_time = datetime.datetime.now()
+    redis_client = redis_connection_helper()
+    conn = psycopg.connect(db_url)
+    alarm_session_set = redis_client.smembers('alarmsession')
+    for groupqq_b in alarm_session_set:
+        groupqq = int(groupqq_b)
+        main_groupqq = db_op(conn, 'SELECT bind_to_group FROM groups WHERE groupqq=%s', [groupqq])[0][0]
+        servers = db_op(conn, 'SELECT ind, serverid FROM groupservers WHERE groupqq=%s', [main_groupqq])
+        for ind, serverid in servers:
+            alarm_amount = redis_client.hget(f'alarmamount:{groupqq}', ind)
+            if (not alarm_amount) or (int(alarm_amount) < 3):
+                get_server_status(groupqq, ind, serverid, redis_client)
+    redis_client.close()
+    conn.close()
+    end_time = datetime.datetime.now()
+    thr_time = (end_time - start_time).total_seconds()
+    logging.info(f"预警生产用时：{thr_time}秒")
+
+
+################################## Vban ##################################
+async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, pljson: dict, sgids: list, vbans: dict):
+    tasks = []
+    report_list = []
+    personaIds = []
+
+    for serverid, gameId in sgids:
+        pl = pljson[str(gameId)]
+        vban_ids = vbans[serverid]['pid']
+        vban_reasons = vbans[serverid]['reason']
+        vban_groupqqs = vbans[serverid]['groupqq']
+
+        remid, sid, sessionID, _  = get_bf1admin_by_serverid(conn, serverid)
+        if not remid:
+            continue
+
+        pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
+        try:
+            bfeac_ids = await bfeac_checkBanMulti(pl_ids)
+        except Exception as e:
+            logging.warning(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
+            continue
+        if bfeac_ids and len(bfeac_ids):
+            reason = "Banned by bfeac.com"
+            for personaId in bfeac_ids:
+                report_list.append({"eac": True})
+                tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason, PROXY_HOST))
+
+        for personaId in pl_ids:
+            if personaId in vban_ids:
+                index = vban_ids.index(personaId)
+                reason = vban_reasons[index]
+                groupqq = vban_groupqqs[index]
+                personaIds.append(personaId)
+                report_list.append(
+                    {
+                        "gameId": gameId,
+                        "personaId": personaId,
+                        "reason": reason, 
+                        "groupqq": groupqq,
+                        "eac": False
+                    }
+                )
+                tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason, PROXY_HOST))
+
+    res = await asyncio.gather(*tasks, return_exceptions=True)
+    logging.debug(res)
+    try:
+        res_pid = await upd_getPersonasByIds(remid,sid,sessionID,personaIds, PROXY_HOST)
+    except:
+        res_pid = None
+
+    if res != []:
+        for r, report_dict in zip(res, report_list):
+            if not isinstance(r, Exception) and not report_dict["eac"]:
+                try:
+                    gameId = report_dict["gameId"]
+                    reason = report_dict["reason"]
+                    personaId = report_dict["personaId"]
+                    groupqq = report_dict["groupqq"]
+                    if not groupqq:
+                        continue
+                    name = redis_client.hget(f'draw_dict:{gameId}', "server_name")
+                    if not name:
+                        name = f'gameid:{gameId}'
+                    if res_pid and str(personaId) in res_pid['result']:
+                        eaid = res_pid['result'][str(personaId)]['displayName']
+                    else:
+                        eaid = f'pid:{personaId}'
+                    report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
+                    redis_client.xadd("vbanstream", {'grouppqq': groupqq, 'msg': report_msg}, maxlen=500)
+                    logging.info(report_msg)
+                except Exception as e:
+                    logging.warning(e)
+                    continue
+
+
+async def start_vban(conn: psycopg.Connection, redis_client: redis.Redis, sgids: list, vbans: dict):
+    try:
+        #pljson = await upd_blazeplforvban([t[1] for t in sgids])
+        pljson = await Blaze2788Pro([t[1] for t in sgids])
+    except:
+        logging.warning(traceback.format_exc())
+        logging.warning('Vban Blaze error for ' + ','.join([str(t[1]) for t in sgids]))
+    else:
+        try:
+            await kick_vbanPlayer(conn, redis_client, pljson, sgids, vbans) 
+        except Exception as e:
+            logging.warning(traceback.format_exc())
+            logging.warning('Vban exception during execution: ' + traceback.format_exception_only(e)[0] + \
+                           '\n' + ','.join([str(t[1]) for t in sgids]))
+
+async def upd_vbanPlayer():
+    start_time = datetime.datetime.now()
+    redis_client = redis_connection_helper()
+    conn = psycopg.connect(db_url)
+    serverid_gameIds = []
+    vbans = {}
+    vban_rows = db_op(conn, "SELECT serverid, pid, reason, notify_group FROM servervbans;", [])
+    vban_servers = set(r[0] for r in vban_rows)
+    for serverid in vban_servers:
+        gameId = get_gameid_from_serverid(redis_client, serverid)
+        is_alive = redis_client.exists(f'draw_dict:{gameId}')
+        if is_alive > 0:
+            serverid_gameIds.append((serverid, gameId))
+            vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
+        for vban_row in vban_rows:
+            serverid = vban_row[0]
+            if serverid in vbans:
+                vbans[serverid]['pid'].append(vban_row[1])
+                vbans[serverid]['groupqq'].append(vban_row[3])
+                vbans[serverid]['reason'].append(vban_row[2])
+
+    if len(serverid_gameIds):
+        sgids = []
+        for i in range(len(serverid_gameIds)):
+            if len(sgids) < 10:
+                sgids.append(serverid_gameIds[i])
+            else:
+                logging.debug(sgids)
+                await start_vban(conn, redis_client, sgids,vbans)
+                sgids = []
+        if 0 < len(sgids) < 10:
+            logging.debug(sgids)
+            await start_vban(conn, redis_client, sgids,vbans)
+    conn.close()
+    redis_client.close()
+    end_time = datetime.datetime.now()
+    thr_time = (end_time - start_time).total_seconds()
+    logging.info(f"Vban生产用时：{thr_time}秒")
+
+
+################################## Main ##################################
 async def start_job():
     scheduler = AsyncIOScheduler()
 
-    scheduler.add_job(upd_gameId, 'interval', minutes=30)
+    scheduler.add_job(refresh_cookie_and_sessionid, 'interval', hours=2)
+    scheduler.add_job(refresh_serverInfo, 'interval', minutes=30)
     scheduler.add_job(upd_ping, 'interval', seconds=30)
     scheduler.add_job(upd_ping1, 'interval', seconds=30)
     scheduler.add_job(upd_ping2, 'interval', seconds=30)
-    scheduler.add_job(renew, 'interval', minutes=5)
+    scheduler.add_job(bf1_reset_alarm_session, 'interval', minutes=15)
+    scheduler.add_job(upd_draw, 'interval', minutes=2)
+    scheduler.add_job(upd_vbanPlayer, 'interval', minutes=2)
 
     scheduler.start()
     try:
@@ -344,7 +471,8 @@ async def start_job():
         scheduler.shutdown()
 
 if __name__ == '__main__':
-    asyncio.run(init_sessionid()) # Run this command when doing setup for a new production environment.
-    asyncio.run(upd_gameId())
-    renew()
+    asyncio.run(refresh_cookie_and_sessionid()) # Run this command when doing setup for a new production environment.
+    asyncio.run(refresh_serverInfo())
+    bf1_reset_alarm_session()
+    asyncio.run(upd_draw())
     asyncio.run(start_job())

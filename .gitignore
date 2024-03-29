@@ -179,7 +179,7 @@ cython_debug/
 .vscode/
 
 secret.py
-secret.json
+cron_secret.py
 btr.py
 image.py
 

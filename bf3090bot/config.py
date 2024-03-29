@@ -8,5 +8,6 @@ class Config(BaseSettings):
     database_url: str = 'sqlite+aiosqlite:///./bfchat_data/bot.db'
     redis_url: str = 'redis://localhost'
     gametool_url: str = 'https://api.gametools.network/'
+    # port: int = 16000
     class Config:
         extra = "ignore"

@@ -12,11 +12,9 @@ import asyncio
 
 from sqlalchemy.future import select
 
-from ..utils import BF1_SERVERS_DATA
 from ..bf1rsp import *
 from ..bf1draw import *
 from ..secret import *
-from ..image import upload_img
 from ..rdb import *
 from ..redis_helper import redis_client
 from ..bf1helper import *
@@ -58,7 +56,7 @@ async def user_add_request(event: GroupRequestEvent):
         logger.debug(playerName,personaId)
     except Exception as e:
         logger.warning(e)
-        reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(无效id,可能是bug，请手动查询此人战绩！)\n回复y同意进群，回复n+理由(可选)拒绝进群。')#
+        reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(无效id,可能是bug，请手动查询此人战绩！)\n回复y同意进群，回复n+理由(可选)拒绝进群。')
     else:
         reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n 理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
         apply['personaId'], apply['playerName'] = personaId, playerName

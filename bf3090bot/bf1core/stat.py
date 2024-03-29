@@ -65,7 +65,7 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
 @BF1_SA.handle()
 async def bf1_sa(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     mode = 0
 
     logger.debug(arg)
@@ -155,7 +155,7 @@ async def bf1_tyc(event:GroupMessageEvent, state:T_State):
 @BF1_S.handle()
 async def bf1_statimage(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
-    arg = message.extract_plain_text().split(' ')
+    arg = message.extract_plain_text().split()
     groupqq = await check_session(event.group_id)
     usercard = event.sender.card
     user_id = event.user_id
@@ -232,7 +232,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
     else:
         row = 5
         col = 2
-    arg = message.split(' ') 
+    arg = message.split() 
 
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     if reply_message_id(event) == None:
@@ -242,12 +242,12 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
             wpmode = 0
             mode = 2
         else:
-            if len(message.split(' ')) == 1:
+            if len(message.split()) == 1:
                 [playerName,wpmode,mode] = get_wp_info(message,user_id)
             else:
-                playerName = message.split(' ')[1]
+                playerName = message.split()[1]
                 mode = 1
-                wpmode = get_wp_info(message.split(' ')[0],user_id)[1]
+                wpmode = get_wp_info(message.split()[0],user_id)[1]
         logger.debug(f'mode={mode},wpmode={wpmode}')
 
         ret_dict = await update_or_bind_player_name(
@@ -272,7 +272,7 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
         if not personaId:
             await BF1_WP.finish(MessageSegment.reply(event.message_id)+'请选择正确的玩家序号')
         
-        wpmode = get_wp_info(message.split(' ')[0],user_id)[1]
+        wpmode = get_wp_info(message.split()[0],user_id)[1]
     
     try:
         res1 = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])

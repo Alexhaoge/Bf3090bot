@@ -12,13 +12,13 @@ from nonebot.permission import SUPERUSER
 from nonebot_plugin_htmlrender import md_to_pic, html_to_pic
 
 from .rdb import init_db, close_db
-from .redis_helper import redis_client, redis_pool
+from .redis_helper import redis_client, redis_pool, registrate_consumer_group
 from .bf1rsp import (
     httpx_client, httpx_client_proxy, httpx_client_btr_proxy
 )
 
 from .utils import (
-    PREFIX, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
+    PREFIX, NONEBOT_PORT, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
     CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER, main_log_filter, httpx_gt_client
 )
 
@@ -38,7 +38,7 @@ async def init_on_bot_startup():
     admin_logger = logging.getLogger('adminlog')
     admin_logger.setLevel(logging.INFO)
     admin_logger_handler = TimedRotatingFileHandler(
-        LOGGING_FOLDER/'admin.log',
+        LOGGING_FOLDER/f'admin_{NONEBOT_PORT}.log',
         when='D', interval=3, backupCount=150
     )
     admin_logger_handler.setFormatter(
@@ -49,17 +49,14 @@ async def init_on_bot_startup():
     logger.remove(logger_id)
     logger.add(sys.stdout, level=0, diagnose=True, format=default_format, filter=main_log_filter)
     ## Redirect error to log file for better tracing
-    logger.add(LOGGING_FOLDER/"error.log", 
+    logger.add(LOGGING_FOLDER/f"error_{NONEBOT_PORT}.log", 
                level="ERROR",
                format=default_format,
                backtrace=True,
                rotation="1 week")
     # DB setup
     await init_db()
-    # Bot scheduled jobs initial runs
-    await bf1helper.token_helper()
-    await bf1helper.session_helper()
-    await bf1helper.load_alarm_session_from_db()
+    await registrate_consumer_group(redis_client, f'cg{NONEBOT_PORT}')
 
 @driver.on_shutdown
 async def close_on_bot_shutdown():

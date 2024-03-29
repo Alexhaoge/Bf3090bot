@@ -1,0 +1,45 @@
+import psycopg
+import redis
+from typing import Tuple
+
+def redis_connection_helper():
+    return redis.Redis(decode_responses=True)
+
+def db_op(conn: psycopg.Connection, sql: str, params: list):
+    cur = conn.cursor()
+    res = cur.execute(sql, params).fetchall()
+    cur.connection.commit()
+    cur.close()
+    return res    
+
+def db_op_many(conn: psycopg.Connection, sql: str, params: list):
+    cur = conn.cursor()
+    cur.executemany(sql, params)
+    cur.connection.commit()
+    cur.close()
+
+def get_one_random_bf1admin(conn) -> Tuple[str, str, str]:
+    return db_op(conn, "SELECT remid, sid, sessionid FROM bf1admins ORDER BY RANDOM() LIMIT 1;", [])[0]
+
+def get_bf1admin_by_serverid(conn: psycopg.Connection, serverid: int):
+    pid_r = db_op(conn, "SELECT pid FROM serverbf1admins WHERE serverid=%s LIMIT 1;", [serverid])
+    if len(pid_r):
+        pid = pid_r[0][0]
+    else:
+        return None, None, None, None
+    return db_op(conn, 'SELECT remid, sid, sessionid, token FROM bf1admins WHERE pid=%s;', [pid])[0]
+
+def get_gameid_from_serverid(redis_client, serverid):
+    gameid = redis_client.get(f'gameid:{serverid}')
+    if gameid:
+        return int(gameid)
+    else:
+        print(f'gameid for {serverid} not found')
+        return None
+
+__all__ = [
+    'redis_connection_helper',
+    'db_op', 'db_op_many',
+    'get_one_random_bf1admin', 'get_bf1admin_by_serverid',
+    'get_gameid_from_serverid'
+]

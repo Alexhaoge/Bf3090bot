@@ -7,14 +7,14 @@ import bs4
 #import geoip2.database
 from typing import Union, Tuple
 from pathlib import Path
+from dotenv import dotenv_values
 
 #reader = geoip2.database.Reader(CURRENT_FOLDER/"GeoLite2-City.mmdb")
 CODE_FOLDER = Path(__file__).parent.resolve()
-with open(CODE_FOLDER/'../secret.json', 'r', encoding='utf-8') as f_secret:
-    secret_dict = json.load(f_secret)
-    BLAZE_HOST = secret_dict['BLAZE_HOST']
-    PROXY_HOST = secret_dict['PROXY_HOST']
-    BTR_PROXY_HOST = secret_dict['BTR_PROXY_HOST']
+config = dotenv_values(CODE_FOLDER/'../.env.prod')
+BLAZE_HOST = config['BLAZE_HOST']
+PROXY_HOST = config['PROXY_HOST']
+BTR_PROXY_HOST = config['BTR_PROXY_HOST']
 httpx_client = httpx.AsyncClient(limits=httpx.Limits(max_connections=200))
 httpx_client_proxy = httpx.AsyncClient(
     base_url=f'http://{PROXY_HOST}:8000',
