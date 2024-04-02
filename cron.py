@@ -17,6 +17,7 @@ config = dotenv_values('.env.prod')
 BFCHAT_DATA_FOLDER = Path(config['BFCHAT_DIR']).resolve()
 BLAZE_HOST = config['BLAZE_HOST']
 PROXY_HOST = config['PROXY_HOST']
+EAC_SERVER_BLACKLIST = config['EAC_SERVER_BLACKLIST']
 db_url = config['psycopg_database']
 
 with open(BFCHAT_DATA_FOLDER/'bf1_servers/zh-cn.json','r', encoding='utf-8') as f:
@@ -335,16 +336,17 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
             continue
 
         pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
-        try:
-            bfeac_ids = await bfeac_checkBanMulti(pl_ids)
-        except Exception as e:
-            logging.warning(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
-            continue
-        if bfeac_ids and len(bfeac_ids):
-            reason = "Banned by bfeac.com"
-            for personaId in bfeac_ids:
-                report_list.append({"eac": True})
-                tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason, PROXY_HOST))
+        if not serverid in EAC_SERVER_BLACKLIST:
+            try:
+                bfeac_ids = await bfeac_checkBanMulti(pl_ids)
+            except Exception as e:
+                logging.warning(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
+                continue
+            if bfeac_ids and len(bfeac_ids):
+                reason = "Banned by bfeac.com"
+                for personaId in bfeac_ids:
+                    report_list.append({"eac": True})
+                    tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason, PROXY_HOST))
 
         for personaId in pl_ids:
             if personaId in vban_ids:
