@@ -8,7 +8,6 @@ requires-python = ">=3.8, <4.0"
 dependencies = [
     "sqlalchemy>=1.4,<=2.0",
     "redis",
-    "aiosqlite",
     "requests",
     "httpx",
     "numpy",
@@ -20,10 +19,13 @@ dependencies = [
     "psycopg"
 ]
 
+[project.optional-dependencies]
+migration = ["aiosqlite", "sqlite3"]
+
 [tool.nonebot]
 adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
 ]
-plugins = ["bf3090bot", "nonebot_plugin_apscheduler", "nonebot_plugin_picstatus", "nonebot_plugin_alias", "nonebot_plugin_blacklist", "nonebot_plugin_htmlrender", "nonebot_plugin_access_control"]
-plugin_dirs = []
+plugins = ["bf3090bot", "nonebot_plugin_apscheduler", "nonebot_plugin_picstatus", "nonebot_plugin_htmlrender", "nonebot_plugin_access_control"]
+plugin_dirs = ["plugins/nonebot-plugin-alias", "plugins/nonebot-plugin-blacklist"]
 builtin_plugins = []
