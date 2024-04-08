@@ -533,12 +533,15 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
             raise Exception('本群组未初始化')
         servers = await get_server_num(groupqq)
         gameids = []
+        server_inds = []
+
         for server_ind, server_id in servers:
             gameid = await get_gameid_from_serverid(server_id)
             if gameid:
+                server_inds.append(server_ind)
                 gameids.append(gameid)
         try:
-            file_dir = await asyncio.wait_for(draw_f(gameids,groupqq,remid, sid, sessionID), timeout=15)
+            file_dir = await asyncio.wait_for(draw_f(server_inds,gameids,groupqq,remid, sid, sessionID), timeout=15)
             await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except RSPException as rsp_exc:
             await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
