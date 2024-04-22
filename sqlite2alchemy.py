@@ -120,6 +120,11 @@ async def migrate_vban():
         await session.commit()
         await session.execute(text('SET CONSTRAINTS ALL IMMEDIATE'))
 
+async def migrate_extra():
+    async with async_db_session() as session:
+        await session.execute(text("SELECT setval('bf1admins_id_seq', (SELECT MAX(id) FROM bf1admins));"))
+        await session.commit()
+
 async def main():
     await init_db()
     await migrate_table(Bf1Admins)
@@ -129,10 +134,11 @@ async def main():
     await migrate_chatgroups()
     await migrate_table_check_group(GroupMembers)
     await migrate_table_check_group(GroupAdmins)
-    await migrate_table(GroupServerBind)
+    await migrate_table_check_group(GroupServerBind)
     await migrate_table(ServerVips)
     await migrate_table_check_group(ServerVBans, 'notify_group')
     await migrate_table(BotVipCodes)
+    await migrate_extra()
     await close_db()
 
 ###################### Migration ###########################

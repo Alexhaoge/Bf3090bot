@@ -26,7 +26,7 @@ async def groupmember_del(event: GroupDecreaseNoticeEvent):
         group_row = (await session.execute(select(ChatGroups).filter_by(groupqq=event.group_id))).first()
         if group_row:
             groupqq = group_row[0].bind_to_group
-            stmt = select(GroupMembers).filter_by(groupqq=groupqq, qq=event.user_id)
+            stmt = select(GroupMembers).filter_by(groupqq=groupqq, qq=event.user_id).with_for_update(read=True)
             user_rec = (await session.execute(stmt)).all()
             for row in user_rec:
                 await session.delete(row[0])
@@ -61,10 +61,10 @@ async def user_add_request(event: GroupRequestEvent):
         reply = await add_user.send(f'收到{event.user_id}的加群请求: {playerName}(有效id)，战绩信息如下: \n回复y同意进群，回复n 理由(可选)拒绝进群。')#\n回复y同意进群，回复n+理由(可选)拒绝进群。
         apply['personaId'], apply['playerName'] = personaId, playerName
         async with async_db_session() as session:
-            p = (await session.execute(select(Players).filter_by(qq=event.user_id))).first()
+            stmt = select(Players).filter_by(qq=event.user_id).with_for_update(read=True)
+            p = (await session.execute(stmt)).first()
             if p:
                 p[0].originid, p[0].pid = playerName, personaId
-                session.add(p[0])
             else:
                 session.add(Players(pid=personaId, originid=playerName, qq=event.user_id))
             await session.commit()
@@ -147,7 +147,8 @@ async def bf1_welcome(event:GroupMessageEvent, state:T_State):
     msg = html.unescape(message.extract_plain_text())
     
     async with async_db_session() as session:
-        group_rec = (await session.execute(select(ChatGroups).filter_by(groupqq=event.group_id))).first()
+        stmt = select(ChatGroups).filter_by(groupqq=event.group_id).with_for_update(read=True, skip_locked=True)
+        group_rec = (await session.execute(stmt)).first()
         if group_rec:
             group_rec[0].welcome = msg
             session.add(group_rec[0])

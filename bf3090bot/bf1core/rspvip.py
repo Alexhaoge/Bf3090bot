@@ -80,7 +80,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
 
         async with async_db_session() as session:
             exist_vip = (await session.execute(
-                select(ServerVips).filter_by(serverid=server_id, pid=personaId)
+                select(ServerVips).filter_by(serverid=server_id, pid=personaId).with_for_update(read=False)
             )).first()
             if exist_vip: # If vip exists, update the current vip
                 if exist_vip[0].permanent:
@@ -298,7 +298,9 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
             await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
         
         async with async_db_session() as session:
-            vip = (await session.execute(select(ServerVips).filter_by(serverid=server_id, pid=personaId))).first()
+            vip = (await session.execute(
+                select(ServerVips).filter_by(serverid=server_id, pid=personaId).with_for_update(read=False)
+            )).first()
             if vip:
                 if is_operation: 
                     if vip[0].enabled:
@@ -356,7 +358,8 @@ async def bf1_vipall(event:GroupMessageEvent, state:T_State):
             await BF1_VIPALL.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         
         async with async_db_session() as session:
-            vip_rows = (await session.execute(select(ServerVips).filter_by(serverid=server_id))).all()
+            stmt = select(ServerVips).filter_by(serverid=server_id).with_for_update(read=False)
+            vip_rows = (await session.execute(stmt)).all()
             for row in vip_rows:
                 if not row[0].permanent:
                     row[0].days += days
@@ -420,7 +423,7 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
                         if pid in member_personaIds and pid not in adminList:
                             vip_members.append((p['id'], p['name']))
                             exist_vip = (await session.execute(
-                                select(ServerVips).filter_by(serverid=server_id, pid=p['id'])
+                                select(ServerVips).filter_by(serverid=server_id, pid=p['id']).with_for_update()
                             )).first()
                             if exist_vip:
                                 exist_vip[0].priority = max(exist_vip[0].priority, priority)

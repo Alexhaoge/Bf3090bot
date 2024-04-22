@@ -29,13 +29,14 @@ async def bf1_init(event:GroupMessageEvent, state:T_State):
     groupqq = event.group_id
     arg = message.extract_plain_text()
 
-    main_groupqq = groupqq if arg.startswith(f'{PREFIX}') else arg
+    main_groupqq = groupqq if arg.startswith(f'{PREFIX}') else int(arg)
     async with async_db_session() as session:
         if main_groupqq != groupqq:
             exist_main_group = (await session.execute(select(ChatGroups).filter_by(groupqq=main_groupqq))).first()
             if not exist_main_group:
                 await BF1_INIT.finish(MessageSegment.reply(event.message_id)+'主群不存在!')
-        exist_group = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
+        stmt = select(ChatGroups).filter_by(groupqq=groupqq).with_for_update(read=True)
+        exist_group = (await session.execute(stmt)).first()
         if exist_group:
             exist_group[0].bind_to_group = main_groupqq
             session.add(exist_group[0])
@@ -60,7 +61,8 @@ async def bf1_init2(event:GroupMessageEvent, state:T_State):
             exist_main_group = (await session.execute(select(ChatGroups).filter_by(groupqq=main_groupqq))).first()
             if not exist_main_group:
                 await BF1_INIT2.finish(MessageSegment.reply(event.message_id)+'主群不存在!')
-        exist_group = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
+        stmt = select(ChatGroups).filter_by(groupqq=groupqq).with_for_update(read=True)
+        exist_group = (await session.execute(stmt)).first()
         if exist_group:
             exist_group[0].bind_to_group = main_groupqq
             session.add(exist_group[0])
@@ -96,16 +98,8 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
                               + traceback.format_exception_only(e))
     else:
         async with async_db_session() as session:
-            serverid = detailedServer['result']['rspInfo']['server']['serverId']
+            serverid = int(detailedServer['result']['rspInfo']['server']['serverId'])
             server_name = result['result']['gameservers'][0]['name']
-            bind_stmt = select(GroupServerBind).filter(
-                GroupServerBind.groupqq == groupqq,
-                or_(GroupServerBind.ind == server_ind, GroupServerBind.serverid == serverid))
-            exist_bind = (await session.execute(bind_stmt)).first()
-            if exist_bind:
-                await BF1_BIND.finish(f'服务器{server_ind}或{serverid}已存在')
-            else:
-                session.add(GroupServerBind(groupqq = groupqq, serverid = serverid, ind = server_ind))
             exist_s = (await session.execute(select(Servers).filter_by(serverid=serverid))).first()
             if not exist_s:
                 session.add(Servers(
@@ -115,6 +109,14 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
                     keyword = server_keyword,
                     opserver = (detailedServer['result']['serverInfo']['mapMode'] == 'BreakthroughLarge')
                 ))
+            bind_stmt = select(GroupServerBind).filter(
+                GroupServerBind.groupqq == groupqq,
+                or_(GroupServerBind.ind == server_ind, GroupServerBind.serverid == serverid))
+            exist_bind = (await session.execute(bind_stmt)).first()
+            if exist_bind:
+                await BF1_BIND.finish(f'服务器{server_ind}或{serverid}已存在')
+            else:
+                session.add(GroupServerBind(groupqq = groupqq, serverid = serverid, ind = server_ind))
             await session.commit()
             
         await BF1_BIND.finish(f'本群已绑定服务器:{server_name}，编号为{server_ind}')
@@ -151,16 +153,12 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
                               + traceback.format_exception_only(e))
     else:
         async with async_db_session() as session:
-            serverid = detailedServer['result']['rspInfo']['server']['serverId']
+            serverid = int(detailedServer['result']['rspInfo']['server']['serverId'])
             server_name = result['result']['gameservers'][0]['name']
             bind_stmt = select(GroupServerBind).filter(
                 GroupServerBind.groupqq == groupqq,
                 or_(GroupServerBind.ind == server_ind, GroupServerBind.serverid == serverid))
             exist_bind = (await session.execute(bind_stmt)).first()
-            if exist_bind:
-                await BF1_BIND2.finish(f'服务器{server_ind}或{serverid}已存在')
-            else:
-                session.add(GroupServerBind(groupqq = groupqq, serverid = serverid, ind = server_ind))
             exist_s = (await session.execute(select(Servers).filter_by(serverid=serverid))).first()
             if not exist_s:
                 session.add(Servers(
@@ -170,6 +168,10 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
                     keyword = server_keyword,
                     opserver = (detailedServer['result']['serverInfo']['mapMode'] == 'BreakthroughLarge')
                 ))
+            if exist_bind:
+                await BF1_BIND2.finish(f'服务器{server_ind}或{serverid}已存在')
+            else:
+                session.add(GroupServerBind(groupqq = groupqq, serverid = serverid, ind = server_ind))
             await session.commit()
             
         await BF1_BIND2.finish(f'群{groupqq}({arg[0]})已绑定服务器:{server_name}，编号为{server_ind}')
@@ -182,7 +184,8 @@ async def bf1_rebindserver(event:GroupMessageEvent, state:T_State):
     server_ind = arg[0]
     new_server_ind = html.unescape(arg[1])
     groupqq = await check_session(event.group_id)
- 
+    if not groupqq:
+        await BF1_REBIND.finish('服务器未初始化')
     async with async_db_session() as session:
         stmt = select(GroupServerBind).filter_by(groupqq=groupqq, ind=server_ind)
         exist_server = (await session.execute(stmt)).first()
@@ -201,6 +204,8 @@ async def bf1_addbindserver(event:GroupMessageEvent, state:T_State):
     server_ind = arg[0]
     new_server_ind = html.unescape(arg[1])
     groupqq = await check_session(event.group_id)
+    if not groupqq:
+        await BF1_ADDBIND.finish('服务器未初始化')
 
     async with async_db_session() as session:
         stmt = select(GroupServerBind).filter_by(groupqq=groupqq, ind=server_ind)
@@ -217,6 +222,8 @@ async def bf1_addbindserver(event:GroupMessageEvent, state:T_State):
 async def bf1_admin(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
+    if not groupqq:
+        await BF1_ADDADMIN.finish('服务器未初始化')
     adminqqs = message.extract_plain_text().split()
     failed_qqs = []
     success_qqs = []
@@ -243,13 +250,15 @@ async def bf1_admin(event:GroupMessageEvent, state:T_State):
 async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
+    if not groupqq:
+        await BF1_DELADMIN.finish('服务器未初始化')
     arg = message.extract_plain_text().split()
     deleted_qqs = []
     async with async_db_session() as session:
         for admin_str in arg:
             if admin_str.isdigit():
                 admin_qq = int(admin_str)
-                stmt = select(GroupAdmins).filter(GroupAdmins.groupqq==groupqq, GroupAdmins.qq==admin_qq)
+                stmt = select(GroupAdmins).filter_by(groupqq=groupqq, qq=admin_qq).with_for_update(read=True)
                 admin_del = (await session.execute(stmt)).first()
                 if admin_del:
                     await session.delete(admin_del[0])
@@ -261,6 +270,8 @@ async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
 async def bf1_adminlist(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
+    if not groupqq:
+        await BF1_ADMINLIST.finish('服务器未初始化')
     async with async_db_session() as session:
         stmt = select(GroupAdmins).filter(GroupAdmins.groupqq==groupqq)
         adminlist = [str(row[0].qq) for row in (await session.execute(stmt)).all()]

@@ -53,7 +53,7 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
         player_r = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
         if player_r:
             personaId = player_r[0].pid
-            code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
+            code_r = (await session.execute(select(BotVipCodes).filter_by(code=code).with_for_update())).first()
             if code_r:
                 exist_pid = code_r[0].pid
                 valid = False

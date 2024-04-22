@@ -91,21 +91,22 @@ async def bf1_alarm(timeout: int = 20):
         streams={'alarmstream': '>'},
         consumername='nonebot',
         groupname=f'cg{NONEBOT_PORT}',
-        count=30
+        count=100
     )
     bots = nonebot.get_bots()
-    for id, alarm_msg in alarm_msgs['alarmstream'][0][1]:
-        await redis_client.xack('alarmstream', f'cg{NONEBOT_PORT}', id)
-        groupqq = int(alarm_msg['groupqq'])
-        bot = await getbotforAps(bots, groupqq)
-        if not bot:
-            continue
-        amount = alarm_msg['alarm']
-        ind = alarm_msg['ind']
-        playerAmount = alarm_msg['player']
-        mapName = alarm_msg['map']
-        await bot.send_group_msg(group_id=groupqq, message=f'第{amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{mapName}。')
-        await asyncio.sleep(1)        
+    if len(alarm_msgs):
+        for id, alarm_msg in alarm_msgs[0][1]:
+            await redis_client.xack('alarmstream', f'cg{NONEBOT_PORT}', id)
+            groupqq = int(alarm_msg['groupqq'])
+            bot = await getbotforAps(bots, groupqq)
+            if not bot:
+                continue
+            amount = alarm_msg['alarm']
+            ind = alarm_msg['ind']
+            playerAmount = alarm_msg['player']
+            mapName = alarm_msg['map']
+            await bot.send_group_msg(group_id=groupqq, message=f'第{amount}次警告：{ind}服人数大量下降到{playerAmount}人，请注意。当前地图为：{mapName}。')
+            await asyncio.sleep(1)        
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
     logger.info(f"预警消费用时：{thr_time}秒")
@@ -118,17 +119,18 @@ async def bf1_upd_vbanPlayer():
         streams={'vbanstream': '>'},
         consumername='nonebot',
         groupname=f'cg{NONEBOT_PORT}',
-        count=30
+        count=100
     )
     bots = nonebot.get_bots()
-    for id, vban_msg in vban_msgs['vbanstream'][0][1]:
-        await redis_client.xack('vbanstream', f'cg{NONEBOT_PORT}', id)
-        groupqq = int(vban_msg['groupqq'])
-        bot = await getbotforAps(bots, groupqq)
-        if not bot:
-            continue
-        await bot.send_group_msg(group_id=groupqq, message=vban_msg['msg'])
-        await asyncio.sleep(1)        
+    if len(vban_msgs):
+        for id, vban_msg in vban_msgs[0][1]:
+            await redis_client.xack('vbanstream', f'cg{NONEBOT_PORT}', id)
+            groupqq = int(vban_msg['groupqq'])
+            bot = await getbotforAps(bots, groupqq)
+            if not bot:
+                continue
+            await bot.send_group_msg(group_id=groupqq, message=vban_msg['msg'])
+            await asyncio.sleep(1)        
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
     logger.info(f"Vban消费用时：{thr_time}秒")

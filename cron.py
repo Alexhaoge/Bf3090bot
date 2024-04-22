@@ -1,6 +1,7 @@
 import json, asyncio, datetime, requests
 import psycopg
 import redis
+import multiprocessing
 import time
 import logging
 import traceback
@@ -17,8 +18,13 @@ config = dotenv_values('.env.prod')
 BFCHAT_DATA_FOLDER = Path(config['BFCHAT_DIR']).resolve()
 BLAZE_HOST = config['BLAZE_HOST']
 PROXY_HOST = config['PROXY_HOST']
-EAC_SERVER_BLACKLIST = config['EAC_SERVER_BLACKLIST']
 db_url = config['psycopg_database']
+
+EAC_SERVER_BLACKLIST = []
+for serverid in config['EAC_SERVER_BLACKLIST'].split(","):
+    if serverid.isdigit():
+        EAC_SERVER_BLACKLIST.append(int(serverid))
+VBAN_EAC_ENABLE = config['VBAN_EAC_ENABLE']
 
 with open(BFCHAT_DATA_FOLDER/'bf1_servers/zh-cn.json','r', encoding='utf-8') as f:
     zh_cn_mapname = json.load(f)
@@ -222,7 +228,7 @@ def bf1_reset_alarm_session():
     keys_to_del = [f"alarmamount:{groupqq}" for groupqq in alarm_groupqqs]
     if len(keys_to_del):
         redis_client.delete(*keys_to_del)
-    logging.info('Alarm session reset')
+    print('Alarm session reset')
     redis_client.close()
     conn.close()
 
@@ -288,16 +294,18 @@ def get_server_status(groupqq: int, ind: str, serverid: int, redis_client: redis
         maxPlayers = int(status['serverMax'])
         mapName = zh_cn_mapname[str(status['map'])]
     except:
-        logging.debug(f'No data for gameId:{gameId}')
+        # print(f'No data for gameId:{gameId}')
+        return
     else:
         try:
-            #if True: # Test
+            #if groupqq == 875349777: # Test
             if max(maxPlayers-34,maxPlayers/3) < playerAmount < maxPlayers-10:
                 alarm_amount = redis_client.hincrby(f'alarmamount:{groupqq}', ind)
-                redis_client.xadd("alarmstream", {'grouppqq': groupqq, 'ind': ind, 'player': playerAmount, 'map': mapName, 'alarm': alarm_amount},
+                print(groupqq, ind, playerAmount, mapName, alarm_amount)
+                redis_client.xadd("alarmstream", {'groupqq': groupqq, 'ind': ind, 'player': playerAmount, 'map': mapName, 'alarm': alarm_amount},
                                   maxlen=500)
         except:
-            logging.error(traceback.format_exc(2))
+            print(traceback.format_exc(2))
 
 def trigger_alarm():
     start_time = datetime.datetime.now()
@@ -306,8 +314,10 @@ def trigger_alarm():
     alarm_session_set = redis_client.smembers('alarmsession')
     for groupqq_b in alarm_session_set:
         groupqq = int(groupqq_b)
-        main_groupqq = db_op(conn, 'SELECT bind_to_group FROM groups WHERE groupqq=%s', [groupqq])[0][0]
-        servers = db_op(conn, 'SELECT ind, serverid FROM groupservers WHERE groupqq=%s', [main_groupqq])
+        main_groupqq = db_op(conn, 'SELECT bind_to_group FROM groups WHERE groupqq=%s;', [groupqq])
+        if not len(main_groupqq):
+            continue
+        servers = db_op(conn, 'SELECT ind, serverid FROM groupservers WHERE groupqq=%s;', [main_groupqq[0][0]])
         for ind, serverid in servers:
             alarm_amount = redis_client.hget(f'alarmamount:{groupqq}', ind)
             if (not alarm_amount) or (int(alarm_amount) < 3):
@@ -316,7 +326,7 @@ def trigger_alarm():
     conn.close()
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
-    logging.info(f"预警生产用时：{thr_time}秒")
+    print(f"预警生产用时：{thr_time}秒")
 
 
 ################################## Vban ##################################
@@ -336,11 +346,11 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
             continue
 
         pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
-        if not serverid in EAC_SERVER_BLACKLIST:
+        if VBAN_EAC_ENABLE and (not serverid in EAC_SERVER_BLACKLIST):
             try:
                 bfeac_ids = await bfeac_checkBanMulti(pl_ids)
             except Exception as e:
-                logging.warning(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
+                print(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
                 continue
             if bfeac_ids and len(bfeac_ids):
                 reason = "Banned by bfeac.com"
@@ -390,10 +400,10 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
                     else:
                         eaid = f'pid:{personaId}'
                     report_msg = f"Vban提示: 在{name}踢出{eaid}, 理由: {reason}"
-                    redis_client.xadd("vbanstream", {'grouppqq': groupqq, 'msg': report_msg}, maxlen=500)
-                    logging.info(report_msg)
+                    redis_client.xadd("vbanstream", {'groupqq': groupqq, 'msg': report_msg}, maxlen=500)
+                    print(report_msg)
                 except Exception as e:
-                    logging.warning(e)
+                    print(traceback.format_exc())
                     continue
 
 
@@ -402,14 +412,14 @@ async def start_vban(conn: psycopg.Connection, redis_client: redis.Redis, sgids:
         #pljson = await upd_blazeplforvban([t[1] for t in sgids])
         pljson = await Blaze2788Pro([t[1] for t in sgids])
     except:
-        logging.warning(traceback.format_exc())
-        logging.warning('Vban Blaze error for ' + ','.join([str(t[1]) for t in sgids]))
+        print(traceback.format_exc())
+        print('Vban Blaze error for ' + ','.join([str(t[1]) for t in sgids]))
     else:
         try:
             await kick_vbanPlayer(conn, redis_client, pljson, sgids, vbans) 
         except Exception as e:
-            logging.warning(traceback.format_exc())
-            logging.warning('Vban exception during execution: ' + traceback.format_exception_only(e)[0] + \
+            print(traceback.format_exc())
+            print('Vban exception during execution: ' + traceback.format_exception_only(e)[0] + \
                            '\n' + ','.join([str(t[1]) for t in sgids]))
 
 async def upd_vbanPlayer():
@@ -449,32 +459,77 @@ async def upd_vbanPlayer():
     redis_client.close()
     end_time = datetime.datetime.now()
     thr_time = (end_time - start_time).total_seconds()
-    logging.info(f"Vban生产用时：{thr_time}秒")
+    print(f"Vban生产用时：{thr_time}秒")
 
 
-################################## Main ##################################
-async def start_job():
-    scheduler = AsyncIOScheduler()
-
-    scheduler.add_job(refresh_cookie_and_sessionid, 'interval', hours=2)
-    scheduler.add_job(refresh_serverInfo, 'interval', minutes=30)
-    scheduler.add_job(upd_ping, 'interval', seconds=30)
-    scheduler.add_job(upd_ping1, 'interval', seconds=30)
-    scheduler.add_job(upd_ping2, 'interval', seconds=30)
-    scheduler.add_job(bf1_reset_alarm_session, 'interval', minutes=15)
-    scheduler.add_job(upd_draw, 'interval', minutes=2)
-    scheduler.add_job(upd_vbanPlayer, 'interval', minutes=2)
-
-    scheduler.start()
+################################## Multiprocess Asyncio Scheduler ##################################
+def start_job0():
     try:
-        while True:
-            await asyncio.sleep(1)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        scheduler = AsyncIOScheduler(event_loop=loop)
+        scheduler.add_job(refresh_cookie_and_sessionid, 'interval', hours=2)
+        scheduler.add_job(refresh_serverInfo, 'interval', minutes=30)
+        scheduler.add_job(upd_ping, 'interval', seconds=30)
+        scheduler.add_job(upd_ping1, 'interval', seconds=30)
+        scheduler.add_job(upd_ping2, 'interval', seconds=30)
+        scheduler.start()
+        loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
-        scheduler.shutdown()
+        pass
+    finally:
+        loop.stop()
+        loop.close()
+
+def start_job1():
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        scheduler = AsyncIOScheduler(event_loop=loop)
+        scheduler.add_job(bf1_reset_alarm_session, 'interval', minutes=15)
+        scheduler.add_job(upd_draw, 'interval', minutes=2, misfire_grace_time=60)
+        scheduler.add_job(trigger_alarm, 'interval', minutes=2, misfire_grace_time=60)
+        scheduler.start()
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        loop.stop()
+        loop.close()
+
+def start_job2():
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        scheduler = AsyncIOScheduler(event_loop=loop)
+        scheduler.add_job(upd_vbanPlayer, 'interval', minutes=2, misfire_grace_time=60)
+        scheduler.start()
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        loop.stop()
+        loop.close()
+
+def run_process(job):
+    process = multiprocessing.Process(target=job)
+    process.start()
+    return process
 
 if __name__ == '__main__':
     asyncio.run(refresh_cookie_and_sessionid()) # Run this command when doing setup for a new production environment.
     asyncio.run(refresh_serverInfo())
     bf1_reset_alarm_session()
     asyncio.run(upd_draw())
-    asyncio.run(start_job())
+    
+    processes = []
+    try:
+        processes.append(run_process(start_job0))
+        processes.append(run_process(start_job1))
+        processes.append(run_process(start_job2))
+        for process in processes:
+            process.join()
+    except (KeyboardInterrupt, SystemExit):
+        for process in processes:
+            process.terminate()
+            process.join()

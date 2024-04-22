@@ -56,7 +56,7 @@ async def bf1_add_bf1_account(event: GroupMessageEvent, state: T_State):
             logger.warning(traceback.format_exc(2))
             await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only(e))
         async with async_db_session() as session:
-            exist_account = (await session.execute(select(Bf1Admins).filter_by(pid=pid))).first()
+            exist_account = (await session.execute(select(Bf1Admins).filter_by(pid=pid).with_for_update(read=True))).first()
             if exist_account:
                 exist_account[0].remid, exist_account[0].sid, exist_account[0].token, exist_account[0].sessionid = remid, sid, token, sessionid
                 session.add(exist_account[0])
@@ -906,7 +906,7 @@ async def bf1_addwhitelist(event:GroupMessageEvent, state:T_State):
             await BF1_ADDWL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n'+ traceback.format_exception_only(e))
 
     async with async_db_session() as session:
-        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id)
+        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id).with_for_update(read=True)
         exist_server = (await session.execute(stmt)).first()
         if exist_server[0].whitelist:
             wl_set = set(int(s) for s in exist_server[0].whitelist.split(','))
@@ -940,7 +940,7 @@ async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
             await BF1_RMWL.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n'+ traceback.format_exception_only(e))
 
     async with async_db_session() as session:
-        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id)
+        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, serverid=server_id).with_for_update(read=True)
         exist_server = (await session.execute(stmt)).first()
         if exist_server[0].whitelist:
             wl_set = set(int(s) for s in exist_server[0].whitelist.split(','))

@@ -45,17 +45,18 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
         await BF1_BIND_PID.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only(e))
     
     async with async_db_session() as session:
-        gm = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
+        stmt_gm = select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id).with_for_update(read=True)
+        gm = (await session.execute(stmt_gm)).first()
         if gm:
             gm[0].pid = personaId
-            session.add(gm[0])
         else:
             session.add(GroupMembers(pid=personaId, groupqq=groupqq, qq=user_id))
-        player = (await session.execute(select(Players).filter_by(qq=user_id))).first()
+        await session.commit()
+        stmt_p = select(Players).filter_by(qq=user_id).with_for_update(read=True)
+        player = (await session.execute(stmt_p)).first()
         if player:
             player[0].originid = userName
             player[0].pid = personaId
-            session.add(player[0])
         else:
             session.add(Players(pid=personaId, originid=userName, qq=user_id))
         await session.commit()                          
@@ -92,7 +93,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
     elif 'msg' in ret_dict:
         await BF1_SA.send(MessageSegment.reply(event.message_id) + ret_dict['msg'])
     personaId, userName = ret_dict['pid'], ret_dict['userName']
-
+    
     if searchmode == 'vban':
         num,name,reason = await search_vban(personaId)
     else:
@@ -101,6 +102,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
     search_modes = {'o': '', 'a': '的管理', 'v': '的vip', 'b':'的ban位', 'vban': '的vban位'}
     if searchmode in search_modes:
         msg_title = f'玩家{userName}共拥有{num}个服务器' + search_modes[searchmode] + (':' if num else '')
+        # print(type(msg_title))
         await BF1_SA.send(MessageSegment.reply(event.message_id) + msg_title)    
         if num:
             file_dir = await draw_a(num,name,reason,personaId)
@@ -290,6 +292,8 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
 
 @BF1_R.handle()
 async def bf1_recent(event:GroupMessageEvent, state:T_State):
+    await BF1_R.send(MessageSegment.reply(event.message_id) + f'此功能暂时关闭')    
+    return
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
     usercard = event.sender.card

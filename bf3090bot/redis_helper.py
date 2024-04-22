@@ -1,4 +1,5 @@
 from redis import asyncio as redis
+from redis.exceptions import ResponseError
 from .utils import REDIS_URL
 
 redis_pool = redis.ConnectionPool.from_url(REDIS_URL, decode_responses=True)
@@ -8,7 +9,7 @@ async def registrate_consumer_group(redis_client, group_name):
     try:
         await redis_client.xgroup_create('alarmstream', group_name, '$', mkstream=True)
         await redis_client.xgroup_create('vbanstream', group_name, '$', mkstream=True)
-    except redis.exceptions.ResponseError as e:
+    except ResponseError as e:
         if "BUSYGROUP Consumer Group name already exists" not in str(e):
             raise e
 

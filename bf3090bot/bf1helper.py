@@ -200,29 +200,33 @@ async def add_vban(personaId: int, groupqq: int, serverId: int, reason: str, use
     Update: vban now records serverid(from Battlefield) instead group server code(1, 2, 3, etc.)
     """
     async with async_db_session() as session:
-        exist_vban = (await session.execute(select(ServerVBans).filter_by(pid=personaId, serverid=serverId))).first()
-        if not exist_vban:
-            session.add(ServerVBans(
-                pid = personaId, serverid = serverId,
-                time = datetime.datetime.now(), reason = reason,
-                processor = user_id, notify_group = groupqq
-            ))
-        else:
-            exist_vban[0].reason = str(reason)
-            exist_vban[0].processor = int(user_id)
-            exist_vban[0].time = datetime.datetime.now()
-            session.add(exist_vban[0])
-        await session.commit()
+        async with session.begin():
+            stmt = select(ServerVBans).filter_by(pid=int(personaId), serverid=int(serverId)).with_for_update(read=True)
+            exist_vban = (await session.execute(stmt)).first()
+            if not exist_vban:
+                session.add(ServerVBans(
+                    pid = int(personaId), serverid = int(serverId),
+                    time = datetime.datetime.now(), reason = reason,
+                    processor = user_id, notify_group = groupqq
+                ))
+            else:
+                exist_vban[0].reason = str(reason)
+                exist_vban[0].processor = int(user_id)
+                exist_vban[0].time = datetime.datetime.now()
+                session.add(exist_vban[0])
+            await session.commit()
 
 async def del_vban(personaId: int, serverId: int):
     """
     Update: vban now records serverid(from Battlefield) instead group server code(1, 2, 3)
     """
     async with async_db_session() as session:
-        vban_rec = (await session.execute(select(ServerVBans).filter_by(pid=personaId, serverid=serverId))).first()
-        if vban_rec:
-            await session.delete(vban_rec[0])
-            await session.commit()
+        async with session.begin():
+            stmt = select(ServerVBans).filter_by(pid=int(personaId), serverid=int(serverId)).with_for_update(read=True)
+            vban_rec = (await session.execute(stmt)).first()
+            if vban_rec:
+                await session.delete(vban_rec[0])
+                await session.commit()
 
 async def search_vban(personaId):
     with open(BF1_SERVERS_DATA/'info.json','r',encoding='UTF-8') as f:
@@ -232,7 +236,7 @@ async def search_vban(personaId):
     name = []
 
     async with async_db_session() as session:
-        vban_rows = (await session.execute(select(ServerVBans).filter_by(pid=personaId))).all()
+        vban_rows = (await session.execute(select(ServerVBans).filter_by(pid=int(personaId)))).all()
         for vban_row in vban_rows:
             reason.append(vban_row[0].reason)
             serverId = vban_row[0].serverid
@@ -257,6 +261,9 @@ async def update_or_bind_player_name(
         remid: str, sid: str, sessionID: str, access_token: str,
         playerName: str = None, usercard: str = None) -> dict:
     ret_dict = {}
+    if not groupqq:
+        ret_dict['err'] = '该群组未初始化'
+        return ret_dict
     if mode == 1:
         try:
             personaId,userName,pidid = await getPersonasByName(access_token, playerName)
