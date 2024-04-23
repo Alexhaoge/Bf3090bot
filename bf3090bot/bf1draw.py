@@ -79,7 +79,7 @@ async def paste_emb(url,img,position):
                 pass
 
 
-async def draw_f(server_gameids: list, groupqq: int, remid: str, sid: str, sessionID: str):
+async def draw_f(server_inds: list, server_gameids: list, groupqq: int, remid: str, sid: str, sessionID: str):
     tasks = [asyncio.create_task(upd_detailedServer(remid, sid, sessionID, gameId)) for gameId in server_gameids]
     ress = []
     server_num = len(server_gameids)
@@ -93,6 +93,7 @@ async def draw_f(server_gameids: list, groupqq: int, remid: str, sid: str, sessi
     ress = await asyncio.gather(*tasks, return_exceptions=True)
     
     for id in range(server_num):
+        server_ind = server_inds[id]
         try:
             res =  ress[id]
             servername = res['result']['serverInfo']['name']
@@ -125,7 +126,7 @@ async def draw_f(server_gameids: list, groupqq: int, remid: str, sid: str, sessi
         font_2 = ImageFont.truetype(font='msyhbd.ttc', size=44, encoding='UTF-8')
         font_3 = ImageFont.truetype(font='msyhbd.ttc', size=28, encoding='UTF-8')
         font_4 = ImageFont.truetype(font='comic.ttf', size=72, encoding='UTF-8')
-        draw0.text(xy=(80,8), text=servername, fill=(255, 255, 255, 255),font=font_1)
+        draw0.text(xy=(80,8), text=f'[{server_ind}] ' + servername, fill=(255, 255, 255, 255),font=font_1)
         draw.text(xy=(560,10), text=zhconv.convert(status1,"zh-cn"), fill=(255, 255, 0, 200),font=font_2)
         draw.text(xy=(1160,10), text=status3, fill=(0, 255, 255, 200),font=font_2)
         draw.text(xy=(500,40), text='------------------------------------------------------', fill=(0, 255, 0, 100),font=font_1)
