@@ -231,8 +231,8 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
         try:
             userName_res = await upd_getPersonasByIds(remid, sid, sessionID, pids)
             names = [userName_res['result'][str(pid)]['displayName'] for pid in pids]
-            num_res = (await session.execute(select(ServerBf1Admins, func.count()).group_by(ServerBf1Admins.pid))).all()
-            nums = {r[0].pid:r[1] for r in num_res}
+            num_res = (await session.execute(select(ServerBf1Admins.pid, func.count()).group_by(ServerBf1Admins.pid))).all()
+            nums = {r[0]:r[1] for r in num_res}
         except RSPException as rsp_exc:
             await BF1_BOT.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return

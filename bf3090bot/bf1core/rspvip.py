@@ -52,12 +52,12 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '回复消息错误或已过期')
             pl_json = json.loads(redis_pl)
             pl = pl_json['pl']
-            server_id = pl_json['serverid'] # Playerlist cache will store serverid instead of server_ind
+            server_id = int(pl_json['serverid']) # Playerlist cache will store serverid instead of server_ind
             server_ind = pl_json['serverind']
             personaId = None
             for i in pl:
                 if int(i['slot']) == int(arg[0]):
-                    personaId = i['id']
+                    personaId = int(i['id'])
                     break
             if not personaId:
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '玩家序号错误')
@@ -395,7 +395,7 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
                 await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + '回复消息错误或已过期')
             pl_json = json.loads(redis_pl)
             pl = pl_json['pl']
-            server_id = pl_json['serverid']
+            server_id = int(pl_json['serverid'])
             server_ind = pl_json['serverind']
             
             remid, sid, sessionID, _ = await get_one_random_bf1admin()
@@ -412,7 +412,7 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
                 await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + '获取服务器信息失败，请稍后再试\n' + traceback.format_exception_only(e))
 
             async with async_db_session() as session:
-                member_rows = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq))).all()
+                member_rows = (await session.execute(select(GroupMembers).filter_by(groupqq=int(groupqq)))).all()
                 member_personaIds = set(r[0].pid for r in member_rows)
 
                 vip_members = []
@@ -423,7 +423,7 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
                         if pid in member_personaIds and pid not in adminList:
                             vip_members.append((p['id'], p['name']))
                             exist_vip = (await session.execute(
-                                select(ServerVips).filter_by(serverid=server_id, pid=p['id']).with_for_update()
+                                select(ServerVips).filter_by(serverid=server_id, pid=pid).with_for_update()
                             )).first()
                             if exist_vip:
                                 exist_vip[0].priority = max(exist_vip[0].priority, priority)
@@ -431,7 +431,7 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
                                     exist_vip[0].days += days
                             else:
                                 new_vip = ServerVips(
-                                    serverid = server_id, pid = p['id'], originid = p['name'],
+                                    serverid = server_id, pid = pid, originid = p['name'],
                                     days = days, permanent = False, enabled = False, priority = priority
                                 )
                                 session.add(new_vip)
