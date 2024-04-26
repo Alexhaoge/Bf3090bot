@@ -149,7 +149,7 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
         return
     except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_BIND.finish(MessageSegment.reply(event.message_id) + "无法获取服务器数据\n" \
+        await BF1_BIND2.finish(MessageSegment.reply(event.message_id) + "无法获取服务器数据\n" \
                               + traceback.format_exception_only(e))
     else:
         async with async_db_session() as session:
@@ -168,11 +168,12 @@ async def bf1_bindserver(event:GroupMessageEvent, state:T_State):
                     keyword = server_keyword,
                     opserver = (detailedServer['result']['serverInfo']['mapMode'] == 'BreakthroughLarge')
                 ))
+                await session.commit()
             if exist_bind:
                 await BF1_BIND2.finish(f'服务器{server_ind}或{serverid}已存在')
             else:
                 session.add(GroupServerBind(groupqq = groupqq, serverid = serverid, ind = server_ind))
-            await session.commit()
+                await session.commit()
             
         await BF1_BIND2.finish(f'群{groupqq}({arg[0]})已绑定服务器:{server_name}，编号为{server_ind}')
 

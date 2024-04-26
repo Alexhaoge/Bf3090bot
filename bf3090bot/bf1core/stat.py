@@ -99,11 +99,11 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
     else:
         num,name = search_a(personaId,searchmode)
         reason = []
-    search_modes = {'o': '', 'a': '的管理', 'v': '的vip', 'b':'的ban位', 'vban': '的vban位'}
+    search_modes = {'o': '', 'a': '的管理', 'v': '的vip', 'b':'的封禁位', 'vban': '的虚拟封禁位'}
     if searchmode in search_modes:
         msg_title = f'玩家{userName}共拥有{num}个服务器' + search_modes[searchmode] + (':' if num else '')
-        # print(type(msg_title))
-        await BF1_SA.send(MessageSegment.reply(event.message_id) + msg_title)    
+        print(type(msg_title))
+        await BF1_SA.send(msg_title)
         if num:
             file_dir = await draw_a(num,name,reason,personaId)
             await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
