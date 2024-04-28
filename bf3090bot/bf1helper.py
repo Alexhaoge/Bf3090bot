@@ -441,6 +441,103 @@ def search_a(personaId,mode):
         name.append(info[f"{serverId}"]["server_name"])
     return num,name
 
+async def update_diff(remid, sid, sessionID, pid):
+    newdiff = {}
+    async with async_db_session() as session:
+        async with session.begin():
+            stmt_stat = select(playerStats).filter_by(pid=int(pid)).with_for_update(read=True)
+            exist_stat = (await session.execute(stmt_stat)).first()
+            
+            stmt_diff = select(playerStatsDiff).filter_by(pid=int(pid)).with_for_update(read=True)
+            exist_diff = (await session.execute(stmt_diff)).first()
+            
+            res_stat = await upd_StatsByPersonaId(remid, sid, sessionID, pid)
+            win = res_stat['result']['basicStats']['wins']
+            loss = res_stat['result']['basicStats']['losses']
+            acc = res_stat['result']['accuracyRatio']
+            hs = res_stat['result']['headShots']
+            secondsPlayed = res_stat['result']['basicStats']['timePlayed']
+            k = res_stat['result']['basicStats']['kills']
+            d = res_stat['result']['basicStats']['deaths']
+            rounds = res_stat['result']["roundsPlayed"]
+            spm = res_stat['result']['basicStats']['spm']
+            score = int(spm * secondsPlayed / 60)            
+            
+            if not exist_stat:
+                session.add(playerStats(
+                    pid = int(pid), kills = k, deaths = d, playtimes = secondsPlayed,
+                    wins = win, losses = loss, rounds = rounds, headshots = hs,
+                    updatetime = datetime.datetime.timestamp(datetime.datetime.now()),
+                    acc = acc, score = score
+                ))
+            else:
+                oldtime = exist_stat[0].playtimes
+                if oldtime != secondsPlayed:
+                    killsdiff = k - exist_stat[0].kills
+                    deathsdiff = d - exist_stat[0].deaths
+                    winsdiff =  win - exist_stat[0].wins
+                    lossesdiff = loss - exist_stat[0].losses
+                    timediff = secondsPlayed - oldtime
+                    hsdiff = hs - exist_stat[0].headshots
+                    roundsdiff = rounds - exist_stat[0].rounds
+                    scorediff = score - exist_stat[0].score
+                    updatetime_old = exist_stat[0].updatetime
+                    updatetime_new = int(datetime.datetime.timestamp(datetime.datetime.now()))
+
+                    differ = {
+                        "k" : killsdiff,
+                        "d" : deathsdiff,
+                        "w" : winsdiff,
+                        "l" : lossesdiff,
+                        "time" : timediff,
+                        "hs" : hsdiff,
+                        "round" : roundsdiff,
+                        "score" : scorediff,
+                        "oldtime" : updatetime_old,
+                        "newtime" : updatetime_new
+                    }
+                    if exist_diff:
+                        olddiff = exist_diff[0].diff
+                        if len(olddiff) == 5:
+                            newdiff = {
+                                "1": olddiff["2"],
+                                "2": olddiff["3"],
+                                "3": olddiff["4"],
+                                "4": olddiff["5"],
+                                "5": differ
+                            }
+                        else:
+                            for i in range(len(olddiff)):
+                                newdiff[f"{i+1}"] = olddiff[f"{i+1}"]
+                            newdiff[f"{len(olddiff)+1}"] = differ 
+                        exist_diff[0].diff = newdiff
+                    else:
+                        newdiff = {
+                            "1": differ
+                        }
+                        session.add(playerStatsDiff(
+                            pid = int(pid), diff = newdiff
+                        ))
+                else:
+                    if exist_diff:
+                        newdiff = exist_diff[0].diff 
+                
+                exist_stat[0].kills = k
+                exist_stat[0].deaths = d
+                exist_stat[0].playtimes = secondsPlayed
+                exist_stat[0].wins = win
+                exist_stat[0].losses = loss
+                exist_stat[0].rounds = rounds
+                exist_stat[0].headshots = hs
+                exist_stat[0].updatetime = int(datetime.datetime.timestamp(datetime.datetime.now()))
+                exist_stat[0].acc = acc
+                exist_stat[0].score = score
+                session.add(exist_stat[0])
+
+            await session.commit() 
+
+    return newdiff
+
 __all__ =[
     'token_helper', 'session_helper',
     'get_one_random_bf1admin', 'get_bf1admin_by_serverid',
@@ -452,7 +549,7 @@ __all__ =[
     'upd_cache_StatsByPersonaId', 'read_or_get_StatsByPersonaId',
     'get_user_pid',
     'add_vban', 'del_vban', 'search_vban',
-    'search_a', 'search_all',
+    'search_a', 'search_all', 'update_diff',
     'get_server_num',
     'update_or_bind_player_name',
     '_is_del_user', '_is_get_user', '_is_add_user',

@@ -1765,13 +1765,14 @@ async def draw_faq():
 async def draw_re(remid, sid, sessionID, personaId, playerName):
     print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     tasks = []
-    tasks.append(asyncio.create_task(upd_cache_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
 
     personaIds=[]
     personaIds.append(personaId)
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
-    tasks.append(asyncio.create_task(upd_re(playerName)))
+    tasks.append(asyncio.create_task(update_diff(remid,sid,sessionID,personaId)))
+
     res_stat,emblem,res_tag,recent = await asyncio.gather(*tasks)
 
     name = playerName
@@ -1788,6 +1789,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     spm = res_stat['result']['basicStats']['spm']
     print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
+    recent = list(recent.values())
     try:
         emblem = emblem['result'].split('/')
     except:
@@ -1854,48 +1856,41 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     for i in range(len(recent)):
         textbox1 = Image.new("RGBA", (1300,170), (254, 238, 218, 180))
         draw = ImageDraw.Draw(textbox1)
-
-        match = re.search(r'(\d+)h (\d+)m', recent[i]['time_play'])
-        if match:
-            hour = int(match.group(1))
-            minute = int(match.group(2))
-            time_played = 60*hour + minute
+        time_played = recent[i]['time']
+        if time_played < 60:
+            time_play = f"{time_played}秒"
+        elif time_played < 3600:
+            time_play = f"{time_played // 60}分 {time_played % 60}秒"
         else:
-            match = re.search(r'(\d+)m', recent[i]['time_play'])
-            if match:                  
-                time_played = int(match.group(1))
-            else:
-                time_played = 0
-        time_play = recent[i]['time_play'].replace("h", "时").replace("m", "分")
+            time_play = f"{time_played // 3600}时 {(time_played % 3600 ) // 60}分 {time_played % 60}秒"
 
-        kill = round(float(recent[i]["kpm"])*time_played,0)
-        try:
-            death = round(kill / float(recent[i]["kd"]),0)
-        except:
-            death = 0
-        formatted_dt = '数据记录时间: ' + recent[i]["time"]
+
+        kill = recent[i]['k']
+        death = recent[i]['d']
+        
+        formatted_dt = '数据记录时间: ' + datetime.datetime.fromtimestamp(recent[i]["newtime"]).strftime("%Y-%m-%d %H:%M:%S")
  
         draw.text(xy=((650-font_5.getsize(formatted_dt)[0]/2),20), text=formatted_dt, fill=(34,139,34, 255),font=font_5)
 
         draw.text(xy=(100,60), text=f'时长:', fill=(255,100,0,255),font=font_4)
         draw.text(xy=(210,60), text=f'{time_play}', fill=(66, 112, 244, 255),font=font_4)
-        draw.text(xy=(480,60), text=f'得分:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(590,60), text=f'{recent[i]["score"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(480,60), text=f'击杀:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,60), text=f'{recent[i]["k"]}', fill=(66, 112, 244, 255),font=font_4)
   
-        draw.text(xy=(790,60), text=f'击杀:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(900,60), text=f'{int(kill)}', fill=(66, 112, 244, 255),font=font_4)
-        draw.text(xy=(1010,60), text=f'死亡:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1120,60), text=f'{int(death)}', fill=(66, 112, 244, 255),font=font_4)        
+        draw.text(xy=(750,60), text=f'死亡:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(860,60), text=f'{recent[i]["d"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1010,60), text=f'爆头:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(1120,60), text=f'{recent[i]["hs"]}', fill=(66, 112, 244, 255),font=font_4)        
         
         draw.text(xy=(100,100), text=f'胜负:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(210,100), text=f'{recent[i]["win_rate"]}', fill=(66, 112, 244, 255),font=font_4)        
-        draw.text(xy=(480,100), text=f'SPM:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(590,100), text=f'{recent[i]["spm"]}', fill=(66, 112, 244, 255),font=font_4)  
+        draw.text(xy=(210,100), text=f'{recent[i]["w"]}W/{recent[i]["l"]}L ({recent[i]["w"] // recent[i]["round"] if recent[i]["round"] != 0 else 0} %)', fill=(66, 112, 244, 255),font=font_4)        
+        draw.text(xy=(480,100), text=f'HS%:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,100), text=f'{round(recent[i]["hs"] * 100 / recent[i]["k"] if recent[i]["k"] !=0 else 0, 2)}%', fill=(66, 112, 244, 255),font=font_4)  
 
-        draw.text(xy=(790,100), text=f'KDA:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(900,100), text=f'{recent[i]["kd"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(750,100), text=f'KDA:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(860,100), text=f'{round(recent[i]["k"] / recent[i]["d"] if recent[i]["d"] !=0 else recent[i]["k"], 2)}', fill=(66, 112, 244, 255),font=font_4)
         draw.text(xy=(1010,100), text=f'KPM:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(1120,100), text=f'{recent[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1120,100), text=f'{round(recent[i]["k"] * 60 / time_played, 2)}', fill=(66, 112, 244, 255),font=font_4)
         
         draw.text(xy=(0,150), text=f'-----------------------------------------------------------------------------------------------',fill=(55, 1, 27, 255), font=font_5)
         
@@ -1911,7 +1906,6 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     draw.text(xy=(img.width-font_0.getsize(text)[0],170*len(recent)+255), text=text ,fill=(34,139,34, 255),font=font_0)
     draw.line((0, 250, 1300, 250), fill=(55, 1, 27, 120), width=4)
     print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-
     return base64img(img)
 
 async def upd_pl_platoons(remid, sid, sessionID, gameId):

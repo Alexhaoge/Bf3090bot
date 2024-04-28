@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, BigInteger, DateTime, String, Boolean, Index,
+    Column, Integer, BigInteger, DateTime, String, Boolean, Index, Float, JSON,
     func, ForeignKey, PrimaryKeyConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship, selectinload, sessionmaker 
@@ -151,6 +151,25 @@ class BotVipCodes(Base):
     pid = Column(BigInteger, nullable=False)
     qq = Column(BigInteger, nullable=True)
 
+class playerStats(Base):
+    __tablename__ = "playerstats"
+    pid = Column(BigInteger, nullable=False, primary_key=True)
+    kills = Column(Integer, nullable=True)
+    deaths = Column(Integer, nullable=True)
+    playtimes = Column(Integer, nullable=True)
+    wins = Column(Integer, nullable=True)
+    losses = Column(Integer, nullable=True)
+    rounds = Column(Integer, nullable=True)
+    headshots = Column(Integer, nullable=True)
+    updatetime = Column(Integer, nullable=True)
+    acc = Column(Float, nullable=True)
+    score = Column(BigInteger,default=0, nullable=True)
+
+class playerStatsDiff(Base):
+    __tablename__ = "playerstatsdiff"
+    pid = Column(BigInteger, nullable=False, primary_key=True)
+    diff = Column(JSON, nullable=True)
+
 ###################### Table Ends ##########################
 
 ###################### DB Helper ###########################
@@ -181,7 +200,7 @@ async def async_db_op(stmt: Executable):
 __all__ = [
     'Bf1Admins', 'Servers', 'ChatGroups', 'Players', 
     'GroupServerBind', 'GroupAdmins', 'GroupMembers', 
-    'ServerVips', 'ServerVBans', 'ServerBf1Admins', 'BotVipCodes',
+    'ServerVips', 'ServerVBans', 'ServerBf1Admins', 'BotVipCodes', 'playerStats', 'playerStatsDiff',
     'engine', 'init_db', 'close_db',
     'async_db_session', 'get_db_session', 'async_db_op'
 ]

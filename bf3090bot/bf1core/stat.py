@@ -328,8 +328,6 @@ async def bf1_recent(event:GroupMessageEvent, state:T_State):
 
 @BF1_RE.handle()
 async def bf1_recent1(event:GroupMessageEvent, state:T_State):
-    await BF1_RE.send(MessageSegment.reply(event.message_id) + f'此功能暂时关闭，查询最近对局请使用{PREFIX}r')    
-    return
     message = _command_arg(state) or event.get_message()
     groupqq = await check_session(event.group_id)
     usercard = event.sender.card
@@ -361,12 +359,12 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
     try:
         file_dir = await asyncio.wait_for(draw_re(remid, sid, sessionID, personaId, userName), timeout=35)
         if str(file_dir) != '0':
-            await BF1_RE.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+            await BF1_RE.send(MessageSegment.reply(event.message_id) + "对局功能暂时关闭，暂时调整为最近战绩\n" + MessageSegment.image(file_dir))
         else:
-            await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息，请检查BTR服务器是否正常。")
+            await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效")
     except RSPException as rsp_exc:
-        await BF1_S.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        await BF1_RE.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
     except Exception as e:
         logger.warning(traceback.format_exc())
-        await BF1_S.finish(MessageSegment.reply(event.message_id) + 'btr天天炸，一拳给它打爆！\n' + traceback.format_exception_only(e))
+        await BF1_RE.finish(MessageSegment.reply(event.message_id) + '暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效\n' + traceback.format_exception_only(e))
