@@ -10,7 +10,7 @@ import datetime
 import asyncio
 from io import BytesIO
 from .bf1rsp import *
-from .bf1helper import search_all, upd_cache_StatsByPersonaId
+from .bf1helper import search_all, upd_cache_StatsByPersonaId, update_diff
 from .utils import *
 from .image import *
 from .secret import *
@@ -1765,7 +1765,7 @@ async def draw_faq():
 async def draw_re(remid, sid, sessionID, personaId, playerName):
     print("draw_re"+ datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     tasks = []
-    tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
+    #tasks.append(asyncio.create_task(upd_StatsByPersonaId(remid, sid, sessionID, personaId)))
     tasks.append(asyncio.create_task(upd_Emblem(remid, sid, sessionID, personaId)))
 
     personaIds=[]
