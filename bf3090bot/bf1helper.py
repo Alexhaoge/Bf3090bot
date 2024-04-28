@@ -536,7 +536,7 @@ async def update_diff(remid, sid, sessionID, pid):
 
             await session.commit() 
 
-    return newdiff
+    return newdiff,res_stat
 
 __all__ =[
     'token_helper', 'session_helper',

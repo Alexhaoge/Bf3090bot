@@ -1773,7 +1773,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
     tasks.append(asyncio.create_task(upd_getActiveTagsByPersonaIds(remid,sid,sessionID,personaIds)))
     tasks.append(asyncio.create_task(update_diff(remid,sid,sessionID,personaId)))
 
-    res_stat,emblem,res_tag,recent = await asyncio.gather(*tasks)
+    emblem,res_tag,(recent,res_stat) = await asyncio.gather(*tasks)
 
     name = playerName
     tag = res_tag['result'][f'{personaId}']
