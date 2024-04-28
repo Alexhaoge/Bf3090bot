@@ -1883,7 +1883,7 @@ async def draw_re(remid, sid, sessionID, personaId, playerName):
         draw.text(xy=(1120,60), text=f'{recent[i]["hs"]}', fill=(66, 112, 244, 255),font=font_4)        
         
         draw.text(xy=(100,100), text=f'胜负:', fill=(255,100,0,255),font=font_4)
-        draw.text(xy=(210,100), text=f'{recent[i]["w"]}W/{recent[i]["l"]}L ({recent[i]["w"] // recent[i]["round"] if recent[i]["round"] != 0 else 0} %)', fill=(66, 112, 244, 255),font=font_4)        
+        draw.text(xy=(210,100), text=f'{recent[i]["w"]}W/{recent[i]["l"]}L ({recent[i]["w"] * 100 // recent[i]["round"] if recent[i]["round"] != 0 else 0} %)', fill=(66, 112, 244, 255),font=font_4)        
         draw.text(xy=(480,100), text=f'HS%:', fill=(255,100,0,255),font=font_4)
         draw.text(xy=(590,100), text=f'{round(recent[i]["hs"] * 100 / recent[i]["k"] if recent[i]["k"] !=0 else 0, 2)}%', fill=(66, 112, 244, 255),font=font_4)  
 
