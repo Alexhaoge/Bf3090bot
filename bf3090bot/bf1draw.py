@@ -2297,12 +2297,15 @@ async def draw_rank(remid: str, sid: str, sessionID: str, arg: list, stats: list
     font_5 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
     
     for i in iter_values:
+        pid = stat_sorted[i]["pid"]
         textbox1 = Image.new("RGBA", (1300,170), (254, 238, 218, 180))
         draw = ImageDraw.Draw(textbox1)    
         if i < min(len(stat_sorted),10):
-            name = f'{i+1}. {memberList[i]}'
+            position = (0, 170*i)
         else:
-            name = f'{i+1}. {memberList[-1]}'
+            position = (0, 1700)
+        
+        name = f'{i+1}. {member_json[f"{pid}"]["displayName"]}'
         time_played = stat_sorted[i]['playtimes']
 
         draw.text(xy=(60,10), text=name, fill=(34,139,34, 255),font=font_4)
@@ -2332,11 +2335,11 @@ async def draw_rank(remid: str, sid: str, sessionID: str, arg: list, stats: list
         draw.text(xy=(1120,110), text=f'{stat_sorted[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
         
         draw.text(xy=(0,150), text=f'---------------------------------------------------------------------------------------------------',fill=(55, 1, 27, 255), font=font_5)
-        
-        position = (0, 170*i)
+    
         img.paste(textbox1,position,textbox1)
     
     return base64img(img)
+
 
 __all__ = [
     'base64img',
