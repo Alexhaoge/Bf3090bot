@@ -538,6 +538,38 @@ async def update_diff(remid, sid, sessionID, pid):
 
     return newdiff,res_stat
 
+async def get_group_stats(groupqq):
+    async with async_db_session() as session:
+        member_row = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq))).all()
+        personaIds = [r[0].pid for r in member_row]
+        
+        stats = []
+        stmt_stat = select(playerStats).filter(playerStats.pid.in_(personaIds)).with_for_update(read=True)
+        exist_stat = (await session.execute(stmt_stat)).all()
+    
+        if exist_stat:
+            for r in exist_stat:
+                if r[0].rounds > 10:
+                    stat = {
+                        "pid": r[0].pid,
+                        "kills": r[0].kills,
+                        "deaths": r[0].deaths,
+                        "wins": r[0].wins,
+                        "losses": r[0].losses,
+                        "headshots": r[0].headshots,
+                        "playtimes": r[0].playtimes,
+                        "rounds": r[0].rounds,
+                        "acc": r[0].acc,
+                        "score": r[0].score,
+                        'kd': round(r[0].kills / r[0].deaths if r[0].deaths != 0 else r[0].kills, 2),
+                        'kpm': round(r[0].kills * 60 / r[0].playtimes if r[0].playtimes != 0 else 0, 2),
+                        'winloss': r[0].wins / r[0].rounds if r[0].rounds != 0 else 0,
+                        'hs': r[0].headshots / r[0].kills if r[0].kills != 0 else 0
+                    }
+                stats.append(stat)
+
+    return stats
+
 __all__ =[
     'token_helper', 'session_helper',
     'get_one_random_bf1admin', 'get_bf1admin_by_serverid',
@@ -549,7 +581,7 @@ __all__ =[
     'upd_cache_StatsByPersonaId', 'read_or_get_StatsByPersonaId',
     'get_user_pid',
     'add_vban', 'del_vban', 'search_vban',
-    'search_a', 'search_all', 'update_diff',
+    'search_a', 'search_all', 'update_diff', 'get_group_stats',
     'get_server_num',
     'update_or_bind_player_name',
     '_is_del_user', '_is_get_user', '_is_add_user',

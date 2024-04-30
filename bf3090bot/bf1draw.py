@@ -16,6 +16,7 @@ from .image import *
 from .secret import *
 from .rdb import async_db_session, GroupMembers, GroupServerBind
 from base64 import b64encode
+from itertools import chain 
 
 GAME = 'bf1'
 LANG = 'zh-tw'
@@ -2238,6 +2239,105 @@ async def draw_log(logs,remid: str, sid: str, sessionID: str):
     
     return base64img(img)
 
+async def draw_rank(remid: str, sid: str, sessionID: str, arg: list, stats: list, personaId):
+    pids = []
+
+    key = ''
+    if arg[0] == 'kd' or arg[0] == 'kda' or arg[0] == 'kdr' :
+        key = 'kd'
+    elif arg[0] == 'kp' or arg[0] == 'kpm':
+        key = 'kpm'
+    elif arg[0] == 'kills' or arg[0] == 'k' or arg[0] == '击杀' or arg[0] == '杀敌' or arg[0] == '杀':
+        key = 'kills'
+    elif arg[0] == 'deaths' or arg[0] == 'd' or arg[0] == '死亡' or arg[0] == '被杀' or arg[0] == '死':
+        key = 'deaths'
+    elif arg[0] == 'rounds' or arg[0] == '场次' or arg[0] == '局数' or arg[0] == '局':
+        key = 'rounds'
+    elif arg[0] == 'winloss' or arg[0] == '胜率':
+        key = 'winloss' 
+    elif arg[0] == 'win' or arg[0] == '胜利' or arg[0] == '胜':
+        key = 'wins'
+    elif arg[0] == 'loss' or arg[0] == '败' or arg[0] == '失败':
+        key = 'losses' 
+    elif arg[0] == 'hs' or arg[0] == '爆头' or arg[0] == '爆头率':
+        key = 'hs' 
+    elif arg[0] == 'acc' or arg[0] == '命中' or arg[0] == '命中率' or arg[0] == '准度':
+        key = 'acc'  
+    elif arg[0] == '游戏时长' or arg[0] == '时长' or arg[0] == 'time' or arg[0] == '时间':
+        key = 'playtimes' 
+    elif arg[0] == '得分' or arg[0] == '分数' or arg[0] == '分':
+        key = 'score' 
+    else:
+        return 0
+
+    stat_sorted = sorted(stats, key=lambda x: x[key],reverse=True)
+    playerindice = [i for i, d in enumerate(stat_sorted) if d.get('pid') == personaId]
+    if playerindice:
+        indice = playerindice[0]
+    else:
+        indice = -1
+
+    for i in range(min(len(stat_sorted),10)):
+        pids.append(stat_sorted[i]['pid'])
+    
+    iter_values = range(min(len(stat_sorted),10))
+    if indice >= min(len(stat_sorted),10):
+        pids.append(personaId)
+        iter_values = chain(range(min(len(stat_sorted),10)), playerindice) 
+    
+    member_json = await upd_getPersonasByIds(remid, sid, sessionID,pids)
+    member_json = member_json['result']
+    memberList = [value['displayName'] for value in member_json.values()]
+
+    img = Image.open(BF1_SERVERS_DATA/'Caches'/'background'/f'DLC1.jpg')
+    img = img.resize((1300,170*len(memberList)))
+    
+    draw = ImageDraw.Draw(img)
+    font_4 = ImageFont.truetype(font='Dengb.ttf', size=40, encoding='UTF-8')
+    font_5 = ImageFont.truetype(font='Dengb.ttf', size=25, encoding='UTF-8')
+    
+    for i in iter_values:
+        textbox1 = Image.new("RGBA", (1300,170), (254, 238, 218, 180))
+        draw = ImageDraw.Draw(textbox1)    
+        if i < min(len(stat_sorted),10):
+            name = f'{i+1}. {memberList[i]}'
+        else:
+            name = f'{i+1}. {memberList[-1]}'
+        time_played = stat_sorted[i]['playtimes']
+
+        draw.text(xy=(60,10), text=name, fill=(34,139,34, 255),font=font_4)
+        draw.text(xy=(480,10), text=f'得分:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,10), text=f'{stat_sorted[i]["score"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(860,10), text=f'胜负:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(970,10), text=f'{stat_sorted[i]["wins"]}W/{stat_sorted[i]["losses"]}L', fill=(66, 112, 244, 255),font=font_4)        
+        
+        draw.text(xy=(100,60), text=f'时长:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(210,60), text=f"{time_played // 3600}时{(time_played % 3600 ) // 60}分", fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(480,60), text=f'击杀:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,60), text=f'{stat_sorted[i]["kills"]}', fill=(66, 112, 244, 255),font=font_4)
+  
+        draw.text(xy=(750,60), text=f'死亡:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(860,60), text=f'{stat_sorted[i]["deaths"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1010,60), text=f'HS%:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(1120,60), text=f'{round(stat_sorted[i]["hs"] * 100, 2)}%', fill=(66, 112, 244, 255),font=font_4)        
+        
+        draw.text(xy=(100,110), text=f'胜率:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(210,110), text=f'{round(stat_sorted[i]["wins"] * 100 / stat_sorted[i]["rounds"], 2)} %', fill=(66, 112, 244, 255),font=font_4)        
+        draw.text(xy=(480,110), text=f'ACC:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(590,110), text=f'{round(stat_sorted[i]["acc"] * 100, 2)}%', fill=(66, 112, 244, 255),font=font_4)  
+
+        draw.text(xy=(750,110), text=f'KDA:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(860,110), text=f'{stat_sorted[i]["kd"]}', fill=(66, 112, 244, 255),font=font_4)
+        draw.text(xy=(1010,110), text=f'KPM:', fill=(255,100,0,255),font=font_4)
+        draw.text(xy=(1120,110), text=f'{stat_sorted[i]["kpm"]}', fill=(66, 112, 244, 255),font=font_4)
+        
+        draw.text(xy=(0,150), text=f'---------------------------------------------------------------------------------------------------',fill=(55, 1, 27, 255), font=font_5)
+        
+        position = (0, 170*i)
+        img.paste(textbox1,position,textbox1)
+    
+    return base64img(img)
+
 __all__ = [
     'base64img',
     'draw_f',
@@ -2253,5 +2353,6 @@ __all__ = [
     'draw_platoons',
     'draw_searchplatoons',
     'draw_detailplatoon',
-    'draw_log'
+    'draw_log',
+    'draw_rank'
 ]

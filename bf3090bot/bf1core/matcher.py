@@ -42,6 +42,8 @@ BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩', f'{
 # BF1_RE= on_command(f'{PREFIX}最近', block=True, priority=1)
 BF1_R= on_command(f'{PREFIX}rrrrrrrrrrrrr', block=True, priority=1)
 BF1_RE= on_command(f'{PREFIX}最近', aliases={f'{PREFIX}对局', f'{PREFIX}r'}, block=True, priority=1)
+BF1_RANK= on_command(f'{PREFIX}排名', block=True, priority=1)
+
 #serverbind
 BF1_INIT = on_command(f'{PREFIX}init', block=True, priority=1, permission=SUPERUSER)
 BF1_INIT2 = on_command(f'{PREFIX}sudoinit', block=True, priority=1, permission=SUPERUSER)

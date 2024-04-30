@@ -19,7 +19,7 @@ from ..bf1helper import *
 
 from .matcher import (
     BF1_BIND_PID,BF1_SA,BF1_TYC,
-    BF1_WP,BF1_S,BF1_R,BF1_RE
+    BF1_WP,BF1_S,BF1_R,BF1_RE,BF1_RANK
 )
 
 @BF1_BIND_PID.handle()
@@ -368,3 +368,26 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_RE.finish(MessageSegment.reply(event.message_id) + '暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效\n' + traceback.format_exception_only(e))
+
+@BF1_RANK.handle()
+async def bf1_rank(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split()
+    groupqq = await check_session(event.group_id)
+    user_id = event.user_id
+
+    stats = await get_group_stats(groupqq)
+    if stats == []:
+        await BF1_RANK.finish(MessageSegment.reply(event.message_id) + '本群组暂无有效战绩信息')
+    
+    async with async_db_session() as session:
+        gm = (await session.execute(select(GroupMembers).filter_by(groupqq=groupqq, qq=user_id))).first()
+        if gm:
+            personaId = gm[0].pid
+    
+    remid, sid, sessionID, access_token = await get_one_random_bf1admin()
+    file_dir = await asyncio.wait_for(draw_rank(remid, sid, sessionID, arg, stats, personaId), timeout=35)
+    if str(file_dir) != '0':
+        await BF1_RANK.send(MessageSegment.reply(event.message_id) + f'群组{arg[0]}排名(场次>10)：\n战绩记录存在延迟，仅供参考\n' + MessageSegment.image(file_dir))
+    else:
+        await BF1_RANK.send(MessageSegment.reply(event.message_id) + "查询参数错误。可用参数：kd kpm 击杀 死亡 场次 胜率 acc 爆头率")
