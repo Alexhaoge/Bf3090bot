@@ -26,6 +26,6 @@ migration = ["aiosqlite", "sqlite3"]
 adapters = [
     { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" }
 ]
-plugins = ["bf3090bot", "nonebot_plugin_apscheduler", "nonebot_plugin_picstatus", "nonebot_plugin_htmlrender", "nonebot_plugin_access_control"]
-plugin_dirs = ["plugins/nonebot-plugin-alias", "plugins/nonebot-plugin-blacklist"]
+plugins = ["bf3090bot", "nonebot_plugin_apscheduler", "nonebot_plugin_htmlrender", "nonebot_plugin_access_control"]
+plugin_dirs = ["plugins/nonebot-plugin-alias", "plugins/nonebot-plugin-blacklist", "plugins/nonebot-plugin-picstatus"]
 builtin_plugins = []

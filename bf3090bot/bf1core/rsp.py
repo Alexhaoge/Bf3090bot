@@ -997,7 +997,7 @@ async def bf_adminpl(event:GroupMessageEvent, state:T_State):
             result = await upd_servers(remid, sid, sessionID, server)
             gameId = result['result']['gameservers'][0]['gameId']
             serverBL = await upd_detailedServer(remid, sid, sessionID, gameId)
-            serverid = serverBL['result']['rspInfo']['server']['serverId']
+            serverid = int(serverBL['result']['rspInfo']['server']['serverId'])
         except: 
             await BF1_ADMINPL.finish('无法获取到服务器数据。')
         try:
