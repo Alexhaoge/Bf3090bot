@@ -12,7 +12,8 @@ from ..bf1helper import _is_add_user, _is_del_user, _is_get_user
 #help
 BF1_PING = on_command(f"{PREFIX}ping",aliases={f'{PREFIX}原神'},block=True, priority=1)
 BF1_HELP = on_command(f"{PREFIX}help",block=True, priority=1)
-BF1_FAQ = on_command(f"{PREFIX}FAQ",block=True, priority=1)
+BF1_ADMINHELP = on_command(f"{PREFIX}adminhelp",block=True, priority=1)
+BF1_FAQ = on_command(f"{PREFIX}FAQ",aliases={f'{PREFIX}常见问题'},block=True, priority=1)
 
 #info
 BF1_CODE = on_command(f"{PREFIX}code", block=True, priority=1)
@@ -159,6 +160,7 @@ stat_subservice.patch_matcher(BF1_S)
 recent_subservice = stat_subservice.create_subservice('recent')
 recent_subservice.patch_matcher(BF1_R)
 recent_subservice.patch_matcher(BF1_RE)
+recent_subservice.patch_matcher(BF1_RANK)
 
 # BF global info query module
 info_subservice = plugin_service.create_subservice('info')
