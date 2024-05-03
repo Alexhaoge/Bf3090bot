@@ -31,18 +31,16 @@
 | **其他** | | 通过access-control控制权限 |
 | status | picstatus | 查看bot运行状态<br/>前端状态统计30s刷新一次|
 
-
-[**access-control**插件](https://github.com/bot-ssttkkl/nonebot-plugin-access-control)
-
-`/ac service ls` 查看已注册服务
-`/ac permission ls` 查看已添加权限规则
-`/ac limit ls` 查看已添加频率限制规则， 用规则前面方括号里的哈希码删除规则
-`/ac permission allow --sbj <主体> --srv <服务>`：为主体启用服务
-`/ac permission deny --sbj <主体> --srv <服务>`：为主体禁用服务
-`/ac permission rm --sbj <主体> --srv <服务>`：为主体删除服务权限配置
-`/ac limit add --sbj <主体> --srv <服务> --limit <次数> --span <时间间隔> [--overwrite]`：
-为主体与服务添加限流规则
-`/ac limit rm <规则ID>`：删除限流规则
-常见主体: 所有`all`，超管`superuser`，单个用户`qq:12345678`，群`qq:g12345678`
-常见服务: bot服务模块参见`bf3090bot/bf1core/matcher.py`后半部分，不同级别用`.`分割，如
-`bf3090bot.rsp.vip.vipgm`，第三方插件直接使用下划线版本名称如`nonebot_plugin_picstatus`
+[**access-control**插件](https://github.com/bot-ssttkkl/nonebot-plugin-access-control)  
+`/ac service ls` 查看已注册服务  
+`/ac permission ls` 查看已添加权限规则  
+`/ac limit ls` 查看已添加频率限制规则， 用规则前面方括号里的哈希码删除规则  
+`/ac permission allow --sbj <主体> --srv <服务>`：为主体启用服务  
+`/ac permission deny --sbj <主体> --srv <服务>`：为主体禁用服务  
+`/ac permission rm --sbj <主体> --srv <服务>`：为主体删除服务权限配置  
+`/ac limit add --sbj <主体> --srv <服务> --limit <次数> --span <时间间隔> [--overwrite]`：  
+为主体与服务添加限流规则  
+`/ac limit rm <规则ID>`：删除限流规则  
+常见主体: 所有`all`，超管`superuser`，单个用户`qq:12345678`，群`qq:g12345678`  
+常见服务: bot服务模块参见`bf3090bot/bf1core/matcher.py`后半部分，不同级别用`.`分割，如  
+`bf3090bot.rsp.vip.vipgm`，第三方插件直接使用下划线版本名称如`nonebot_plugin_picstatus`  
