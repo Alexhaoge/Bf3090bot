@@ -4,7 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 from nonebot import get_driver, on_command, logger
 from nonebot.log import logger_id, default_format
-from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
@@ -18,11 +18,10 @@ from .bf1rsp import (
 )
 
 from .utils import (
-    PREFIX, NONEBOT_PORT, BF1_PLAYERS_DATA, BFV_PLAYERS_DATA, BF2042_PLAYERS_DATA, 
+    PREFIX, NONEBOT_PORT, BF1_PLAYERS_DATA, 
     CODE_FOLDER, ASSETS_FOLDER, LOGGING_FOLDER, main_log_filter, httpx_gt_client
 )
 
-from . import bf1helper, bfv, bf2042
 from .bf1core import matcher
 
 ################ Global Bot Hooks ##################
@@ -68,29 +67,3 @@ async def close_on_bot_shutdown():
     await httpx_client_btr_proxy.aclose()
     await httpx_gt_client.aclose()
 
-
-BF_INIT = on_command(f'{PREFIX}bf init', block=True, priority=1, permission=GROUP_OWNER | GROUP_ADMIN | SUPERUSER)
-BF_HELP = on_command(f"{PREFIX}bf help", block=True, priority=1)
-
-@BF_INIT.handle()
-async def bf_init(event:MessageEvent, state:T_State):
-    if isinstance(event,GroupMessageEvent):
-        session = event.group_id
-        try:
-            (BFV_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
-            (BF1_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
-            (BF2042_PLAYERS_DATA/f'{session}').mkdir(exist_ok=True)
-            await BF_INIT.send(f'初始化本群绑定功能成功！\n\n群员使用 {PREFIX}bf1 bind [玩家id] 可绑定战地一账号到本群。\n群员使用 {PREFIX}bfv bind [玩家id] 可绑定战地五账号到本群。\n群员使用 {PREFIX}bf2042 bind [玩家id] 可绑定战地2042账号到本群。（测试中）\n绑定后使用{PREFIX}bf1 me 或 {PREFIX}bfv me 或 {PREFIX}bf2042 me 可查询战绩')
-        except FileExistsError:
-            await BF_INIT.send(f'本群已初始化绑定功能。\n\n群员使用 {PREFIX}bf1 bind [玩家id] 可绑定战地一账号到本群。\n群员使用 {PREFIX}bfv bind [玩家id] 可绑定战地五账号到本群。\n群员使用 {PREFIX}bf2042 bind [玩家id] 可绑定战地2042账号到本群。（测试中）\n绑定后使用{PREFIX}bf1 me 或 {PREFIX}bfv me 或 {PREFIX}bf2042 me 可查询战绩')
-
-@BF_HELP.handle()
-async def bf_help(event:MessageEvent, state:T_State):
-    with open(ASSETS_FOLDER/'help.md',encoding='utf-8') as f:
-        md_help = f.read()
-    
-    md_help = md_help.format(p=PREFIX)
-
-    pic = await md_to_pic(md_help, css_path=ASSETS_FOLDER/"github-markdown-dark.css",width=1200)
-
-    await BF_HELP.send(MessageSegment.image(pic))
