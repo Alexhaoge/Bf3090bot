@@ -188,6 +188,10 @@ async def bf1_rebindserver(event:GroupMessageEvent, state:T_State):
     if not groupqq:
         await BF1_REBIND.finish('服务器未初始化')
     async with async_db_session() as session:
+        stmt = select(GroupServerBind).filter_by(groupqq=groupqq, ind=new_server_ind)
+        new_exist_server = (await session.execute(stmt)).first()
+        if new_exist_server:
+            await BF1_REBIND.finish(f'{new_server_ind}已存在')
         stmt = select(GroupServerBind).filter_by(groupqq=groupqq, ind=server_ind)
         exist_server = (await session.execute(stmt)).first()
         if exist_server:
@@ -209,6 +213,12 @@ async def bf1_addbindserver(event:GroupMessageEvent, state:T_State):
         await BF1_ADDBIND.finish('服务器未初始化')
 
     async with async_db_session() as session:
+        stmt = select(GroupServerBind).filter(
+            GroupServerBind.groupqq==groupqq,
+            or_(GroupServerBind.ind==server_ind, GroupServerBind.alias==server_ind))
+        new_exist_server = (await session.execute(stmt)).first()
+        if new_exist_server:
+            await BF1_ADDBIND.finish(f'{new_server_ind}已存在')
         stmt = select(GroupServerBind).filter_by(groupqq=groupqq, ind=server_ind)
         exist_server = (await session.execute(stmt)).first()
         if exist_server:
