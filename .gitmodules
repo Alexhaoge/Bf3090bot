@@ -1,0 +1,11 @@
+[submodule "plugins/nonebot-plugin-picstatus"]
+	path = plugins/nonebot-plugin-picstatus
+	url = git@github.com:Alexhaoge/nonebot-plugin-picstatus.git
+
+[submodule "plugins/nonebot-plugin-alias"]
+	path = plugins/nonebot-plugin-alias
+	url = git@github.com:Alexhaoge/nonebot-plugin-alias.git
+
+[submodule "plugins/nonebot-plugin-blacklist"]
+	path = plugins/nonebot-plugin-blacklist
+	url = git@github.com:Alexhaoge/nonebot-plugin-blacklist.git
