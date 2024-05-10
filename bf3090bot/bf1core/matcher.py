@@ -32,6 +32,7 @@ BF1_EX= on_command(f'{PREFIX}交换', block=True, priority=1)
 BF1_DRAW= on_command(f'{PREFIX}draw', block=True, priority=1)
 BF1_ADMINDRAW= on_command(f'{PREFIX}admindraw', block=True, priority=1)
 BF1_FADMIN = on_command(f'{PREFIX}fadmin', aliases={f'{PREFIX}查服管'}, priority=1)
+BF1_F_RET_TXT = on_command(f'{PREFIX}printtextf', aliases={f'{PREFIX}服名搜索'}, block=True, priority=1)
 
 #stat
 BF1_BIND_PID = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)
@@ -85,7 +86,7 @@ BF1_VIPGM = on_command(f'{PREFIX}vipgm', aliases={f'{PREFIX}暖服恰v'}, block=
 
 BF1_ADDWL = on_command(f'{PREFIX}addwl', aliases={f'{PREFIX}加白名单', f'{PREFIX}加白', f'{PREFIX}上白'}, block=True, priority=1)
 BF1_RMWL = on_command(f'{PREFIX}rmwl', aliases={f'{PREFIX}下白', f'{PREFIX}下白名单'}, block=True, priority=1)
-BF1_WHITELIST = on_command(f'{PREFIX}whitelist', aliases={f'{PREFIX}白名单'}, block=True, priority=1)
+BF1_WHITELIST = on_command(f'{PREFIX}白名单', block=True, priority=1)
 
 BF1_PL = on_command(f'{PREFIX}pl', block=True, priority=1)
 BF1_ADMINPL = on_command(f'{PREFIX}adminpl', block=True, priority=1)
@@ -173,6 +174,7 @@ info_subservice.patch_matcher(BF1_MAP)
 info_subservice.patch_matcher(BF1_INFO)
 info_subservice.patch_matcher(BF1_EX)
 info_subservice.patch_matcher(BF1_FADMIN)
+info_subservice.patch_matcher(BF1_F_RET_TXT)
 
 draw_subservice = info_subservice.create_subservice('draw')
 draw_subservice.patch_matcher(BF1_DRAW)

@@ -34,7 +34,7 @@ from .matcher import (
     BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,
     BF1_EX,
     BF1_DRAW,BF1_ADMINDRAW,
-    BF1_F, BF1_INFO, BF1_FADMIN
+    BF1_F, BF1_INFO, BF1_FADMIN, BF1_F_RET_TXT
 )
 
 code_file_lock = asyncio.Lock()
@@ -514,8 +514,8 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
 
     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
     if mode == 1:
-        res = await upd_servers(remid, sid, sessionID, serverName)
         try:
+            res = await upd_servers(remid, sid, sessionID, serverName)
             if len(res['result']['gameservers']) == 0:
                 await BF1_F.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
             else:
@@ -575,3 +575,24 @@ async def bf1_fadmin(event:GroupMessageEvent, state:T_State):
                                 + traceback.format_exception_only(e))
     else:
         await BF1_FADMIN.send(MessageSegment.reply(event.message_id) + server_fullname + '\n' + '\n'.join(adminlist))
+
+@BF1_F_RET_TXT
+async def bf1_findserver_return_text(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    serverName = message.extract_plain_text()
+    serverName = html.unescape(serverName)
+    remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+
+    try:
+        res_search = await upd_servers(remid, sid, sessionID, serverName)
+        if len(res_search['result']['gameservers']) == 0:
+            await BF1_F_RET_TXT.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
+        else:
+            msg = '\n=================\n'.join([server['name'] for server in res_search['result']['gameservers']])
+            await BF1_F_RET_TXT.send(MessageSegment.reply(event.message_id) + msg)
+    except RSPException as rsp_exc:
+        await BF1_F_RET_TXT.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        await BF1_F_RET_TXT.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
+                                + traceback.format_exception_only(e))
