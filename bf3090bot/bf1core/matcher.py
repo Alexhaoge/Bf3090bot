@@ -32,7 +32,7 @@ BF1_EX= on_command(f'{PREFIX}交换', block=True, priority=1)
 BF1_DRAW= on_command(f'{PREFIX}draw', block=True, priority=1)
 BF1_ADMINDRAW= on_command(f'{PREFIX}admindraw', block=True, priority=1)
 BF1_FADMIN = on_command(f'{PREFIX}fadmin', aliases={f'{PREFIX}查服管'}, priority=1)
-BF1_F_RET_TXT = on_command(f'{PREFIX}printtextf', aliases={f'{PREFIX}服名搜索'}, block=True, priority=1)
+BF1_F_RET_TXT = on_command(f'{PREFIX}printtextf', aliases={f'{PREFIX}搜服名'}, block=True, priority=1)
 
 #stat
 BF1_BIND_PID = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)

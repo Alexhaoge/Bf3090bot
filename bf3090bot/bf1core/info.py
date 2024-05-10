@@ -576,7 +576,7 @@ async def bf1_fadmin(event:GroupMessageEvent, state:T_State):
     else:
         await BF1_FADMIN.send(MessageSegment.reply(event.message_id) + server_fullname + '\n' + '\n'.join(adminlist))
 
-@BF1_F_RET_TXT
+@BF1_F_RET_TXT.handle()
 async def bf1_findserver_return_text(event:GroupMessageEvent, state:T_State):
     message = _command_arg(state) or event.get_message()
     serverName = message.extract_plain_text()
