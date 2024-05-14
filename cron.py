@@ -13,6 +13,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from cronlib.db import *
 from cronlib.api import *
 from cronlib.cron_secret import *
+from cronlib.utils import str_to_bool
 
 config = dotenv_values('.env.prod')
 BFCHAT_DATA_FOLDER = Path(config['BFCHAT_DIR']).resolve()
@@ -24,7 +25,7 @@ EAC_SERVER_BLACKLIST = []
 for serverid in config['EAC_SERVER_BLACKLIST'].split(","):
     if serverid.isdigit():
         EAC_SERVER_BLACKLIST.append(int(serverid))
-VBAN_EAC_ENABLE = config['VBAN_EAC_ENABLE']
+VBAN_EAC_ENABLE = str_to_bool(config['VBAN_EAC_ENABLE'])
 
 with open(BFCHAT_DATA_FOLDER/'bf1_servers/zh-cn.json','r', encoding='utf-8') as f:
     zh_cn_mapname = json.load(f)
@@ -176,13 +177,13 @@ async def refresh_serverInfo():
     for serverid, ownlist in owner_dict.items():
         pid = int(ownlist[0]["personaId"])
         if pid in db_admin_pids:
-            server_bf1admins_exist = db_op(conn, "SELECT pid FROM serverbf1admins WHERE serverid=%s AND pid=%s;", [serverid, pid])
+            server_bf1admins_exist = db_op(conn, "SELECT pid FROM serverbf1admins WHERE serverid=%s AND pid=%s;", [int(serverid), int(pid)])
             if not len(server_bf1admins_exist):
                 server_bf1admins_add.append((int(serverid), pid))
             admin_dict[serverid].append(ownlist[0])
 
     for serverid, adlist in admin_dict.items():
-        server_bf1admins_exist = set(int(r[0]) for r in db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=%s;', [serverid]))
+        server_bf1admins_exist = set(int(r[0]) for r in db_op(conn, 'SELECT pid FROM serverbf1admins WHERE serverid=%s;', [int(serverid)]))
         real_bf1admins_esist = set(int(ad["personaId"]) for ad in adlist).intersection(db_admin_pids)
         server_bf1admins_del.extend(
            ((int(serverid), pid) for pid in list(server_bf1admins_exist.difference(real_bf1admins_esist)))
@@ -191,6 +192,12 @@ async def refresh_serverInfo():
             ((int(serverid), pid) for pid in list(real_bf1admins_esist.difference(server_bf1admins_exist)))
         )
     
+    with_bf1admin_servers_in_db = db_op(conn, "SELECT DISTINCT serverid from serverbf1admins;", [])
+    bf1admins_del_serverid = [(int(r[0]), ) for r in with_bf1admin_servers_in_db if str(r[0]) not in admin_dict]
+
+    print(bf1admins_del_serverid)
+    db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=%s;', bf1admins_del_serverid)
+
     print(server_bf1admins_del)
     print(server_bf1admins_add)
     db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=%s AND pid=%s;', server_bf1admins_del)

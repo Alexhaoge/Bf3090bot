@@ -1171,7 +1171,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     success_msg = '已配置服务器名: '+ name
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
                 elif arg[1] == "map":
-                    map = arg[2].split(" ")
+                    map = arg[2].split()
                     maps = []
                     msg = ""
                     for i in map:
@@ -1191,7 +1191,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     success_msg = '已配置图池:\n'+ msg.rstrip()
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
                 elif arg[1] == "set":
-                    setstrlist = arg[2].split(" ")
+                    setstrlist = arg[2].split()
                     print(setstrlist)
                     settings = ToSettings(setstrlist)
                     success_msg = '已配置服务器设置:\n'+ getSettings(settings)
