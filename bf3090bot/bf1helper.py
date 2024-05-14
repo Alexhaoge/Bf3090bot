@@ -59,7 +59,7 @@ async def get_one_random_bf1admin() -> Tuple[str, str, str, str]:
         admin = (await session.execute(select(Bf1Admins).order_by(func.random()).limit(1))).one()[0]
     return admin.remid, admin.sid, admin.sessionid, admin.token
 
-async def get_bf1admin_by_serverid(serverid: int) -> Tuple[str, str, str, str] | None:
+async def get_bf1admin_by_serverid(serverid: int, gameid : int = 0) -> Tuple[str, str, str, str] | None:
     async with async_db_session() as session:
         server_admin = (await session.execute(select(ServerBf1Admins).filter_by(serverid=serverid))).first()
         if server_admin:
@@ -67,8 +67,35 @@ async def get_bf1admin_by_serverid(serverid: int) -> Tuple[str, str, str, str] |
             admin = (await session.execute(select(Bf1Admins).filter_by(pid=admin_pid))).first()
             return admin[0].remid, admin[0].sid, admin[0].sessionid, admin[0].token
         else:
-            return None, None, None, None
+            if gameid:
+                remid, sid, sessionID, access_token = await get_one_random_bf1admin()
+                res = await upd_detailedServer(remid, sid, sessionID, gameid)
+                server = res["result"]
+                rspInfo = server.get("rspInfo", {})
+                if not rspInfo:
+                    return None, None, None, None
+                else:
+                    rsp_admins = (await session.execute(select(Bf1Admins))).all()
+                    rsp_pids = [r[0].pid for r in rsp_admins]
+                    server_adminList = rspInfo.get("adminList", [])
+                    admin_pid = 0
 
+                    for server_admin in server_adminList:
+                        if int(server_admin["personaId"]) in rsp_pids:
+                            admin_pid = int(server_admin["personaId"])
+                            continue
+                    
+                    if admin_pid:
+                        admin = (await session.execute(select(Bf1Admins).filter_by(pid=admin_pid))).first()
+                        session.add(ServerBf1Admins(
+                            serverid = serverid, pid = admin_pid
+                        ))
+                        await session.commit()
+                        return admin[0].remid, admin[0].sid, admin[0].sessionid, admin[0].token
+                    else:
+                        return None, None, None, None
+            else:
+                return None, None, None, None
 def reply_message_id(event: GroupMessageEvent) -> int:
     message_id = None
     for seg in event.original_message:

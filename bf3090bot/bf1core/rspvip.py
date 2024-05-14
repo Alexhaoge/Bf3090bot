@@ -61,7 +61,8 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     break
             if not personaId:
                 await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '玩家序号错误')
-            remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            gameId = await get_gameid_from_serverid(server_id)
+            remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             try:
                 res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
@@ -99,7 +100,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     msg = f"已为玩家{personaName}添加" + ("永久vip" if exist_vip[0].permanent else f"{days}天的vip") + "(未生效)"
                 await BF1_VIP.send(MessageSegment.reply(event.message_id) + msg)
             else: # If vip does not exists, create a new record
-                remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+                remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
                 if not remid:
                     await BF1_VIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
                 try:
@@ -202,7 +203,7 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
             await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
 
         gameid = await get_gameid_from_serverid(server_id)
-        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameid))[0:3]
         if not remid:
             await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
 
@@ -282,7 +283,8 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
         if not server_ind:
             await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         personaName = arg[1]
-        remid, sid, sessionID, access_token = await get_bf1admin_by_serverid(server_id)
+        gameId = await get_gameid_from_serverid(server_id)
+        remid, sid, sessionID, access_token = await get_bf1admin_by_serverid(server_id, gameId)
         if not remid:
             await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         try:

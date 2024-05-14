@@ -91,7 +91,7 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
             if mapName != '重开':
                 await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + '请输入正确的地图名称')
         gameId = await get_gameid_from_serverid(server_id)
-        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
         if not remid:
             await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         # TODO: record map rotation so that upd_detailedserver is no longer needed. This comes with the advantage that map name translation can be simplified
@@ -165,7 +165,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '理由过长')
             
             gameId = await get_gameid_from_serverid(server_id)
-            remid, sid, sessionID, access_token = await get_bf1admin_by_serverid(server_id)
+            remid, sid, sessionID, access_token = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -195,7 +195,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
             mode = 0
 
             gameId = await get_gameid_from_serverid(server_id)
-            remid, sid, sessionID, _ = await get_bf1admin_by_serverid(server_id)
+            remid, sid, sessionID, _ = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_KICK.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             # TODO: improve branching with on_shellcommand argument parser
@@ -321,7 +321,7 @@ async def get_kickall(bot: Bot, event: GroupMessageEvent, state: T_State, msg: M
         reason = state["reason"]
         groupqq = state["groupqq"]
         server_ind = state['server_ind']
-        remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+        remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
         if not remid:
             await BF1_KICKALL.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         pl_both = pl['1'] + pl['2']
@@ -366,7 +366,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '理由过长')
 
             gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID,access_token = (await get_bf1admin_by_serverid(server_id))
+            remid,sid,sessionID,access_token = (await get_bf1admin_by_serverid(server_id, gameId))
             if not remid:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -408,7 +408,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                     personaIds.append(personaId)
                     break
             
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if not remid:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -461,8 +461,8 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
         messages = []
         valid_serverinds = []
         for server_ind, server_id in servers:
-            #gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            gameId = await get_gameid_from_serverid(server_id)
+            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if remid:
                 tasks.append(asyncio.create_task(upd_banPlayer(remid, sid, sessionID, server_id, personaId)))
                 valid_serverinds.append(server_ind)
@@ -508,8 +508,8 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
         messages = []
         valid_serverinds = []
         for server_ind, server_id in servers:
-            #gameid = await get_gameid_from_serverid(server_id)
-            remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            gameId = await get_gameid_from_serverid(server_id)
+            remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if remid:                 
                 tasks.append(asyncio.create_task(upd_unbanPlayer(remid, sid, sessionID, server_id, personaId)))
                 valid_serverinds.append(server_ind)
@@ -542,8 +542,8 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
             await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         personaName = arg[1]
         # reason = zhconv.convert(arg[2], 'zh-tw')
-        # gameid = await get_gameid_from_serverid(server_id)
-        remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id)
+        gameId = await get_gameid_from_serverid(server_id)
+        remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id, gameId)
         if not remid:
             await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         try:
@@ -585,8 +585,8 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
 
             personaName = arg[1]
             print(arg)
-            # gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id)
+            gameId = await get_gameid_from_serverid(server_id)
+            remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -622,7 +622,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                     break
             if not personaId:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '请输入正确的玩家序号')
-            remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id)
+            remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -670,7 +670,8 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
 
         err_message = ''
         for server_ind, server_id in servers:
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            gameId = await get_gameid_from_serverid(server_id)
+            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if remid:
                 await add_vban(personaId,groupqq,server_id,reason,user_id)
             else:
@@ -703,7 +704,8 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
 
         err_message = ''
         for server_ind, server_id in servers:
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            gameId = await get_gameid_from_serverid(server_id)
+            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if remid:
                 await del_vban(personaId, server_id)
             else:
@@ -727,7 +729,7 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
 
         personaName = arg[1]
         gameId = await get_gameid_from_serverid(server_id)
-        remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id)
+        remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id, gameId)
         if not remid:
             await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         try:
@@ -760,7 +762,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             personaName = arg[1]
             gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id)
+            remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
@@ -832,7 +834,7 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                         teamIds.append(2)
 
             gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if not remid:
                 await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             cnt = 0
@@ -1026,7 +1028,7 @@ async def bf_pls(event:GroupMessageEvent, state:T_State):
         if not server_ind:
             await BF1_PLS.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         gameId = await get_gameid_from_serverid(server_id)
-        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
         if not remid:
             await BF1_PLS.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
 
@@ -1058,7 +1060,7 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
         if not server_ind:
             await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
         gameId = await get_gameid_from_serverid(server_id)
-        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+        remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
         if not remid:
             await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
 
@@ -1091,7 +1093,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             if not server_ind:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             gameId = await get_gameid_from_serverid(server_id)
-            remid, sid, sessionID, _ = await get_bf1admin_by_serverid(server_id)
+            remid, sid, sessionID, _ = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             
@@ -1132,7 +1134,7 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
             if not server_ind:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
             gameId = await get_gameid_from_serverid(server_id)
-            remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id))[0:3]
+            remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
             if not remid:
                 await BF1_UPD.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
 
