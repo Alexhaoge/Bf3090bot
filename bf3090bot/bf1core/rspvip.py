@@ -100,6 +100,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
                     msg = f"已为玩家{personaName}添加" + ("永久vip" if exist_vip[0].permanent else f"{days}天的vip") + "(未生效)"
                 await BF1_VIP.send(MessageSegment.reply(event.message_id) + msg)
             else: # If vip does not exists, create a new record
+                gameId = await get_gameid_from_serverid(server_id)
                 remid, sid, sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
                 if not remid:
                     await BF1_VIP.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
