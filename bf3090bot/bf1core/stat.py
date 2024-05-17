@@ -18,7 +18,7 @@ from ..redis_helper import redis_client
 from ..bf1helper import *
 
 from .matcher import (
-    BF1_BIND_PID,BF1_SA,BF1_TYC,
+    BF1_BIND_PID,BF1_SA,BF1_TYC,BF1_PID_INFO,
     BF1_WP,BF1_S,BF1_R,BF1_RE,BF1_RANK
 )
 
@@ -62,6 +62,26 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
         await session.commit()                          
     
     await BF1_BIND_PID.send(MessageSegment.reply(event.message_id) + f'已绑定: {userName}')
+
+@BF1_PID_INFO.handle()
+async def bf1_pid_info(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    pid_str = message.extract_plain_text()
+    if not pid_str.isdigit():
+        await BF1_PID_INFO.finish(MessageSegment.reply(event.message_id) + '请输入数字pid而非EAID')
+    personaId = int(pid_str)
+    try:
+        remid, sid, sessionID, _ = await get_one_random_bf1admin()
+        res1 = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
+        userName = res1['result'][f'{personaId}']['displayName']
+        pidid = res1['result'][f'{personaId}']['platformId']
+        await BF1_PID_INFO.send(MessageSegment.reply(event.message_id) + f'玩家ID: {userName}\nPid: {personaId}\nUid: {pidid}')
+    except RSPException as rsp_exc:
+        await BF1_PID_INFO.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        await BF1_PID_INFO.finish(MessageSegment.reply(event.message_id) + traceback.format_exception_only(e))
 
 @BF1_SA.handle()
 async def bf1_sa(event:GroupMessageEvent, state:T_State):

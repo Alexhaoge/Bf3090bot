@@ -34,7 +34,7 @@ from .matcher import (
     BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,
     BF1_EX,
     BF1_DRAW,BF1_ADMINDRAW,
-    BF1_F, BF1_INFO, BF1_FADMIN, BF1_F_RET_TXT
+    BF1_F, BF1_INFO, BF1_GAMEID_INFO, BF1_FADMIN, BF1_F_RET_TXT
 )
 
 code_file_lock = asyncio.Lock()
@@ -435,6 +435,56 @@ async def bf1_info(event:GroupMessageEvent, state:T_State):
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_INFO.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
+                                + traceback.format_exception_only(e))
+    else:
+        status1 = servermode + '-' +servermap
+        status1 = zhconv.convert(status1,'zh-cn')
+        status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
+        status3 = f'★{serverstar}'
+        msg = f'{servername}\n人数: {status2} {status3}\n地图: {status1}\nGameId: {gameId}\nGuid: {guid}\nServerId: {serverid}\n创建时间: {createdDate}\n续费时间: {updatedDate}\n到期时间: {expirationDate}\n服主EAID: {userName}'
+        await BF1_INFO.send(MessageSegment.reply(event.message_id) + msg)
+
+@BF1_GAMEID_INFO.handle()
+async def bf1_gameid_info(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+
+    gameid_str = message.extract_plain_text()
+    if not gameid_str.isdigit():
+        await BF1_GAMEID_INFO.finish(MessageSegment.reply(event.message_id) + '请输入数字gameid，服务器名称查询请使用.info')
+    gameId = int(gameid_str)
+    remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+    try:
+        res_0 = await upd_detailedServer(remid, sid, sessionID, gameId)
+        rspInfo = res_0['result']['rspInfo']
+        serverid = rspInfo['server']['serverId']
+        ownerid = rspInfo['server']['ownerId']
+        createdDate = rspInfo.get("server", {}).get("createdDate")
+        createdDate = datetime.datetime.fromtimestamp(int(createdDate) / 1000)
+        expirationDate = rspInfo.get("server", {}).get("expirationDate")
+        expirationDate = datetime.datetime.fromtimestamp(int(expirationDate) / 1000)
+        updatedDate = rspInfo.get("server", {}).get("updatedDate")
+        updatedDate = datetime.datetime.fromtimestamp(int(updatedDate) / 1000)
+
+        serverInfo = res_0['result']['serverInfo']
+        serverstar = serverInfo['serverBookmarkCount']
+        guid = serverInfo['guid']
+        servername = serverInfo['name']
+        servermode = serverInfo['mapModePretty']
+        servermap = serverInfo['mapNamePretty']
+        serveramount = serverInfo['slots']['Soldier']['current']
+        serverspect = serverInfo['slots']['Spectator']['current']
+        serverque = serverInfo['slots']['Queue']['current']
+        servermaxamount = serverInfo['slots']['Soldier']['max']
+
+        personaIds = [ownerid]
+        res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)
+        userName = res1['result'][f'{ownerid}']['displayName']
+    except RSPException as rsp_exc:
+        await BF1_GAMEID_INFO.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+        return
+    except Exception as e:
+        logger.warning(traceback.format_exc())
+        await BF1_GAMEID_INFO.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
                                 + traceback.format_exception_only(e))
     else:
         status1 = servermode + '-' +servermap
