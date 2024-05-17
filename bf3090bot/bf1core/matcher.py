@@ -28,6 +28,7 @@ BF1_STATUS = on_command(f'{PREFIX}bf1 status', aliases={f'{PREFIX}战地1', f'{P
 BF1_MODE= on_command(f'{PREFIX}bf1 mode', block=True, priority=1)
 BF1_MAP= on_command(f'{PREFIX}bf1 map', block=True, priority=1)
 BF1_INFO= on_command(f'{PREFIX}info', block=True, priority=1)
+BF1_GAMEID_INFO= on_command(f'{PREFIX}gameid', block=True, priority=1)
 BF1_EX= on_command(f'{PREFIX}交换', block=True, priority=1)
 BF1_DRAW= on_command(f'{PREFIX}draw', block=True, priority=1)
 BF1_ADMINDRAW= on_command(f'{PREFIX}admindraw', block=True, priority=1)
@@ -36,6 +37,7 @@ BF1_F_RET_TXT = on_command(f'{PREFIX}printtextf', aliases={f'{PREFIX}搜服名'}
 
 #stat
 BF1_BIND_PID = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX}绑id'}, block=True, priority=1)
+BF1_PID_INFO= on_command(f'{PREFIX}pid', block=True, priority=1)
 BF1_SA= on_command(f'{PREFIX}查', block=True, priority=1)
 BF1_TYC= on_command(f'{PREFIX}tyc', aliases={f'{PREFIX}天眼查'}, block=True, priority=1)
 BF1_WP= on_command(f'{PREFIX}武器', aliases={f'{PREFIX}w', f'{PREFIX}wp', f'{PREFIX}weapon'}, block=True, priority=1)
@@ -69,7 +71,7 @@ BF1_KICK = on_command(f'{PREFIX}k', aliases={f'{PREFIX}kick', f'{PREFIX}踢出'}
 BF1_KICKALL = on_command(f'{PREFIX}kickall', aliases={f'{PREFIX}炸服', f'{PREFIX}清服'}, block=True, priority=1)
 
 BF1_BAN = on_command(f'{PREFIX}ban', block=True, priority=1)
-BF1_BANALL = on_command(f'{PREFIX}bana',aliases={f'{PREFIX}banall', f'{PREFIX}ba'}, block=True, priority=1)
+BF1_BANALL = on_command(f'{PREFIX}banall',aliases={f'{PREFIX}bana', f'{PREFIX}ba'}, block=True, priority=1)
 BF1_UNBAN = on_command(f'{PREFIX}unban', block=True, priority=1)
 BF1_UNBANALL = on_command(f'{PREFIX}unbana',aliases={f'{PREFIX}unbanall', f'{PREFIX}uba'}, block=True, priority=1)
 BF1_VBAN = on_command(f'{PREFIX}vban', aliases={f'{PREFIX}vb'}, block=True, priority=1)
