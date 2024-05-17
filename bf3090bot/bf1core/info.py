@@ -455,8 +455,6 @@ async def bf1_gameid_info(event:GroupMessageEvent, state:T_State):
     remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
     try:
         res_0 = await upd_detailedServer(remid, sid, sessionID, gameId)
-        serverstar = res_0['result']['serverInfo']['serverBookmarkCount']
-        guid = res_0['result']['serverInfo']['guid']
         rspInfo = res_0['result']['rspInfo']
         serverid = rspInfo['server']['serverId']
         ownerid = rspInfo['server']['ownerId']
@@ -467,13 +465,16 @@ async def bf1_gameid_info(event:GroupMessageEvent, state:T_State):
         updatedDate = rspInfo.get("server", {}).get("updatedDate")
         updatedDate = datetime.datetime.fromtimestamp(int(updatedDate) / 1000)
 
-        servername = rspInfo['name']
-        servermode = rspInfo['mapModePretty']
-        servermap = rspInfo['mapNamePretty']
-        serveramount = rspInfo['slots']['Soldier']['current']
-        serverspect = rspInfo['slots']['Spectator']['current']
-        serverque = rspInfo['slots']['Queue']['current']
-        servermaxamount = rspInfo['slots']['Soldier']['max']
+        serverInfo = res_0['result']['serverInfo']
+        serverstar = serverInfo['serverBookmarkCount']
+        guid = serverInfo['guid']
+        servername = serverInfo['name']
+        servermode = serverInfo['mapModePretty']
+        servermap = serverInfo['mapNamePretty']
+        serveramount = serverInfo['slots']['Soldier']['current']
+        serverspect = serverInfo['slots']['Spectator']['current']
+        serverque = serverInfo['slots']['Queue']['current']
+        servermaxamount = serverInfo['slots']['Soldier']['max']
 
         personaIds = [ownerid]
         res1 = await upd_getPersonasByIds(remid, sid, sessionID, personaIds)

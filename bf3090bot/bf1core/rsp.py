@@ -372,7 +372,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             try:
                 if personaName.startswith('#'):
                     personaId = int(personaName[1:])
-                    res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                    res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                     personaName = res['result'][f'{personaId}']['displayName']
                 else:
                     personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -453,11 +453,11 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
 
         servers = await get_server_num(groupqq)
         tasks = []
-        access_token = (await get_one_random_bf1admin())[3]
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
         try:
             if personaName.startswith('#'):
                 personaId = int(personaName[1:])
-                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
             else:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -505,11 +505,11 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
 
         servers = await get_server_num(groupqq)
         tasks = []
-        access_token = (await get_one_random_bf1admin())[3]
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
         try:
             if personaName.startswith('#'):
                 personaId = int(personaName[1:])
-                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
             else:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -564,7 +564,7 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
         try:
             if personaName.startswith('#'):
                 personaId = int(personaName[1:])
-                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
             else:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -612,7 +612,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             try:
                 if personaName.startswith('#'):
                     personaId = int(personaName[1:])
-                    res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                    res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                     personaName = res['result'][f'{personaId}']['displayName']
                 else:
                     personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -683,11 +683,11 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
         if len(reason.encode('utf-8')) > 32:
             await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + '理由过长')
         servers = await get_server_num(groupqq)
-        access_token = (await get_one_random_bf1admin())[3]
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
         try:
             if personaName.startswith('#'):
                 personaId = int(personaName[1:])
-                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
             else:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -722,11 +722,11 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
         personaName = arg[0]
 
         servers = await get_server_num(groupqq)
-        access_token = (await get_one_random_bf1admin())[3]
+        remid, sid, sessionID, access_token = await get_one_random_bf1admin()
         try:
             if personaName.startswith('#'):
                 personaId = int(personaName[1:])
-                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
             else:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
@@ -770,7 +770,7 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
         try:
             if personaName.startswith('#'):
                 personaId = int(personaName[1:])
-                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
             else:
                 personaId,personaName,_ = await getPersonasByName(access_token, personaName)
