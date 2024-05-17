@@ -370,7 +370,12 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             if not remid:
                 await BF1_BAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
-                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+                if personaName.startswith('#'):
+                    personaId = int(personaName[1:])
+                    res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                    personaName = res['result'][f'{personaId}']['displayName']
+                else:
+                    personaId,personaName,_ = await getPersonasByName(access_token, personaName)
                 res = await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
                 res = await upd_banPlayer(remid, sid, sessionID, server_id, personaId)
             except RSPException as rsp_exc:
@@ -450,7 +455,12 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
         tasks = []
         access_token = (await get_one_random_bf1admin())[3]
         try:
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            if personaName.startswith('#'):
+                personaId = int(personaName[1:])
+                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                personaName = res['result'][f'{personaId}']['displayName']
+            else:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_BANALL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -497,7 +507,12 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
         tasks = []
         access_token = (await get_one_random_bf1admin())[3]
         try:
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            if personaName.startswith('#'):
+                personaId = int(personaName[1:])
+                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                personaName = res['result'][f'{personaId}']['displayName']
+            else:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -547,7 +562,12 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
         if not remid:
             await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         try:
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            if personaName.startswith('#'):
+                personaId = int(personaName[1:])
+                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                personaName = res['result'][f'{personaId}']['displayName']
+            else:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
             await upd_unbanPlayer(remid, sid, sessionID, server_id, personaId)
         except RSPException as rsp_exc:
             await BF1_UNBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
@@ -590,7 +610,12 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             if not remid:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
-                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+                if personaName.startswith('#'):
+                    personaId = int(personaName[1:])
+                    res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                    personaName = res['result'][f'{personaId}']['displayName']
+                else:
+                    personaId,personaName,_ = await getPersonasByName(access_token, personaName)
                 await add_vban(personaId,groupqq,server_id,reason,user_id)
             except RSPException as rsp_exc:
                 await BF1_VBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
@@ -660,7 +685,12 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
         servers = await get_server_num(groupqq)
         access_token = (await get_one_random_bf1admin())[3]
         try:
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            if personaName.startswith('#'):
+                personaId = int(personaName[1:])
+                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                personaName = res['result'][f'{personaId}']['displayName']
+            else:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_VBANALL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -694,7 +724,12 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
         servers = await get_server_num(groupqq)
         access_token = (await get_one_random_bf1admin())[3]
         try:
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            if personaName.startswith('#'):
+                personaId = int(personaName[1:])
+                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                personaName = res['result'][f'{personaId}']['displayName']
+            else:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_UNVBANALL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -733,7 +768,12 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
         if not remid:
             await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
         try:
-            personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+            if personaName.startswith('#'):
+                personaId = int(personaName[1:])
+                res = await upd_getPersonasByIds(remid, sid, sessionID, personaId)
+                personaName = res['result'][f'{personaId}']['displayName']
+            else:
+                personaId,personaName,_ = await getPersonasByName(access_token, personaName)
         except RSPException as rsp_exc:
             await BF1_UNVBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
