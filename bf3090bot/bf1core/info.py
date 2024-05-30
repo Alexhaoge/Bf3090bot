@@ -146,79 +146,197 @@ async def cmd_receive_report(event: GroupMessageEvent, state: T_State, pic: Mess
     try:
         access_token = (await get_one_random_bf1admin())[3]
         personaId,name,userId = await getPersonasByName(access_token, playerName)
+        state['pid'] = personaId
+        state['status'] = ''
+        state['bfban_status'] = 0
+        state['case_body'] = ''
+        state['case_num'] = 0
+        state['case_video_num'] = 0
+        state['target_EAID'] = name
+        state['txturl'] = []
+        state['videourl'] = ""
+        await BF1_REPORT.send(MessageSegment.reply(event.message_id) + f'请选择举报渠道(1或2): \n1.BFEAC\n2.BFBAN\n其他视为放弃举报')
     except RSPException as rsp_exc:
         await BF1_REPORT.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
     except Exception as e:
         logger.warning(traceback.format_exc())
         await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + '获取玩家id出错\n' + traceback.format_exception_only(e))
-    bfeac = await bfeac_checkBan(personaId)
-    if bfeac['stat'] == '无':
-        state['case_body'] = ''
-        state['case_num'] = 0
-        state['target_EAID'] = name
-        state['txturl'] = []
-        await BF1_REPORT.send(f'开始举报: {name}\n可以发送图片/文字/链接\n图片和文字请分开发送\n共计可以接收5次举报消息\n声明: 每次举报都会在后台记录举报者的qq号码，仅作为留档用。恶意举报将永久封停你的bot使用权限，情节严重者将封停群内所有成员的bot使用权。\n学习如何鉴挂: https://bitly.ws/YQAg')
-    elif bfeac['stat'] == '已封禁':
-        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家已被bfeac封禁，案件链接: {bfeac["url"]}')
-    else:
-        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家在bfeac已经有案件，但是没有被封禁，案件链接: {bfeac["url"]}。\n如果想要补充证据请直接注册账号并在case下方回复，管理员会看到并处理你的回复。')    
 
 @BF1_REPORT.got("Message")
-async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message")):
-    for segment in msgpic:
-        if segment.is_text():
-            if str(segment) == "确认":
-                bg_url = "https://3090bot.oss-cn-beijing.aliyuncs.com/asset/3090.png"
-                state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + bg_url + "\"/></p>"
-
-                res = await bfeac_report(state['target_EAID'],state['case_body'])
-                try:
-                    case_id = res['data']
-                except:
-                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
-                else:
-                    with open(CURRENT_FOLDER/'bfeac_case'/f'{case_id}.txt','w') as f:
-                        string = "\"qq\":" + str(event.user_id) + "\n\"group\":" + str(event.group_id)
-                        f.write(string)
-                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfeac.com/#/case/{case_id}。')
-                
-            elif str(segment) == "取消":
-                await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'已取消举报。')
-                
-            elif str(segment) == "预览":
-                msg_show = ''
-                for body in state['txturl']:
-                    if str(body).startswith('https://3090bot'):
-                        msg_show += (MessageSegment.image(body) +'\n')
+async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message")):    
+    personaId = state['pid']
+    name = state['target_EAID']
+    
+    if not state['status']:
+        for segment in msgpic:
+            if segment.is_text():
+                if str(segment) == "1" or str(segment) == "bfeac" or str(segment) == "BFEAC":
+                    bfeac = await bfeac_checkBan(personaId)
+                    if bfeac['stat'] == '无':
+                        state['status'] = 'bfeac'
+                        state['case_body'] = ''
+                        state['case_num'] = 0
+                        state['target_EAID'] = name
+                        state['txturl'] = []
+                        await BF1_REPORT.reject(f'开始举报(BFEAC): {name}\n可以发送图片/文字/链接\n图片和文字请分开发送\n共计可以接收5次举报消息\n声明: 每次举报都会在后台记录举报者的qq号码，仅作为留档用。恶意举报将永久封停你的bot使用权限，情节严重者将封停群内所有成员的bot使用权。\n学习如何鉴挂: https://bitly.ws/YQAg')
+                    elif bfeac['stat'] == '已封禁':
+                        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家已被bfeac封禁，案件链接: {bfeac["url"]}')
                     else:
-                        msg_show += (body + '\n')
-                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + msg_show)
-            else:
-                if state['case_num'] < 5:
-                    state['case_num'] += 1
-                    state['case_body'] += "<p>" + str(segment) + "</p>"
-                    state['txturl'].append(segment)
-                    await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'文字上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{5-state["case_num"]}条证据')
+                        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家在bfeac已经有案件，但是没有被封禁，案件链接: {bfeac["url"]}。\n如果想要补充证据请直接注册账号并在case下方回复，管理员会看到并处理你的回复。')    
+                elif str(segment) == "2" or str(segment) == "bfban" or str(segment) == "BFBAN":
+                    bfban = await bfban_checkBan(personaId)
+                    if bfban['stat'] == '无':
+                        state['status'] = 'bfban'
+                        state['case_body'] = ''
+                        state['case_num'] = 0
+                        state['case_video_num'] = 0
+                        state['target_EAID'] = name
+                        state['txturl'] = []
+                        state['videourl'] = ""
+                        await BF1_REPORT.reject(f'开始举报(BFBAN): {name}\n请输入举报类型\n1.隐身 2.透视 3.自瞄\n4.传送 5.魔法子弹\n6.改装备 7.改伤 8.炸服\n示例: 17——隐身+改伤')
+                    elif bfban['stat'] == '实锤':
+                        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家已被bfban封禁，案件链接: {bfban["url"]}')
+                    else:
+                        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'该玩家在bfban已经有案件，但是没有被封禁，案件链接: {bfeac["url"]}。\n如果想要补充证据请直接注册账号并在case下方回复，管理员会看到并处理你的回复。')    
                 else:
-                    await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')
-        elif segment.type == "image":
-            if state['case_num'] < 5:    
-                pic_url: str = segment.data["url"]  # 图片链接
-                logger.success(f"获取到图片: {pic_url}")
-                response = await httpx_client.get(pic_url,timeout=20)
-                image_data = response.content
-                image = Image.open(BytesIO(image_data))
-                
-                imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
-                state['case_num'] += 1
-                state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
-                state['txturl'].append(imageurl)
-                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'图片上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{5-state["case_num"]}条证据')
+                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'已取消举报。')
             else:
-                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')    
+                await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'已取消举报。')
+    else:
+        if state['status'] == 'bfeac':
+            for segment in msgpic:
+                if segment.is_text():
+                    if str(segment) == "确认":
+                        bg_url = "https://3090bot.oss-cn-beijing.aliyuncs.com/asset/3090.png"
+                        state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + bg_url + "\"/></p>"
+
+                        res = await bfeac_report(state['target_EAID'],state['case_body'])
+                        try:
+                            case_id = res['data']
+                        except:
+                            await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
+                        else:
+                            with open(CURRENT_FOLDER/'bfeac_case'/f'{case_id}.txt','w') as f:
+                                string = "\"qq\":" + str(event.user_id) + "\n\"group\":" + str(event.group_id)
+                                f.write(string)
+                            await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfeac.com/#/case/{case_id}。')
+                        
+                    elif str(segment) == "取消":
+                        await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'已取消举报。')
+                        
+                    elif str(segment) == "预览":
+                        msg_show = ''
+                        for body in state['txturl']:
+                            if str(body).startswith('https://3090bot'):
+                                msg_show += (MessageSegment.image(body) +'\n')
+                            else:
+                                msg_show += (body + '\n')
+                        await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + msg_show)
+                    else:
+                        if state['case_num'] <= 5:
+                            state['case_num'] += 1
+                            state['case_body'] += "<p>" + str(segment) + "</p>"
+                            state['txturl'].append(segment)
+                            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'文字上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{5-state["case_num"]}条证据')
+                        else:
+                            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')
+                elif segment.type == "image":
+                    if state['case_num'] <= 5:    
+                        pic_url: str = segment.data["url"]  # 图片链接
+                        logger.success(f"获取到图片: {pic_url}")
+                        response = await httpx_client.get(pic_url,timeout=20)
+                        image_data = response.content
+                        image = Image.open(BytesIO(image_data))
+                        
+                        imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
+                        state['case_num'] += 1
+                        state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
+                        state['txturl'].append(imageurl)
+                        await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'图片上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{5-state["case_num"]}条证据')
+                    else:
+                        await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')    
+                else:
+                    await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + "发送证据的格式不合法。")
         else:
-            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + "发送证据的格式不合法。")
+            if not state['bfban_status']:
+                for segment in msgpic:
+                    if segment.is_text():
+                        try:
+                            state['cheat_number'] = int(str(segment))
+                            state['bfban_status'] = 1
+                        except:
+                            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + "发送举报类型的格式不合法。\n示例: \n1——隐身\n17——隐身+改伤\n123——隐身+透视+自瞄") 
+                        else:
+                            await BF1_REPORT.reject(f'进入举报流程: \n可以发送图片/文字/链接\n请分开发送链接和图片\n可以接收5次举报消息\n可以接收3次视频链接\n声明: 每次举报都会在后台记录举报者的qq号码，仅作为留档用。恶意举报将永久封停你的bot使用权限，情节严重者将封停群内所有成员的bot使用权。\n学习如何鉴挂: https://bitly.ws/YQAg')
+                    else:
+                        await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + "发送举报类型的格式不合法。\n示例: \n1——隐身\n17——隐身+改伤\n123——隐身+透视+自瞄") 
+            else:
+                for segment in msgpic:
+                    if segment.is_text():
+                        if str(segment) == "确认":
+                            bg_url = "https://3090bot.oss-cn-beijing.aliyuncs.com/asset/3090.png"
+                            state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + bg_url + "\"/></p>"
+
+                            res = await bfban_report(state['target_EAID'],state['case_body'],state['cheat_number'],state['videourl'].rstrip(","),'bfban_token')
+                            try:
+                                case_code = res['code']
+                                case_data = res['data']
+                            except:
+                                await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
+                            else:
+                                if case_code == "report.success":
+                                    with open(CURRENT_FOLDER/'bfban_case'/f'{state["target_EAID"]}.txt','w') as f:
+                                        string = "\"qq\":" + str(event.user_id) + "\n\"group\":" + str(event.group_id)
+                                        f.write(string)
+                                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfban.com/player/{state["target_EAID"]}。')
+                                else:
+                                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
+                        elif str(segment) == "取消":
+                            await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'已取消举报。')
+                            
+                        elif str(segment) == "预览":
+                            msg_show = ''
+                            for body in state['txturl']:
+                                if str(body).startswith('https://3090bot'):
+                                    msg_show += (MessageSegment.image(body) +'\n')
+                                else:
+                                    msg_show += (body + '\n')
+                            msg_show += "视频链接: " + state['videourl'].rstrip(",")
+                            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + msg_show)
+                        elif str(segment).startswith("http") or str(segment).startswith("www"):
+                            if state['case_video_num'] <= 3:
+                                state['videourl'] += f'{segment},'
+                                state['case_video_num'] += 1
+                                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'视频链接上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{3-state["case_video_num"]}条链接\n你还可以发送{5-state["case_num"]}条图片/文字证据')
+                            else:
+                                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的链接数量已满。')     
+                        else:
+                            if state['case_num'] <= 5:
+                                state['case_num'] += 1
+                                state['case_body'] += "<p>" + str(segment) + "</p>"
+                                state['txturl'].append(segment)
+                                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'文字上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{3-state["case_video_num"]}条链接\n你还可以发送{5-state["case_num"]}条图片/文字证据')
+                            else:
+                                await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')
+                    elif segment.type == "image":
+                        if state['case_num'] < 5:    
+                            pic_url: str = segment.data["url"]  # 图片链接
+                            logger.success(f"获取到图片: {pic_url}")
+                            response = await httpx_client.get(pic_url,timeout=20)
+                            image_data = response.content
+                            image = Image.open(BytesIO(image_data))
+                            
+                            imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
+                            state['case_num'] += 1
+                            state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
+                            state['txturl'].append(imageurl)
+                            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'图片上传完成\n发送确认以结束举报\n发送取消以取消举报\n发送预览以预览举报\n你还可以发送{3-state["case_video_num"]}条链接\n你还可以发送{5-state["case_num"]}条图片/文字证据')
+                        else:
+                            await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')    
+                    else:
+                        await BF1_REPORT.reject(MessageSegment.reply(event.message_id) + "发送证据的格式不合法。")
+
 
 @BF1_BOT.handle()
 async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
