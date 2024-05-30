@@ -280,20 +280,20 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                             with open(CURRENT_FOLDER/'bfban_token.txt','r') as f:
                                 token = f.read()
                             res = await bfban_report(state['target_EAID'],state['case_body'],state['cheat_number'],state['videourl'].rstrip(","),token)
-                            try:
-                                case_code = res['code']
-                                case_data = res['data']
-                            except Exception as e:
-                                print(e)
-                                await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
+
+                            case_code = res['code']
+
+                            if case_code == "report.success":
+                                with open(CURRENT_FOLDER/'bfban_case'/f'{state["pid"]}.txt','w') as f:
+                                    string = "\"qq\":" + str(event.user_id) + "\n\"group\":" + str(event.group_id)
+                                    f.write(string)
+                                await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfban.com/player/{state["pid"]}。')
                             else:
-                                if case_code == "report.success":
-                                    with open(CURRENT_FOLDER/'bfban_case'/f'{state["pid"]}.txt','w') as f:
-                                        string = "\"qq\":" + str(event.user_id) + "\n\"group\":" + str(event.group_id)
-                                        f.write(string)
-                                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfban.com/player/{state["pid"]}。')
-                                else:
-                                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
+                                try:
+                                    err = json.dumps(res['message'][0])
+                                except:
+                                    err = ''
+                                await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，原因: {err}, 请联系作者处理。')
                         elif str(segment) == "取消":
                             await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'已取消举报。')
                             
