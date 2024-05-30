@@ -470,7 +470,7 @@ async def upd_vbanPlayer():
 
 ################################## Bfban Token ##################################
 async def BFBAN_renew_token():
-    res = await BFBAN_renew_token()
+    res = await BFBAN_signin()
     try:
         token = res["data"]["token"]
         with open(BFCHAT_DATA_FOLDER/'bfban_token.txt','w', encoding='utf-8') as f:

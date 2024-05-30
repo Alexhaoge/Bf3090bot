@@ -277,7 +277,7 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                         if str(segment) == "确认":
                             bg_url = "https://3090bot.oss-cn-beijing.aliyuncs.com/asset/3090.png"
                             state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + bg_url + "\"/></p>"
-                            with open(CURRENT_FOLDER/'code.txt','r') as f:
+                            with open(CURRENT_FOLDER/'bfban_token.txt','r') as f:
                                 token = f.read()
                             res = await bfban_report(state['target_EAID'],state['case_body'],state['cheat_number'],state['videourl'].rstrip(","),token)
                             try:
