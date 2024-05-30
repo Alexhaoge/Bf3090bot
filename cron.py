@@ -468,6 +468,16 @@ async def upd_vbanPlayer():
     thr_time = (end_time - start_time).total_seconds()
     print(f"Vban生产用时：{thr_time}秒")
 
+################################## Bfban Token ##################################
+async def BFBAN_renew_token():
+    res = await BFBAN_renew_token()
+    try:
+        token = res["data"]["token"]
+        with open(BFCHAT_DATA_FOLDER/'bfban_token.txt','w', encoding='utf-8') as f:
+            f.write(token)
+    except Exception as e:
+        print(e)
+
 
 ################################## Multiprocess Asyncio Scheduler ##################################
 def start_job0():
@@ -476,6 +486,7 @@ def start_job0():
         asyncio.set_event_loop(loop)
         scheduler = AsyncIOScheduler(event_loop=loop)
         scheduler.add_job(refresh_cookie_and_sessionid, 'interval', hours=2)
+        scheduler.add_job(BFBAN_renew_token, 'interval', hours=6)
         scheduler.add_job(refresh_serverInfo, 'interval', minutes=30)
         scheduler.add_job(upd_ping, 'interval', seconds=30)
         scheduler.add_job(upd_ping1, 'interval', seconds=30)
@@ -525,6 +536,7 @@ def run_process(job):
 
 if __name__ == '__main__':
     asyncio.run(refresh_cookie_and_sessionid()) # Run this command when doing setup for a new production environment.
+    asyncio.run(BFBAN_renew_token())
     asyncio.run(refresh_serverInfo())
     bf1_reset_alarm_session()
     asyncio.run(upd_draw())

@@ -54,7 +54,7 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
         if player_r:
             personaId = player_r[0].pid
             code_r = (await session.execute(select(BotVipCodes).filter_by(code=code).with_for_update())).first()
-            if code_r:
+            if code_r: 
                 exist_pid = code_r[0].pid
                 valid = False
                 if int(exist_pid) == int(personaId):
@@ -277,19 +277,21 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                         if str(segment) == "确认":
                             bg_url = "https://3090bot.oss-cn-beijing.aliyuncs.com/asset/3090.png"
                             state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + bg_url + "\"/></p>"
-
-                            res = await bfban_report(state['target_EAID'],state['case_body'],state['cheat_number'],state['videourl'].rstrip(","),'bfban_token')
+                            with open(CURRENT_FOLDER/'code.txt','r') as f:
+                                token = f.read()
+                            res = await bfban_report(state['target_EAID'],state['case_body'],state['cheat_number'],state['videourl'].rstrip(","),token)
                             try:
                                 case_code = res['code']
                                 case_data = res['data']
-                            except:
+                            except Exception as e:
+                                print(e)
                                 await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
                             else:
                                 if case_code == "report.success":
-                                    with open(CURRENT_FOLDER/'bfban_case'/f'{state["target_EAID"]}.txt','w') as f:
+                                    with open(CURRENT_FOLDER/'bfban_case'/f'{state["pid"]}.txt','w') as f:
                                         string = "\"qq\":" + str(event.user_id) + "\n\"group\":" + str(event.group_id)
                                         f.write(string)
-                                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfban.com/player/{state["target_EAID"]}。')
+                                    await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报成功，案件链接: https://bfban.com/player/{state["pid"]}。')
                                 else:
                                     await BF1_REPORT.finish(MessageSegment.reply(event.message_id) + f'举报失败，请联系作者处理。')
                         elif str(segment) == "取消":
