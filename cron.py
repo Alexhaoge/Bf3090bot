@@ -351,8 +351,10 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
         remid, sid, sessionID, _  = get_bf1admin_by_serverid(conn, serverid)
         if not remid:
             continue
-
-        pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
+        try:
+            pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
+        except:
+            pl_ids = pl
         if VBAN_EAC_ENABLE and (not serverid in EAC_SERVER_BLACKLIST):
             try:
                 bfeac_ids = await bfeac_checkBanMulti(pl_ids)
@@ -429,6 +431,14 @@ async def start_vban(conn: psycopg.Connection, redis_client: redis.Redis, sgids:
             print('Vban exception during execution: ' + traceback.format_exception_only(e)[0] + \
                            '\n' + ','.join([str(t[1]) for t in sgids]))
 
+async def start_vban_by_snapshot(conn: psycopg.Connection, redis_client: redis.Redis, sgids: list, vbans: dict, snapshot:dict):
+    try:
+        await kick_vbanPlayer(conn, redis_client, snapshot, sgids, vbans) 
+    except Exception as e:
+        print(traceback.format_exc())
+        print('Vban exception during execution: ' + traceback.format_exception_only(e)[0] + \
+                        '\n' + ','.join([str(t[1]) for t in sgids]))
+        
 async def upd_vbanPlayer():
     start_time = datetime.datetime.now()
     redis_client = redis_connection_helper()
@@ -449,16 +459,30 @@ async def upd_vbanPlayer():
                 vbans[serverid]['pid'].append(vban_row[1])
                 vbans[serverid]['groupqq'].append(vban_row[3])
                 vbans[serverid]['reason'].append(vban_row[2])
+    try:
+        snapshot = await get_snapshot()
+        snapshot_gameids = list(snapshot.keys())
+    except:
+        print(traceback.format_exc())
+        print('Vban Blaze error for snapshot')
 
     if len(serverid_gameIds):
         sgids = []
+        sgids_snap = []
         for i in range(len(serverid_gameIds)):
+            (serverid, gameId) = serverid_gameIds[i]
+            if gameId in snapshot_gameids:
+                sgids_snap.append(serverid_gameIds[i])
+                break
             if len(sgids) < 10:
                 sgids.append(serverid_gameIds[i])
             else:
                 logging.debug(sgids)
                 await start_vban(conn, redis_client, sgids,vbans)
                 sgids = []
+        
+        await start_vban_by_snapshot(conn, redis_client, sgids,vbans,snapshot)
+        
         if 0 < len(sgids) < 10:
             logging.debug(sgids)
             await start_vban(conn, redis_client, sgids,vbans)
@@ -478,6 +502,11 @@ async def BFBAN_renew_token():
     except Exception as e:
         print(e)
 
+################################## Bfeac & BFBAN DB ##################################
+async def BFEAC_db():
+    res = await bfeac_checkBanAll()
+    print('BFEAC banlist renewed')
+    
 
 ################################## Multiprocess Asyncio Scheduler ##################################
 def start_job0():
@@ -520,7 +549,8 @@ def start_job2():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         scheduler = AsyncIOScheduler(event_loop=loop)
-        scheduler.add_job(upd_vbanPlayer, 'interval', minutes=2, misfire_grace_time=60)
+        scheduler.add_job(BFEAC_db, 'interval', minutes=10)
+        scheduler.add_job(upd_vbanPlayer, 'interval', seconds=20, misfire_grace_time=60)
         scheduler.start()
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -537,6 +567,7 @@ def run_process(job):
 if __name__ == '__main__':
     asyncio.run(refresh_cookie_and_sessionid()) # Run this command when doing setup for a new production environment.
     asyncio.run(BFBAN_renew_token())
+    asyncio.run(BFEAC_db())
     asyncio.run(refresh_serverInfo())
     bf1_reset_alarm_session()
     asyncio.run(upd_draw())
