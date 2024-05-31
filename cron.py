@@ -616,9 +616,22 @@ def start_job2():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         scheduler = AsyncIOScheduler(event_loop=loop)
+        scheduler.add_job(upd_vbanPlayer, 'interval', minutes=1, misfire_grace_time=60)
+        scheduler.start()
+        loop.run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        loop.stop()
+        loop.close()
+
+def start_job3():
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        scheduler = AsyncIOScheduler(event_loop=loop)
         scheduler.add_job(BFEAC_db, 'interval', minutes=10)
         scheduler.add_job(BFBAN_db, 'interval', minutes=10)
-        scheduler.add_job(upd_vbanPlayer, 'interval', minutes=1, misfire_grace_time=60)
         scheduler.start()
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -646,6 +659,7 @@ if __name__ == '__main__':
         processes.append(run_process(start_job0))
         processes.append(run_process(start_job1))
         processes.append(run_process(start_job2))
+        processes.append(run_process(start_job3))
         for process in processes:
             process.join()
     except (KeyboardInterrupt, SystemExit):
