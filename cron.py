@@ -341,6 +341,18 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
     tasks = []
     report_list = []
     personaIds = []
+    
+    kick_rows = db_op(conn, "SELECT serverid, bfeac, bfban FROM serverautokicks;", [])
+
+    kick_status = {}
+    for r in kick_rows:
+        kick_status[str(r[0])] = {"bfeac": r[1],"bfban": r[2]}
+    
+    with open(BFCHAT_DATA_FOLDER/'bfeac_ban.json',"r",encoding="utf-8") as f:
+        bfeac_ids = json.load(f)["data"]
+
+    with open(BFCHAT_DATA_FOLDER/'bfban_ban.json',"r",encoding="utf-8") as f:
+        bfban_ids = json.load(f)["data"]
 
     for serverid, gameId in sgids:
         pl = pljson[str(gameId)]
@@ -355,17 +367,26 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
             pl_ids = [int(s['id']) for s in pl['1']] + [int(s['id']) for s in pl['2']]
         except:
             pl_ids = pl
-        if VBAN_EAC_ENABLE and (not serverid in EAC_SERVER_BLACKLIST):
-            try:
-                bfeac_ids = await bfeac_checkBanMulti(pl_ids)
-            except Exception as e:
-                print(f'Vban for server {serverid, gameId} encounter BFEAC network error: {str(e)}')
-                continue
-            if bfeac_ids and len(bfeac_ids):
-                reason = "Banned by bfeac.com"
-                for personaId in bfeac_ids:
+
+        try:
+            EAC = kick_status[str(serverid)]["bfeac"]
+            BAN = kick_status[str(serverid)]["bfban"]
+        except:
+            EAC = BAN = False
+        
+        if EAC and (not serverid in EAC_SERVER_BLACKLIST):
+            reason = "Banned by bfeac.com"
+            for personaId in pl_ids:
+                if personaId in bfeac_ids:
                     report_list.append({"eac": True})
                     tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason, PROXY_HOST))
+        
+        if BAN and not EAC:
+            reason = "Banned by bfban.com"
+            for personaId in pl_ids:
+                if personaId in bfban_ids:
+                    report_list.append({"eac": True})
+                    tasks.append(upd_kickPlayer(remid,sid,sessionID,gameId,personaId,reason, PROXY_HOST))            
 
         for personaId in pl_ids:
             if personaId in vban_ids:
@@ -465,13 +486,13 @@ async def upd_vbanPlayer():
     except:
         print(traceback.format_exc())
         print('Vban Blaze error for snapshot')
-
+    
     if len(serverid_gameIds):
         sgids = []
         sgids_snap = []
         for i in range(len(serverid_gameIds)):
             (serverid, gameId) = serverid_gameIds[i]
-            if gameId in snapshot_gameids:
+            if str(gameId) in snapshot_gameids:
                 sgids_snap.append(serverid_gameIds[i])
                 break
             if len(sgids) < 10:
@@ -481,7 +502,7 @@ async def upd_vbanPlayer():
                 await start_vban(conn, redis_client, sgids,vbans)
                 sgids = []
         
-        await start_vban_by_snapshot(conn, redis_client, sgids,vbans,snapshot)
+        await start_vban_by_snapshot(conn, redis_client, sgids_snap,vbans,snapshot)
         
         if 0 < len(sgids) < 10:
             logging.debug(sgids)
@@ -505,7 +526,53 @@ async def BFBAN_renew_token():
 ################################## Bfeac & BFBAN DB ##################################
 async def BFEAC_db():
     res = await bfeac_checkBanAll()
-    print('BFEAC banlist renewed')
+    try:
+        with open(BFCHAT_DATA_FOLDER/'bfeac_ban.json',"w",encoding="utf-8") as f:
+            json.dump(res,f,indent=4,ensure_ascii=False)
+        print('BFEAC banlist renewed')
+    except:
+        print('BFEAC banlist renew failed')
+
+async def BFBAN_db(init: bool = False):
+    with open(BFCHAT_DATA_FOLDER/'bfban_token.txt','r') as f:
+        token = f.read()
+    
+    if init:
+        banlist = {}
+        res = await bfban_checkBanAll(token,1000000)
+    else:    
+        with open(BFCHAT_DATA_FOLDER/'bfban_db.json',"r",encoding="utf-8") as f:
+            banlist = json.load(f)
+        res = await bfban_checkBanAll(token,200)
+
+    cheaters = []
+    try:
+        new_banlist = list(res)
+        for data in new_banlist:
+            id = data["id"]
+            pid = data["originPersonaId"]
+            status = data["status"]
+
+            banlist[str(id)] = {
+                "pid": int(pid),
+                "status": status
+            }
+
+        with open(BFCHAT_DATA_FOLDER/'bfban_db.json',"w",encoding="utf-8") as f:
+            json.dump(banlist,f,indent=4,ensure_ascii=False)
+        
+        for data in list(banlist.values()):
+            if data["status"] == 1:
+                cheaters.append(int(data["pid"]))
+
+        cheaters = {
+            "data": cheaters
+        }
+        with open(BFCHAT_DATA_FOLDER/'bfban_ban.json',"w",encoding="utf-8") as f:
+            json.dump(cheaters,f,indent=4,ensure_ascii=False)
+        print('BFBAN banlist renewed')
+    except Exception as e:
+        print(f'BFBAN banlist renew failed:{e}' )
     
 
 ################################## Multiprocess Asyncio Scheduler ##################################
@@ -550,7 +617,8 @@ def start_job2():
         asyncio.set_event_loop(loop)
         scheduler = AsyncIOScheduler(event_loop=loop)
         scheduler.add_job(BFEAC_db, 'interval', minutes=10)
-        scheduler.add_job(upd_vbanPlayer, 'interval', seconds=20, misfire_grace_time=60)
+        scheduler.add_job(BFBAN_db, 'interval', minutes=10)
+        scheduler.add_job(upd_vbanPlayer, 'interval', minutes=1, misfire_grace_time=60)
         scheduler.start()
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
@@ -568,6 +636,7 @@ if __name__ == '__main__':
     asyncio.run(refresh_cookie_and_sessionid()) # Run this command when doing setup for a new production environment.
     asyncio.run(BFBAN_renew_token())
     asyncio.run(BFEAC_db())
+    asyncio.run(BFBAN_db(init=True))
     asyncio.run(refresh_serverInfo())
     bf1_reset_alarm_session()
     asyncio.run(upd_draw())

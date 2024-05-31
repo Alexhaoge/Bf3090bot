@@ -23,7 +23,7 @@ from ..rdb import *
 from ..redis_helper import redis_client
 from ..bf1helper import *
 
-from .matcher import BF1_SERVER_ALARM,BF1_SERVER_ALARMOFF
+from .matcher import BF1_SERVER_ALARM,BF1_SERVER_ALARMOFF,BF1_SERVER_BFEAC,BF1_SERVER_BFEACOFF,BF1_SERVER_BFBAN,BF1_SERVER_BFBANOFF
 
 draw_dict = {}
 
@@ -80,7 +80,139 @@ async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
     else:
         await BF1_SERVER_ALARMOFF.send('你不是本群组的管理员')
 
+@BF1_SERVER_BFEAC.handle()
+async def bf1_server_bfeac(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    try:
+        arg = message.extract_plain_text().split()
+        groupqq = int(arg[0])
+    except:
+        groupqq = event.group_id
+    user_id = event.user_id
+    groupqq_main = await check_session(groupqq)
+    if not groupqq_main:
+        await BF1_SERVER_BFEAC.finish(MessageSegment.reply(event.message_id) + f'群组{groupqq}未初始化')
 
+    servers = await get_server_num(groupqq)
+    admin_perm = await check_admin(groupqq_main, user_id)
+    if admin_perm:
+        async with async_db_session() as session:
+            for server_ind, server_id in servers:
+                group_r = (await session.execute(select(ServerAutoKicks).filter_by(serverid=server_id))).first()
+                if not group_r:
+                    session.add(ServerAutoKicks(
+                        serverid = server_id,
+                        bfeac = True
+                    ))
+                else:
+                    group_r[0].bfeac = True
+                    session.add(group_r[0])
+            
+            await BF1_SERVER_BFEAC.send(f'已打开BFEAC自动踢实锤功能')
+            await session.commit()
+    else:
+        await BF1_SERVER_BFEAC.send('你不是本群组的管理员')
+
+
+@BF1_SERVER_BFEACOFF.handle()
+async def bf1_server_bfeacoff(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    try:
+        arg = message.extract_plain_text().split()
+        groupqq = int(arg[0])
+    except:
+        groupqq = event.group_id
+    user_id = event.user_id
+    groupqq_main = await check_session(groupqq)
+    if not groupqq_main:
+        await BF1_SERVER_BFEACOFF.finish(MessageSegment.reply(event.message_id) + f'群组{groupqq}未初始化')
+
+    servers = await get_server_num(groupqq)
+    admin_perm = await check_admin(groupqq_main, user_id)
+    if admin_perm:
+        async with async_db_session() as session:
+            for server_ind, server_id in servers:
+                group_r = (await session.execute(select(ServerAutoKicks).filter_by(serverid=server_id))).first()
+                if not group_r:
+                    session.add(ServerAutoKicks(
+                        serverid = server_id,
+                        bfeac = False
+                    ))
+                else:
+                    group_r[0].bfeac = False
+                    session.add(group_r[0])
+            
+            await BF1_SERVER_BFEACOFF.send(f'已关闭BFEAC自动踢实锤功能')
+            await session.commit()
+    else:
+        await BF1_SERVER_BFEACOFF.send('你不是本群组的管理员')
+
+@BF1_SERVER_BFBAN.handle()
+async def bf1_server_bfban(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    try:
+        arg = message.extract_plain_text().split()
+        groupqq = int(arg[0])
+    except:
+        groupqq = event.group_id
+    user_id = event.user_id
+    groupqq_main = await check_session(groupqq)
+    if not groupqq_main:
+        await BF1_SERVER_BFBAN.finish(MessageSegment.reply(event.message_id) + f'群组{groupqq}未初始化')
+
+    servers = await get_server_num(groupqq)
+    admin_perm = await check_admin(groupqq_main, user_id)
+    if admin_perm:
+        async with async_db_session() as session:
+            for server_ind, server_id in servers:
+                group_r = (await session.execute(select(ServerAutoKicks).filter_by(serverid=server_id))).first()
+                if not group_r:
+                    session.add(ServerAutoKicks(
+                        serverid = server_id,
+                        bfban = True
+                    ))
+                else:
+                    group_r[0].bfban = True
+                    session.add(group_r[0])
+                    
+            await BF1_SERVER_BFBAN.send(f'已打开BFBAN自动踢实锤功能')
+            await session.commit()
+    else:
+        await BF1_SERVER_BFBAN.send('你不是本群组的管理员')
+
+
+@BF1_SERVER_BFBANOFF.handle()
+async def bf1_server_bfbanoff(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    try:
+        arg = message.extract_plain_text().split()
+        groupqq = int(arg[0])
+    except:
+        groupqq = event.group_id
+    user_id = event.user_id
+    groupqq_main = await check_session(groupqq)
+    if not groupqq_main:
+        await BF1_SERVER_BFBANOFF.finish(MessageSegment.reply(event.message_id) + f'群组{groupqq}未初始化')
+
+    servers = await get_server_num(groupqq)
+    admin_perm = await check_admin(groupqq_main, user_id)
+    if admin_perm:
+        async with async_db_session() as session:
+            for server_ind, server_id in servers:
+                group_r = (await session.execute(select(ServerAutoKicks).filter_by(serverid=server_id))).first()
+                if not group_r:
+                    session.add(ServerAutoKicks(
+                        serverid = server_id,
+                        bfban = False
+                    ))
+                else:
+                    group_r[0].bfban = False
+                    session.add(group_r[0])
+            
+            await BF1_SERVER_BFBANOFF.send(f'已关闭BFBAN自动踢实锤功能')
+            await session.commit()
+    else:
+        await BF1_SERVER_BFBANOFF.send('你不是本群组的管理员')
 ######################################## Schedule jobs #########################################
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_alarm", misfire_grace_time=120)

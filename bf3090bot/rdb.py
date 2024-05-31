@@ -170,6 +170,15 @@ class playerStatsDiff(Base):
     pid = Column(BigInteger, nullable=False, primary_key=True)
     diff = Column(JSON, nullable=True)
 
+class ServerAutoKicks(Base):
+    __tablename__ = "serverautokicks"
+    serverid = Column(Integer, ForeignKey('servers.serverid'))
+    bfeac = Column(Boolean, default = False)
+    bfban = Column(Boolean, default = False)
+    __table_args__ = (
+        PrimaryKeyConstraint(serverid),
+        {}
+    )
 ###################### Table Ends ##########################
 
 ###################### DB Helper ###########################
@@ -200,7 +209,7 @@ async def async_db_op(stmt: Executable):
 __all__ = [
     'Bf1Admins', 'Servers', 'ChatGroups', 'Players', 
     'GroupServerBind', 'GroupAdmins', 'GroupMembers', 
-    'ServerVips', 'ServerVBans', 'ServerBf1Admins', 'BotVipCodes', 'playerStats', 'playerStatsDiff',
+    'ServerVips', 'ServerVBans', 'ServerBf1Admins', 'BotVipCodes', 'playerStats', 'playerStatsDiff','ServerAutoKicks',
     'engine', 'init_db', 'close_db',
     'async_db_session', 'get_db_session', 'async_db_op'
 ]

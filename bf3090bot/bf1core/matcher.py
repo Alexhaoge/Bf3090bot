@@ -108,6 +108,10 @@ approve_req = on_command('y',rule = to_me ,aliases={'n'},priority=1, block=True)
 #scheduler
 BF1_SERVER_ALARM = on_command(f'{PREFIX}打开预警', block=True, priority=1)
 BF1_SERVER_ALARMOFF = on_command(f'{PREFIX}关闭预警', block=True, priority=1)
+BF1_SERVER_BFEAC = on_command(f'{PREFIX}打开bfeac', block=True, priority=1)
+BF1_SERVER_BFBAN = on_command(f'{PREFIX}打开bfban', block=True, priority=1)
+BF1_SERVER_BFEACOFF = on_command(f'{PREFIX}关闭bfeac', block=True, priority=1)
+BF1_SERVER_BFBANOFF = on_command(f'{PREFIX}关闭bfban', block=True, priority=1)
 
 #server admin logging query
 BF1_SLP = on_command(f'{PREFIX}slog', aliases={f'{PREFIX}搜日志', f'{PREFIX}sl'}, block=True, priority=1)
