@@ -488,18 +488,23 @@ async def update_diff(remid, sid, sessionID, pid):
             d = res_stat['result']['basicStats']['deaths']
             rounds = res_stat['result']["roundsPlayed"]
             spm = res_stat['result']['basicStats']['spm']
-            score = int(spm * secondsPlayed / 60)            
+            score = 0         
             
+            results = await blaze_stat_renew([pid])
+            stat_list = results[str(pid)]
+            shot = int(float(stat_list[3]))
+            hit = int(float(stat_list[4]))
+
             if not exist_stat:
                 session.add(playerStats(
                     pid = int(pid), kills = k, deaths = d, playtimes = secondsPlayed,
                     wins = win, losses = loss, rounds = rounds, headshots = hs,
                     updatetime = datetime.datetime.timestamp(datetime.datetime.now()),
-                    acc = acc, score = score
+                    acc = acc, score = score, shot = shot, hit = hit
                 ))
             else:
                 oldtime = exist_stat[0].playtimes
-                if oldtime != secondsPlayed:
+                if oldtime < secondsPlayed:
                     killsdiff = k - exist_stat[0].kills
                     deathsdiff = d - exist_stat[0].deaths
                     winsdiff =  win - exist_stat[0].wins
@@ -508,6 +513,8 @@ async def update_diff(remid, sid, sessionID, pid):
                     hsdiff = hs - exist_stat[0].headshots
                     roundsdiff = rounds - exist_stat[0].rounds
                     scorediff = score - exist_stat[0].score
+                    shotdiff = shot - exist_stat[0].shot
+                    hitdiff = hit - exist_stat[0].hit
                     updatetime_old = exist_stat[0].updatetime
                     updatetime_new = int(datetime.datetime.timestamp(datetime.datetime.now()))
 
@@ -520,6 +527,8 @@ async def update_diff(remid, sid, sessionID, pid):
                         "hs" : hsdiff,
                         "round" : roundsdiff,
                         "score" : scorediff,
+                        "shot" : shotdiff,
+                        "hit" : hitdiff,
                         "oldtime" : updatetime_old,
                         "newtime" : updatetime_new
                     }
@@ -538,6 +547,7 @@ async def update_diff(remid, sid, sessionID, pid):
                                 newdiff[f"{i+1}"] = olddiff[f"{i+1}"]
                             newdiff[f"{len(olddiff)+1}"] = differ 
                         exist_diff[0].diff = newdiff
+                        session.add(exist_diff[0])
                     else:
                         newdiff = {
                             "1": differ
@@ -559,6 +569,8 @@ async def update_diff(remid, sid, sessionID, pid):
                 exist_stat[0].updatetime = int(datetime.datetime.timestamp(datetime.datetime.now()))
                 exist_stat[0].acc = acc
                 exist_stat[0].score = score
+                exist_stat[0].shot = shot
+                exist_stat[0].hit = hit
                 session.add(exist_stat[0])
 
             await session.commit() 
