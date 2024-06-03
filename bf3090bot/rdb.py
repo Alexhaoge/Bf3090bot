@@ -164,6 +164,8 @@ class playerStats(Base):
     updatetime = Column(Integer, nullable=True)
     acc = Column(Float, nullable=True)
     score = Column(BigInteger,default=0, nullable=True)
+    shot = Column(BigInteger,default=0, nullable=True)
+    hit = Column(BigInteger,default=0, nullable=True)
 
 class playerStatsDiff(Base):
     __tablename__ = "playerstatsdiff"

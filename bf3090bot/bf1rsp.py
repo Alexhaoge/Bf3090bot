@@ -517,6 +517,30 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
     else:
         return response["data"]
 
+async def blaze_stat_renew(pids:list) -> dict:
+    js_stat = {
+        "method": "Stats.getStats",
+        "data": {
+            "CAT  1": "player_statcategory",
+            "EID  40": pids,
+            "NAME 41": ["c___k_g","c___d_g","c___hsh_g","c___sfw_g","c___shw_g","c_mwin__roo_g","c_mlos__roo_g","kpm"]
+        }
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post("http://127.0.0.1:8080/api/blaze/instance/execute", json=js_stat ,timeout=60)
+        data = response.json()
+
+    try:
+        data = data["data"]["data"]["KSSV 513"]["No_Scope_Defined"]["STAT 43"]
+        stats_dict = {}
+        for stat in data:
+            pid = stat["EID  0"]
+            stat_list = stat["STAT 41"]
+            stats_dict[str(pid)] = stat_list
+        return stats_dict
+    except:
+        return {}
+
 __all__ = [
     'BLAZE_HOST', 'PROXY_HOST',
     'httpx_client', 'httpx_client_proxy', 'httpx_client_btr_proxy',
@@ -543,5 +567,6 @@ __all__ = [
     'upd_servers', 'upd_servers_full',
     'upd_Stats',
     'upd_Emblem',
-    'get_playerList_byGameid'
+    'get_playerList_byGameid',
+    'blaze_stat_renew'
 ]

@@ -26,6 +26,48 @@ httpx_client_btr = httpx.AsyncClient(
     base_url=btr_url, 
     transport=httpx.AsyncHTTPTransport(retries=3))
 
+@app.get("/blaze/snapshotdict")
+async def blaze_snapshot():
+    js2 = {
+            "method": "GameManager.getGameListSnapshot",
+            "data": {
+                "CMGD 3": {
+                    "GGTY 0": 0,
+                    "GVER 1": "3779779"
+                },
+                "DNAM 1": "csFullGameList",
+                "IGNO 0": 1,
+                "LCAP 0": 65535,
+                "MMLC 3": {
+                    "FRES 3": {
+                        "MAXS 0": 65535,
+                        "MINS 0": 0
+                    },
+                    "RSZR 3": {
+                        "PCAP 0": 64,
+                        "PMIN 0": 1
+                    }
+                }
+            }
+        }
+    async with httpx.AsyncClient() as client:
+        res = await client.post("http://127.0.0.1:8080/api/blaze/instance/execute/async",json=js2,timeout=30)
+        res = res.json()
+    
+
+    response = {}
+    for server in res['data']['data']["GDAT 43"]:
+        gid = server["GID  0"]
+        try:
+            players = server["ROST 43"]
+        except:
+            continue
+        pids = []
+        for player in players:
+            pids.append(player["PID  0"])
+        response[str(gid)] = pids
+    return response
+
 @app.post("/report/")
 async def async_bftracker_recent(origin_id: str, pid: int, top_n: int = 3) -> dict:
     games_req = await fetch_re(origin_id, httpx_client_btr)
