@@ -523,7 +523,7 @@ async def blaze_stat_renew(pids:list) -> dict:
         "data": {
             "CAT  1": "player_statcategory",
             "EID  40": pids,
-            "NAME 41": ["c___k_g","c___d_g","c___hsh_g","c___sfw_g","c___shw_g","c_mwin__roo_g","c_mlos__roo_g","kpm"]
+            "NAME 41": ["c___k_g","c___d_g","c___hsh_g","c___sfw_g","c___shw_g","c_mwin__roo_g","c_mlos__roo_g","kpm","c___kak_g","c___skak_g"]
         }
     }
     async with httpx.AsyncClient() as client:

@@ -93,7 +93,7 @@ def update_db(results,pids,conn,stats_old_json,diff_old_json):
         except:
             continue
 
-        k = int(float(stat_list[0]))
+        k = int(float(stat_list[0])) + int(float(stat_list[8])) + int(float(stat_list[9]))
         d = int(float(stat_list[1]))
         hs = int(float(stat_list[2]))
         shot = int(float(stat_list[3]))
@@ -102,7 +102,7 @@ def update_db(results,pids,conn,stats_old_json,diff_old_json):
         loss = int(float(stat_list[6]))
         kpm = float(stat_list[7])
         acc = hit / shot if shot != 0 else 0
-        secondsPlayed = k / kpm if kpm != 0 else 0
+        secondsPlayed = k / kpm * 60 if kpm != 0 else 0
         rounds = win + loss
         score = 0
 
