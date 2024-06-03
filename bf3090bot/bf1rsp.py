@@ -517,19 +517,29 @@ async def get_playerList_byGameid(server_gameid: Union[str, int, list]) -> Union
     else:
         return response["data"]
 
-async def blaze_stat_renew(pids:list) -> dict:
+async def blaze_stat_renew(pids:list):
     js_stat = {
         "method": "Stats.getStats",
         "data": {
             "CAT  1": "player_statcategory",
             "EID  40": pids,
-            "NAME 41": ["c___k_g","c___d_g","c___hsh_g","c___sfw_g","c___shw_g","c_mwin__roo_g","c_mlos__roo_g","kpm","c___kak_g","c___skak_g"]
+            "NAME 41": ["kills","c___d_g","c___hsh_g","c___sfw_g","c___shw_g","c_mwin__roo_g","c_mlos__roo_g"]
+        }
+    }
+    js_stat1 = {
+        "method": "Stats.getStats",
+        "data": {
+            "CAT  1": "player_core",
+            "EID  40": pids,
+            "NAME 41": ["score","c_kfk__sa_g","c_as__sa_g","c_md__sa_g","c_sc__sa_g","c_sp__sa_g","c_tk__sa_g","c_pt__sa_g","c_cv__sa_g"]
         }
     }
     async with httpx.AsyncClient() as client:
-        response = await client.post("http://127.0.0.1:8080/api/blaze/instance/execute", json=js_stat ,timeout=60)
+        response = await client.post("http://127.0.0.1:8080/api/blaze/instance/execute", json=js_stat, timeout=60)
         data = response.json()
 
+        response1 = await client.post("http://127.0.0.1:8080/api/blaze/instance/execute", json=js_stat1, timeout=60)
+        data1 = response1.json()
     try:
         data = data["data"]["data"]["KSSV 513"]["No_Scope_Defined"]["STAT 43"]
         stats_dict = {}
@@ -537,7 +547,14 @@ async def blaze_stat_renew(pids:list) -> dict:
             pid = stat["EID  0"]
             stat_list = stat["STAT 41"]
             stats_dict[str(pid)] = stat_list
-        return stats_dict
+
+        data1 = data1["data"]["data"]["KSSV 513"]["No_Scope_Defined"]["STAT 43"]
+        stats_dict1 = {}
+        for stat in data1:
+            pid = stat["EID  0"]
+            stat_list = stat["STAT 41"]
+            stats_dict1[str(pid)] = stat_list
+        return (stats_dict, stats_dict1)
     except:
         return {}
 

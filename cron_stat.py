@@ -69,10 +69,11 @@ def update_db(results,pids,conn,stats_old_json,diff_old_json):
     diff_info = []
     for pid in pids:
         try:
-            (results,results1) = results
-            stat_list = results[str(pid)]
+            (results0,results1) = results
+            stat_list = results0[str(pid)]
             stat_list1 = results1[str(pid)]
-        except:
+        except Exception as e:
+            print(e)
             continue
 
         k = int(float(stat_list[0]))
