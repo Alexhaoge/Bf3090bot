@@ -483,15 +483,16 @@ async def update_diff(remid, sid, sessionID, pid):
             loss = res_stat['result']['basicStats']['losses']
             acc = res_stat['result']['accuracyRatio']
             hs = res_stat['result']['headShots']
-            secondsPlayed = res_stat['result']['basicStats']['timePlayed']
             k = res_stat['result']['basicStats']['kills']
             d = res_stat['result']['basicStats']['deaths']
             rounds = res_stat['result']["roundsPlayed"]
             spm = res_stat['result']['basicStats']['spm']
             score = 0         
             
-            results = await blaze_stat_renew([pid])
+            (results,results1) = await blaze_stat_renew([pid])
             stat_list = results[str(pid)]
+            stat_list1 = results1[str(pid)]
+            secondsPlayed = int(float(stat_list1[1])+float(stat_list1[2])+float(stat_list1[3])+float(stat_list1[4])+float(stat_list1[5])+float(stat_list1[6])+float(stat_list1[7])+float(stat_list1[8]))
             shot = int(float(stat_list[3]))
             hit = int(float(stat_list[4]))
 

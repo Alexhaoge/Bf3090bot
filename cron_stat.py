@@ -19,26 +19,6 @@ db_url = config['psycopg_database']
 
 # with open(BFCHAT_DATA_FOLDER/'bf1_servers/zh-cn.json','r', encoding='utf-8') as f:
 #     zh_cn_mapname = json.load(f)
-async def upd_StatsByPersonaId(remid, sid, sessionID, personaId):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url="https://sparta-gw.battlelog.com/jsonrpc/pc/api",
-            json = {
-	            "jsonrpc": "2.0",
-	            "method": "Stats.detailedStatsByPersonaId",
-	            "params": {
-		        "game": "tunguska",
-                "personaId": f"{personaId}"
-	            },
-                "id": str(uuid.uuid4())
-            },
-            headers= {
-                'Cookie': f'remid={remid};sid={sid}',
-                'X-GatewaySession': sessionID
-            },
-            timeout=10
-        )
-    return response.json()
 
 async def refresh_statInfo():
     time_start = time.time()
@@ -89,22 +69,24 @@ def update_db(results,pids,conn,stats_old_json,diff_old_json):
     diff_info = []
     for pid in pids:
         try:
+            (results,results1) = results
             stat_list = results[str(pid)]
+            stat_list1 = results1[str(pid)]
         except:
             continue
 
-        k = int(float(stat_list[0])) + int(float(stat_list[8])) + int(float(stat_list[9]))
+        k = int(float(stat_list[0]))
         d = int(float(stat_list[1]))
         hs = int(float(stat_list[2]))
         shot = int(float(stat_list[3]))
         hit = int(float(stat_list[4]))
         win = int(float(stat_list[5]))
         loss = int(float(stat_list[6]))
-        kpm = float(stat_list[7])
         acc = hit / shot if shot != 0 else 0
-        secondsPlayed = k / kpm * 60 if kpm != 0 else 0
         rounds = win + loss
-        score = 0
+        
+        score = int(float(stat_list1[0]))
+        secondsPlayed = int(float(stat_list1[1])+float(stat_list1[2])+float(stat_list1[3])+float(stat_list1[4])+float(stat_list1[5])+float(stat_list1[6])+float(stat_list1[7])+float(stat_list1[8]))
 
         try:
             oldstat = stats_old_json[f'{pid}']
