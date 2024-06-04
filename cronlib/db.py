@@ -37,9 +37,28 @@ def get_gameid_from_serverid(redis_client, serverid):
         print(f'gameid for {serverid} not found')
         return None
 
+def batch_get_gameids(redis_client, serverids):
+    pipe = redis_client.pipeline()
+    
+    for serverid in serverids:
+        key = f'gameid:{serverid}'
+        pipe.get(key)
+    
+    responses = pipe.execute()
+    
+    serverid_gameIds = []
+    for i in range(len(responses)):
+        if responses[i]:
+            gameid = int(responses[i])
+            serverid_gameIds.append((serverids[i], gameid))
+        else:
+            continue
+        
+    return serverid_gameIds
+
 __all__ = [
     'redis_connection_helper',
     'db_op', 'db_op_many',
     'get_one_random_bf1admin', 'get_bf1admin_by_serverid',
-    'get_gameid_from_serverid'
+    'get_gameid_from_serverid', 'batch_get_gameids'
 ]

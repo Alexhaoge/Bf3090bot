@@ -356,9 +356,13 @@ async def kick_vbanPlayer(conn: psycopg.Connection, redis_client: redis.Redis, p
 
     for serverid, gameId in sgids:
         pl = pljson[str(gameId)]
-        vban_ids = vbans[serverid]['pid']
-        vban_reasons = vbans[serverid]['reason']
-        vban_groupqqs = vbans[serverid]['groupqq']
+        try:
+            vban_ids = vbans[serverid]['pid']
+            vban_reasons = vbans[serverid]['reason']
+            vban_groupqqs = vbans[serverid]['groupqq']
+        except Exception as e:
+            print(e)
+            continue
 
         remid, sid, sessionID, _  = get_bf1admin_by_serverid(conn, serverid)
         if not remid:
@@ -464,22 +468,19 @@ async def upd_vbanPlayer():
     start_time = datetime.datetime.now()
     redis_client = redis_connection_helper()
     conn = psycopg.connect(db_url)
-    serverid_gameIds = []
+
     vbans = {}
     vban_rows = db_op(conn, "SELECT serverid, pid, reason, notify_group FROM servervbans;", [])
     vban_servers = set(r[0] for r in vban_rows)
-    for serverid in vban_servers:
-        gameId = get_gameid_from_serverid(redis_client, serverid)
-        is_alive = redis_client.exists(f'draw_dict:{gameId}')
-        if is_alive > 0:
-            serverid_gameIds.append((serverid, gameId))
-            vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
-        for vban_row in vban_rows:
-            serverid = vban_row[0]
-            if serverid in vbans:
-                vbans[serverid]['pid'].append(vban_row[1])
-                vbans[serverid]['groupqq'].append(vban_row[3])
-                vbans[serverid]['reason'].append(vban_row[2])
+    
+    serverid_gameIds = batch_get_gameids(redis_client, list(vban_servers))
+    
+    for vban_row in vban_rows:
+        serverid = vban_row[0]
+        vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
+        vbans[serverid]['pid'].append(vban_row[1])
+        vbans[serverid]['groupqq'].append(vban_row[3])
+        vbans[serverid]['reason'].append(vban_row[2])
     try:
         snapshot = await get_snapshot()
         snapshot_gameids = list(snapshot.keys())
@@ -494,19 +495,9 @@ async def upd_vbanPlayer():
             (serverid, gameId) = serverid_gameIds[i]
             if str(gameId) in snapshot_gameids:
                 sgids_snap.append(serverid_gameIds[i])
-                break
-            if len(sgids) < 10:
-                sgids.append(serverid_gameIds[i])
-            else:
-                logging.debug(sgids)
-                await start_vban(conn, redis_client, sgids,vbans)
-                sgids = []
-        
+
         await start_vban_by_snapshot(conn, redis_client, sgids_snap,vbans,snapshot)
         
-        if 0 < len(sgids) < 10:
-            logging.debug(sgids)
-            await start_vban(conn, redis_client, sgids,vbans)
     conn.close()
     redis_client.close()
     end_time = datetime.datetime.now()
@@ -616,7 +607,7 @@ def start_job2():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         scheduler = AsyncIOScheduler(event_loop=loop)
-        scheduler.add_job(upd_vbanPlayer, 'interval', minutes=1, misfire_grace_time=60)
+        scheduler.add_job(upd_vbanPlayer, 'interval', seconds=10, misfire_grace_time=10)
         scheduler.start()
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
