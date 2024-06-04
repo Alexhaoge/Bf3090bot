@@ -111,7 +111,7 @@ def update_db(results,pids,conn,stats_old_json,diff_old_json):
             roundsdiff = rounds - oldstat["rounds"]
             scorediff = score - oldstat["score"]
             shotdiff = shot - oldstat["shot"]
-            hitdiff = hit = oldstat["hit"]
+            hitdiff = hit - oldstat["hit"]
             updatetime_old = oldstat["updatetime"]
             updatetime_new = int(datetime.datetime.timestamp(datetime.datetime.now()))
 
