@@ -14,6 +14,7 @@ BF1_PING = on_command(f"{PREFIX}ping",aliases={f'{PREFIX}原神'},block=True, pr
 BF1_HELP = on_command(f"{PREFIX}help",block=True, priority=1)
 BF1_ADMINHELP = on_command(f"{PREFIX}adminhelp",block=True, priority=1)
 BF1_FAQ = on_command(f"{PREFIX}FAQ",aliases={f'{PREFIX}常见问题'},block=True, priority=1)
+BF1_RADIO = on_command(f"{PREFIX}公告",block=True, priority=1, permission=SUPERUSER)
 
 #info
 BF1_CODE = on_command(f"{PREFIX}code", block=True, priority=1)

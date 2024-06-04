@@ -1,12 +1,16 @@
+import nonebot
+import asyncio
+
 from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent
 from nonebot.typing import T_State
+from nonebot.params import _command_arg
 from nonebot_plugin_htmlrender import md_to_pic
 
 from ..utils import PREFIX, ASSETS_FOLDER, CURRENT_FOLDER
 from ..bf1draw import base64img, draw_faq
 from ..bf1helper import check_sudo
 
-from .matcher import BF1_PING, BF1_HELP, BF1_FAQ, BF1_ADMINHELP
+from .matcher import BF1_PING, BF1_HELP, BF1_FAQ, BF1_ADMINHELP, BF1_RADIO
 
 from PIL import Image
 from pathlib import Path
@@ -41,3 +45,23 @@ async def bf_faq(event:GroupMessageEvent, state:T_State):
     file_dir = await draw_faq()
     #file_dir = Path('file:///') / CURRENT_FOLDER/'Caches'/'faq.png'
     await BF1_FAQ.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+
+@BF1_RADIO.handle()
+async def bf_faq(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    message = message.extract_plain_text()
+    bots = nonebot.get_bots()
+    cnt = 0
+    for bot in bots.values():
+        botlist = await bot.get_group_list()
+        for i in botlist:
+            group_id = int(i["group_id"])
+            try:
+                await bot.send_group_msg(group_id=group_id, message=message)
+                cnt+=1
+            except:
+                pass
+            await asyncio.sleep(2)
+    await BF1_RADIO.send(f"已发送{cnt}条群消息")
+        
+            
