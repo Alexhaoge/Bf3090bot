@@ -293,10 +293,8 @@ async def upd_draw():
         with open(BFCHAT_DATA_FOLDER/'bf1_servers/draw.json','w',encoding='UTF-8') as f:
             json.dump(data,f,indent=4,ensure_ascii=False)
 
-def get_server_status(groupqq: int, ind: str, serverid: int, redis_client: redis.Redis): 
-    gameId = get_gameid_from_serverid(redis_client, serverid)
+def get_server_status(groupqq: int, ind: str, status: dict, redis_client: redis.Redis): 
     try:
-        status = redis_client.hgetall(f'draw_dict:{gameId}')
         playerAmount = int(status['serverAmount'])
         maxPlayers = int(status['serverMax'])
         mapName = zh_cn_mapname[str(status['map'])]
@@ -319,6 +317,19 @@ def trigger_alarm():
     redis_client = redis_connection_helper()
     conn = psycopg.connect(db_url)
     alarm_session_set = redis_client.smembers('alarmsession')
+
+    servers = db_op(conn, 'SELECT serverid FROM servers;', [])
+    serverids = list(r[0] for r in servers)
+    serverid_gameIds = batch_get_gameids(redis_client, serverids)
+
+    sgid_dict = {}
+    gameids = []
+    for serverid, gameid in serverid_gameIds:
+        sgid_dict[str(serverid)] = gameid
+        gameids.append(gameid)
+
+    draw_dict = batch_get_draw_dict(redis_client, gameids)
+
     for groupqq_b in alarm_session_set:
         groupqq = int(groupqq_b)
         main_groupqq = db_op(conn, 'SELECT bind_to_group FROM groups WHERE groupqq=%s;', [groupqq])
@@ -326,9 +337,16 @@ def trigger_alarm():
             continue
         servers = db_op(conn, 'SELECT ind, serverid FROM groupservers WHERE groupqq=%s;', [main_groupqq[0][0]])
         for ind, serverid in servers:
+            try:
+                gameid = sgid_dict[str(serverid)]
+                status = draw_dict[str(gameid)]
+            except Exception as e:
+                #print(f'gameid for {e} not found')
+                continue
+
             alarm_amount = redis_client.hget(f'alarmamount:{groupqq}', ind)
             if (not alarm_amount) or (int(alarm_amount) < 3):
-                get_server_status(groupqq, ind, serverid, redis_client)
+                get_server_status(groupqq, ind, status, redis_client)
     redis_client.close()
     conn.close()
     end_time = datetime.datetime.now()

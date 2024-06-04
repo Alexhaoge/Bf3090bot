@@ -56,9 +56,27 @@ def batch_get_gameids(redis_client, serverids):
         
     return serverid_gameIds
 
+def batch_get_draw_dict(redis_client, gameids):
+    pipe = redis_client.pipeline()
+    
+    for gameId in gameids:
+        key = f'draw_dict:{gameId}'
+        pipe.hgetall(key)
+    
+    responses = pipe.execute()
+    draw_dict = {}
+    for i in range(len(responses)):
+        if responses[i]:
+            draw_dict[str(gameids[i])] = responses[i]
+        else:
+            continue
+    
+    return draw_dict
+
 __all__ = [
     'redis_connection_helper',
     'db_op', 'db_op_many',
     'get_one_random_bf1admin', 'get_bf1admin_by_serverid',
-    'get_gameid_from_serverid', 'batch_get_gameids'
+    'get_gameid_from_serverid', 'batch_get_gameids',
+    'batch_get_draw_dict'
 ]
