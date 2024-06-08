@@ -92,6 +92,7 @@ BF1_RMWL = on_command(f'{PREFIX}rmwl', aliases={f'{PREFIX}下白', f'{PREFIX}下
 BF1_WHITELIST = on_command(f'{PREFIX}白名单', block=True, priority=1)
 
 BF1_PL = on_command(f'{PREFIX}pl', block=True, priority=1)
+BF1_INNERPL = on_command(f'{PREFIX}ipl', block=True, priority=1)
 BF1_ADMINPL = on_command(f'{PREFIX}adminpl', block=True, priority=1)
 BF1_PLS = on_command(f'{PREFIX}查黑队', block=True, priority=1)
 BF1_PLSS = on_command(f'{PREFIX}查战队', block=True, priority=1)

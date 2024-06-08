@@ -2350,7 +2350,7 @@ async def draw_inner_pl(groupqq: int, server_ind: str, server_id: int, gameId: i
     pljson = await get_inner_pl(gameid=gameId)
     if not pljson:
         return None
-    detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId,PROXY_HOST)
+    detailedServer = await upd_detailedServer(remid, sid, sessionID, gameId)
     vipList = detailedServer['result']["rspInfo"]['vipList']
     adminList = detailedServer['result']["rspInfo"]['adminList']
     adminList.append(detailedServer['result']['rspInfo']['owner'])
@@ -2464,7 +2464,7 @@ async def draw_inner_pl(groupqq: int, server_ind: str, server_id: int, gameId: i
             except:
                 textbox.paste(kitimg,(109,91+30*i))
         except Exception as e:
-            print(e)
+            pass
             
         result1 = [item for item in adminList if item['displayName'] == stat1[i]["userName"]]
         result2 = [item for item in whiteList if item == stat1[i]["userName"]] 
@@ -2576,7 +2576,7 @@ async def draw_inner_pl(groupqq: int, server_ind: str, server_id: int, gameId: i
             except:
                 textbox1.paste(kitimg,(109,91+30*i))
         except Exception as e:
-            print(e)
+            pass
                   
         result1 = [item for item in adminList if item['displayName'] == stat2[i]["userName"]]
         result2 = [item for item in whiteList if item == stat2[i]["userName"]]   
@@ -2655,15 +2655,18 @@ async def draw_inner_pl(groupqq: int, server_ind: str, server_id: int, gameId: i
     draw.rectangle([(920, 70), (1000, 100)], fill=(34, 139, 34, 255))
     draw.text(xy=((img.width-font_0.getsize(pljson["time"])[0])/2,72.5), text=pljson["time"] ,fill=(255, 255, 255, 255),font=font_0)
 
-    mid_1 = 910 - 290 * pljson["score"]["1"]["allScore"] / pljson["score"]["1"]["maxScore"]
+    try:
+        mid_1 = 910 - 290 * pljson["score"]["1"]["allScore"] / pljson["score"]["1"]["maxScore"]
+        mid_2 = 1010 + 290 * pljson["score"]["2"]["allScore"] / pljson["score"]["2"]["maxScore"]
+    except:
+        mid_1 = 909
+        mid_2 = 1011
     draw.rectangle([(620, 70), (mid_1, 100)], fill=(166, 212, 244, 50))
     draw.rectangle([(mid_1, 70), (910, 100)], fill=(66, 112, 244, 255))
     draw.text(xy=(900-font_0.getsize(str(pljson["score"]["1"]["allScore"]))[0],72.5), text=str(pljson["score"]["1"]["allScore"]) ,fill=(255, 255, 255, 255),font=font_0)
     text_1 = "击杀得分: " + str(pljson["score"]["1"]["killScore"]) + " | " + "旗帜得分: " + str(pljson["score"]["1"]["flagScore"])
     draw.text(xy=(600 - font_0.getsize(text_1)[0],72.5), text=text_1 ,fill=(66, 112, 244, 255),font=font_0)
 
-
-    mid_2 = 1010 + 290 * pljson["score"]["2"]["allScore"] / pljson["score"]["2"]["maxScore"]
     draw.rectangle([(1010, 70), (mid_2, 100)], fill=(255, 100, 100, 255))
     draw.rectangle([(mid_2, 70), (1300, 100)], fill=(255, 200, 200, 50))
     draw.text(xy=(1020,72.5), text=str(pljson["score"]["2"]["allScore"]) ,fill=(255, 255, 255, 255),font=font_0)
