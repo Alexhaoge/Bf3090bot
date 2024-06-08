@@ -31,7 +31,7 @@ from .matcher import (
     BF1_BAN,BF1_BANALL,BF1_UNBAN,BF1_UNBANALL,
     BF1_VBAN,BF1_VBANALL,BF1_UNVBAN,BF1_UNVBANALL,
     BF1_MOVE,
-    BF1_PL,BF1_ADMINPL,BF1_PLS,BF1_PLSS,
+    BF1_PL,BF1_INNERPL,BF1_ADMINPL,BF1_PLS,BF1_PLSS,
     BF1_UPD,
     BF1_INSPECT,
     BF1_WHITELIST, BF1_ADDWL, BF1_RMWL
@@ -1026,6 +1026,36 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
 
     else:
         await BF1_PL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
+
+@BF1_INNERPL.handle()
+async def bf_inner_pl(event:GroupMessageEvent, state:T_State):
+    message = _command_arg(state) or event.get_message()
+    arg = message.extract_plain_text().split()
+    groupqq = await check_session(event.group_id)
+    user_id = event.user_id
+
+    admin_perm = await check_admin(groupqq, user_id)
+    if admin_perm:
+        server_ind, server_id = await check_server_id(groupqq,arg[0])
+        if not server_ind:
+            await BF1_INNERPL.finish(MessageSegment.reply(event.message_id) + f'服务器{arg[0]}不存在')
+        remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
+
+        gameId = await get_gameid_from_serverid(server_id)
+        try:
+            file_dir, pl_cache = await asyncio.wait_for(draw_inner_pl(groupqq, server_ind, server_id, gameId, remid, sid, sessionID), timeout=20)
+            reply = await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+            await redis_client.set(f"pl:{groupqq}:{reply['message_id']}", pl_cache, ex=1800)
+        except asyncio.TimeoutError:
+            await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + '连接超时')
+        except RSPException as rsp_exc:
+            await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
+        except Exception as e:
+            logger.warning(traceback.format_exc())
+            await BF1_INNERPL.finish(MessageSegment.reply(event.message_id) + '获取玩家列表失败，请确定服务器已配置BF1ClientApi')
+    else:
+        await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
 
 @BF1_ADMINPL.handle()
 async def bf_adminpl(event:GroupMessageEvent, state:T_State):
