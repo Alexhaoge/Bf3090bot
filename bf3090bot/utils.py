@@ -9,6 +9,23 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from loguru import Record
 
+KitDict = {
+    "ID_M_ASSAULT": "KitIconAssaultLarge.png",
+    "ID_M_MEDIC": "KitIconMedicLarge.png",
+    "ID_M_SUPPORT": "KitIconSupportLarge.png",
+    "ID_M_SCOUT": "KitIconScoutLarge.png",
+    "ID_M_RUNNER": "KitIconInfiltratorLarge.png",
+    "ID_M_INFLITRATOR": "KitIconInfiltratorLarge.png",
+    "ID_M_FLAMETHROWER": "KitIconFlamethrowerLarge.png",
+    "ID_M_TANKER": "KitIconTankerLarge.png",
+    "ID_M_PILOT": "KitIconPilotLarge.png",
+    "ID_M_RAIDER": "KitIconTrenchRaiderLarge.png",
+    "ID_M_TRENCHRAIDER": "KitIconTrenchRaiderLarge.png",
+    "ID_M_SENTRY": "KitIconSentryLarge.png",
+    "ID_M_RIDER": "KitIconRiderLarge.png",
+    "ID_M_ANTITANK": "KitIconAntiTankLarge.png"
+}
+
 MapTeamDict = {
         "MP_MountainFort": {"Chinese": "格拉巴山", "Team1": "ITA", "Team2": "AHU"},
         "MP_Forest": {"Chinese": "阿尔贡森林", "Team1": "USA", "Team2": "GER"},
