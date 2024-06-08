@@ -2664,13 +2664,13 @@ async def draw_inner_pl(groupqq: int, server_ind: str, server_id: int, gameId: i
     draw.rectangle([(620, 70), (mid_1, 100)], fill=(166, 212, 244, 50))
     draw.rectangle([(mid_1, 70), (910, 100)], fill=(66, 112, 244, 255))
     draw.text(xy=(900-font_0.getsize(str(pljson["score"]["1"]["allScore"]))[0],72.5), text=str(pljson["score"]["1"]["allScore"]) ,fill=(255, 255, 255, 255),font=font_0)
-    text_1 = "击杀得分: " + str(pljson["score"]["1"]["killScore"]) + " | " + "旗帜得分: " + str(pljson["score"]["1"]["flagScore"])
+    text_1 = "击杀得分: " + str(pljson["score"]["2"]["killScore"]) + " | " + "旗帜得分: " + str(pljson["score"]["2"]["flagScore"])
     draw.text(xy=(600 - font_0.getsize(text_1)[0],72.5), text=text_1 ,fill=(66, 112, 244, 255),font=font_0)
 
     draw.rectangle([(1010, 70), (mid_2, 100)], fill=(255, 100, 100, 255))
     draw.rectangle([(mid_2, 70), (1300, 100)], fill=(255, 200, 200, 50))
     draw.text(xy=(1020,72.5), text=str(pljson["score"]["2"]["allScore"]) ,fill=(255, 255, 255, 255),font=font_0)
-    text_2 = "击杀得分: " + str(pljson["score"]["2"]["killScore"]) + " | " + "旗帜得分: " + str(pljson["score"]["2"]["flagScore"])
+    text_2 = "击杀得分: " + str(pljson["score"]["1"]["killScore"]) + " | " + "旗帜得分: " + str(pljson["score"]["1"]["flagScore"])
     draw.text(xy=(1320,72.5), text=text_2 ,fill=(255, 100, 100, 255),font=font_0)
     
     draw.line((60, 190, 1860, 190), fill=(128, 128, 128, 120), width=4)
