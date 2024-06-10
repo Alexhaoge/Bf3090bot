@@ -471,14 +471,18 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
         messages = []
         valid_serverinds = []
         for server_ind, server_id in servers:
-            gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
-            if remid:
-                tasks.append(asyncio.create_task(upd_banPlayer(remid, sid, sessionID, server_id, personaId)))
-                valid_serverinds.append(server_ind)
-            else:
-                messages.append(f'bot没有服务器#{server_ind}管理权限')
-        
+            try:
+                gameId = await get_gameid_from_serverid(server_id)
+                remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
+                if remid:
+                    tasks.append(asyncio.create_task(upd_banPlayer(remid, sid, sessionID, server_id, personaId)))
+                    valid_serverinds.append(server_ind)
+                else:
+                    messages.append(f'bot没有服务器#{server_ind}管理权限')
+            except RSPException as rsp_exc:
+                messages.append(f'服务器#{server_ind}:{rsp_exc.echo()}')
+            except Exception as e:
+                messages.append(f'服务器#{server_ind}:{str(e)}')
         res = await asyncio.gather(*tasks, return_exceptions=True)
         admin_logging_helper('banall', user_id, event.group_id,
                              main_groupqq=groupqq, pid=personaId, reason=reason)
