@@ -616,14 +616,14 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                     personaName = res['result'][f'{personaId}']['displayName']
                 else:
                     personaId,personaName,_ = await getPersonasByName(access_token, personaName)
-                await add_vban(personaId,groupqq,server_id,reason,user_id)
+                await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
             except RSPException as rsp_exc:
                 await BF1_VBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
                 return
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '玩家id错误\n' + traceback.format_exception_only(e))
-
+            await add_vban(personaId,groupqq,server_id,reason,user_id)
             admin_logging_helper('vban', user_id, event.group_id, main_groupqq=groupqq,
                                  server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
             await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_ind}服为玩家{personaName}添加VBAN，理由：{reason}')
@@ -653,15 +653,18 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             try:
                 res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
-                await add_vban(personaId,groupqq,server_id,reason,user_id)
-                admin_logging_helper('vban', user_id, event.group_id, pl_json['serverind'], server_id, personaId, reason=reason)
-                await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_id}为玩家{personaName}添加VBAN，理由：{reason}')
+                gameId = await get_gameid_from_serverid(server_id)
+                await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
             except RSPException as rsp_exc:
                 await BF1_VBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
                 return
             except Exception as e:
                 logger.warning(traceback.format_exc())
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '未知错误\n' + traceback.format_exception_only(e))
+            else:
+                await add_vban(personaId, groupqq, server_id, reason, user_id)
+                admin_logging_helper('vban', user_id, event.group_id, pl_json['serverind'], server_id, personaId, reason=reason)
+                await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_id}为玩家{personaName}添加VBAN，理由：{reason}')
     else:
         await BF1_VBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -700,12 +703,18 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
 
         err_message = ''
         for server_ind, server_id in servers:
-            gameId = await get_gameid_from_serverid(server_id)
-            remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
-            if remid:
-                await add_vban(personaId,groupqq,server_id,reason,user_id)
-            else:
-                err_message += f'\nbot没有服务器#{server_ind}管理权限'
+            try:
+                gameId = await get_gameid_from_serverid(server_id)
+                remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
+                if remid:
+                    await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
+                    await add_vban(personaId, groupqq, server_id, reason, user_id)
+                else:
+                    err_message += f'\nbot没有服务器#{server_ind}管理权限'
+            except RSPException as rsp_exc:
+                err_message += f'\n服务器#{server_ind}:{rsp_exc.echo()}'
+            except Exception as e:
+                err_message += f'\n服务器#{server_ind}:{str(e)}'
         admin_logging_helper('vbanall', user_id, event.group_id, main_groupqq=groupqq, pid=personaId, reason=reason)
         await BF1_VBANALL.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}{err_message}')
     else:
