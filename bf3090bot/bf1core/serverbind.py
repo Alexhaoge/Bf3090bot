@@ -392,6 +392,8 @@ async def bf1_rmserver_confirm(event: GroupMessageEvent, state: T_State, msg: Me
                     select(GroupServerBind).filter_by(serverid=server_id))).all()
                 related_bfadmins = (await session.execute(
                     select(ServerBf1Admins).filter_by(serverid=server_id))).all()
+                related_autokicks = (await session.execute(
+                    select(ServerAutoKicks).filter_by(serverid=server_id))).all()
                 for r in related_vbans:
                     await session.delete(r[0])
                 for r in related_vips:
@@ -399,6 +401,8 @@ async def bf1_rmserver_confirm(event: GroupMessageEvent, state: T_State, msg: Me
                 for r in related_binds:
                     await session.delete(r[0])
                 for r in related_bfadmins:
+                    await session.delete(r[0])
+                for r in related_autokicks:
                     await session.delete(r[0])
                 await session.delete(server[0])
             except Exception as e:
