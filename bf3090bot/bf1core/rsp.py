@@ -61,11 +61,11 @@ async def bf1_add_bf1_account(event: GroupMessageEvent, state: T_State):
                 exist_account[0].remid, exist_account[0].sid, exist_account[0].token, exist_account[0].sessionid = remid, sid, token, sessionid
                 session.add(exist_account[0])
                 await session.commit()
-                await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + f'已更新服管账号{name}({pid})的coockies')
+                await BF1_ADDBF1ACCOUNT.send(MessageSegment.reply(event.message_id) + f'已更新服管账号{name}({pid})的coockies')
             else:
                 session.add(Bf1Admins(pid=pid, remid=remid, sid=sid, token=token, sessionid=sessionid))
                 await session.commit()
-                await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + f'已添加服管账号{name}({pid})')
+                await BF1_ADDBF1ACCOUNT.send(MessageSegment.reply(event.message_id) + f'已添加服管账号{name}({pid})')
     else:
         await BF1_ADDBF1ACCOUNT.finish(MessageSegment.reply(event.message_id) + '请勿在本群使用此命令')
 
@@ -142,9 +142,9 @@ async def bf1_chooseLevel(event:GroupMessageEvent, state:T_State):
         else:
             admin_logging_helper('map', user_id, event.group_id,
                                  main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, mapName=mapName_cn)
-            await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + f'地图已切换到：{zhconv.convert(mapmode,"zh-cn")}-{mapName_cn}')
+            await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + f'地图已切换到：{zhconv.convert(mapmode,"zh-cn")}-{mapName_cn}')
     else:
-        await BF1_CHOOSELEVEL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_CHOOSELEVEL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_KICK.handle()
 async def bf1_kick(event:GroupMessageEvent, state:T_State):
@@ -180,7 +180,7 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
             else:
                 admin_logging_helper('kick', user_id, event.group_id,
                                      main_groupqq=groupqq, server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
-                await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'已踢出玩家：{name}，理由：{reason}')
+                await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出玩家：{name}，理由：{reason}')
 
         else: # kick reply to playerlist
             redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
@@ -275,9 +275,9 @@ async def bf1_kick(event:GroupMessageEvent, state:T_State):
                     admin_logging_helper('kickall' if arg[0] == 'all' else 'kick', user_id, event.group_id, 
                                          main_groupqq=groupqq, server_ind=pl_json['serverind'],
                                          server_id=server_id, pid=pid, reason=reason)
-            await BF1_KICK.finish(MessageSegment.reply(event.message_id) + f'已踢出{cnt}个玩家，理由：{reason}\n' + '\n'.join(usernames))
+            await BF1_KICK.send(MessageSegment.reply(event.message_id) + f'已踢出{cnt}个玩家，理由：{reason}\n' + '\n'.join(usernames))
     else:
-        await BF1_KICK.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_KICK.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_KICKALL.handle()
 async def bf1_kickall(event:GroupMessageEvent, state:T_State):
@@ -388,7 +388,7 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
                 admin_logging_helper('ban', user_id, event.group_id, 
                                      main_groupqq=groupqq, server_ind=server_ind,
                                      server_id=server_id, pid=personaId, reason=reason)
-                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
+                await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
         # Reply to playerlist
         else:
             redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
@@ -430,9 +430,9 @@ async def bf1_ban(event:GroupMessageEvent, state:T_State):
             else:
                 admin_logging_helper('ban', user_id, event.group_id, main_groupqq=groupqq,
                                      server_ind=pl_json['serverind'], server_id=server_id, pid=personaId, reason=reason)
-                await BF1_BAN.finish(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
+                await BF1_BAN.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}')
     else:
-        await BF1_BAN.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_BAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_BANALL.handle()
 async def bf1_banall(event:GroupMessageEvent, state:T_State):
@@ -492,9 +492,9 @@ async def bf1_banall(event:GroupMessageEvent, state:T_State):
                 messages.append(f'在{server_ind}服封禁玩家失败:{r.echo() if isinstance(r, RSPException) else str(r)}')
             else:
                 messages.append(f'在{server_ind}封禁玩家：{personaName}，理由：{reason}')
-        await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + '\n'.join(messages))
+        await BF1_BANALL.send(MessageSegment.reply(event.message_id) + '\n'.join(messages))
     else:
-        await BF1_BANALL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_BANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_UNBANALL.handle()
 async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
@@ -543,9 +543,9 @@ async def bf1_unbanall(event:GroupMessageEvent, state:T_State):
                 messages.append(f'在{server_ind}服解封玩家{personaName}失败:{r.echo() if isinstance(r, RSPException) else str(r)}')
             else:
                 messages.append(f'已在{server_ind}解封禁玩家{personaName}')
-        await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + '\n'.join(messages))
+        await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + '\n'.join(messages))
     else:
-        await BF1_UNBANALL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_UNBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_UNBAN.handle()
 async def bf1_unban(event:GroupMessageEvent, state:T_State):
@@ -582,9 +582,9 @@ async def bf1_unban(event:GroupMessageEvent, state:T_State):
         else:
             admin_logging_helper('unban', user_id, event.group_id, main_groupqq=groupqq,
                                  server_ind=server_ind, server_id=server_id, pid=personaId)
-            await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}')
+            await BF1_UNBAN.send(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}')
     else:
-        await BF1_UNBAN.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_UNBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_VBAN.handle()
 async def bf1_vban(event:GroupMessageEvent, state:T_State):
@@ -630,7 +630,7 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             await add_vban(personaId,groupqq,server_id,reason,user_id)
             admin_logging_helper('vban', user_id, event.group_id, main_groupqq=groupqq,
                                  server_ind=server_ind, server_id=server_id, pid=personaId, reason=reason)
-            await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + f'已在{server_ind}服为玩家{personaName}添加VBAN，理由：{reason}')
+            await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_ind}服为玩家{personaName}添加VBAN，理由：{reason}')
         else:
             redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
             if not redis_pl:
@@ -668,9 +668,9 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
             else:
                 await add_vban(personaId, groupqq, server_id, reason, user_id)
                 admin_logging_helper('vban', user_id, event.group_id, pl_json['serverind'], server_id, personaId, reason=reason)
-                await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + f'已在{server_id}为玩家{personaName}添加VBAN，理由：{reason}')
+                await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_id}为玩家{personaName}添加VBAN，理由：{reason}')
     else:
-        await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_VBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_VBANALL.handle()
 async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
@@ -720,9 +720,9 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
             except Exception as e:
                 err_message += f'\n服务器#{server_ind}:{str(e)}'
         admin_logging_helper('vbanall', user_id, event.group_id, main_groupqq=groupqq, pid=personaId, reason=reason)
-        await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}{err_message}')
+        await BF1_VBANALL.send(MessageSegment.reply(event.message_id) + f'已封禁玩家：{personaName}，理由：{reason}{err_message}')
     else:
-        await BF1_VBANALL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_VBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_UNVBANALL.handle()
 async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
@@ -759,9 +759,9 @@ async def bf1_unvbanall(event:GroupMessageEvent, state:T_State):
             else:
                 err_message += f'\nbot没有服务器#{server_ind}管理权限'
         admin_logging_helper('unvbanall', event.user_id, event.group_id, main_groupqq=groupqq, pid=personaId)
-        await BF1_UNVBANALL.finish(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}{err_message}')
+        await BF1_UNVBANALL.send(MessageSegment.reply(event.message_id) + f'已解封玩家：{personaName}{err_message}')
     else:
-        await BF1_UNVBANALL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_UNVBANALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_UNVBAN.handle()
 async def bf1_unvban(event:GroupMessageEvent, state:T_State):
@@ -797,9 +797,9 @@ async def bf1_unvban(event:GroupMessageEvent, state:T_State):
         await del_vban(personaId, server_id)
         admin_logging_helper('unvban', event.user_id, event.group_id, main_groupqq=groupqq,
                              server_ind=server_ind, serverid=server_id, pid=personaId)
-        await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + f'已在{server_id}解除玩家{personaName}的VBAN')
+        await BF1_UNVBAN.send(MessageSegment.reply(event.message_id) + f'已在{server_id}解除玩家{personaName}的VBAN')
     else:
-        await BF1_UNVBAN.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_UNVBAN.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_MOVE.handle()
 async def bf1_move(event:GroupMessageEvent, state:T_State):
@@ -905,9 +905,9 @@ async def bf1_move(event:GroupMessageEvent, state:T_State):
                 else:
                     admin_logging_helper('move', event.user_id, event.group_id, main_groupqq=groupqq,
                                          server_ind=pl_json['serverind'], server_id=server_id, pid=personaIds[i])
-            await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + f'已移动{cnt}个玩家:\n' + '\n'.join(usernames) + error_message)
+            await BF1_MOVE.send(MessageSegment.reply(event.message_id) + f'已移动{cnt}个玩家:\n' + '\n'.join(usernames) + error_message)
     else:
-        await BF1_MOVE.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_MOVE.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 
 @BF1_WHITELIST.handle()
@@ -936,9 +936,9 @@ async def bf1_whitelist(event: GroupMessageEvent, state: T_State):
                     msg += '\n'.join(value['displayName'] for value in wl_json['result'].values())
             else:
                 msg = f'{arg[0]}服白名单为空'
-        await BF1_WHITELIST.finish(MessageSegment.reply(event.message_id) + msg)
+        await BF1_WHITELIST.send(MessageSegment.reply(event.message_id) + msg)
     else:
-        await BF1_WHITELIST.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_WHITELIST.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_ADDWL.handle()
 async def bf1_addwhitelist(event:GroupMessageEvent, state:T_State):
@@ -972,7 +972,7 @@ async def bf1_addwhitelist(event:GroupMessageEvent, state:T_State):
             exist_server[0].whitelist = str(personaId)
         session.add(exist_server[0])
         await session.commit()
-    await BF1_ADDWL.finish(MessageSegment.reply(event.message_id) + f'成功将添加{personaName}到{arg[0]}服白名单')
+    await BF1_ADDWL.send(MessageSegment.reply(event.message_id) + f'成功将添加{personaName}到{arg[0]}服白名单')
 
 @BF1_RMWL.handle()
 async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
@@ -1004,9 +1004,9 @@ async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
             exist_server[0].whitelist = ','.join(str(i) for i in iter(wl_set))
             session.add(exist_server[0])
             await session.commit()
-            await BF1_RMWL.finish(MessageSegment.reply(event.message_id) + f"已从{arg[0]}服白名单删除{personaName}")
+            await BF1_RMWL.send(MessageSegment.reply(event.message_id) + f"已从{arg[0]}服白名单删除{personaName}")
         else:
-            await BF1_RMWL.finish(MessageSegment.reply(event.message_id) + f'{personaName}不在{arg[0]}服白名单中')
+            await BF1_RMWL.send(MessageSegment.reply(event.message_id) + f'{personaName}不在{arg[0]}服白名单中')
 
 
 @BF1_PL.handle()
@@ -1028,9 +1028,8 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             file_dir, pl_cache = await asyncio.wait_for(draw_pl2(groupqq, server_ind, server_id, gameId, remid, sid, sessionID), timeout=20)
             reply = await BF1_PL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             await redis_client.set(f"pl:{groupqq}:{reply['message_id']}", pl_cache, ex=1800)
-            return
         except asyncio.TimeoutError:
-            await BF1_PL.finish(MessageSegment.reply(event.message_id) + '连接超时')
+            await BF1_PL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_PL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -1039,7 +1038,7 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             await BF1_PL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
 
     else:
-        await BF1_PL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
+        await BF1_PL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
 
 @BF1_INNERPL.handle()
 async def bf_inner_pl(event:GroupMessageEvent, state:T_State):
@@ -1060,9 +1059,8 @@ async def bf_inner_pl(event:GroupMessageEvent, state:T_State):
             file_dir, pl_cache = await asyncio.wait_for(draw_inner_pl(groupqq, server_ind, server_id, gameId, remid, sid, sessionID), timeout=20)
             reply = await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             await redis_client.set(f"pl:{groupqq}:{reply['message_id']}", pl_cache, ex=1800)
-            return
         except asyncio.TimeoutError:
-            await BF1_INNERPL.finish(MessageSegment.reply(event.message_id) + '连接超时')
+            await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -1070,7 +1068,7 @@ async def bf_inner_pl(event:GroupMessageEvent, state:T_State):
             logger.warning(traceback.format_exc())
             await BF1_INNERPL.finish(MessageSegment.reply(event.message_id) + '获取玩家列表失败，请确定服务器已配置BF1ClientApi')
     else:
-        await BF1_INNERPL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
+        await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')  
 
 @BF1_ADMINPL.handle()
 async def bf_adminpl(event:GroupMessageEvent, state:T_State):
@@ -1091,9 +1089,8 @@ async def bf_adminpl(event:GroupMessageEvent, state:T_State):
             file_dir, pl_cache = await asyncio.wait_for(draw_pl2(main_groupqq, 'adminpl', serverid, gameId, remid, sid, sessionID), timeout=20)
             reply = await BF1_ADMINPL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             await redis_client.set(f"pl:{main_groupqq}:{reply['message_id']}", pl_cache, ex=1800)
-            return
         except asyncio.TimeoutError:
-            await BF1_ADMINPL.finish(MessageSegment.reply(event.message_id) + '连接超时')
+            await BF1_ADMINPL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_ADMINPL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -1120,17 +1117,17 @@ async def bf_pls(event:GroupMessageEvent, state:T_State):
 
         try:
             file_dir = await asyncio.wait_for(draw_platoons(remid, sid, sessionID, gameId,1), timeout=20)
-            reply = await BF1_PLS.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+            reply = await BF1_PLS.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except asyncio.TimeoutError:
-            await BF1_PLS.finish(MessageSegment.reply(event.message_id) + '连接超时')
+            await BF1_PLS.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_PLS.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
         except:
             logger.warning(traceback.format_exc())
-            await BF1_PLS.finish(MessageSegment.reply(event.message_id) + '服务器未开启，或者服务器内无两人以上黑队。')
+            await BF1_PLS.send(MessageSegment.reply(event.message_id) + '服务器未开启，或者服务器内无两人以上黑队。')
     else:
-        await BF1_PLS.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
+        await BF1_PLS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
 
 @BF1_PLSS.handle()
@@ -1152,9 +1149,9 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
 
         try:
             file_dir = await asyncio.wait_for(draw_platoons(remid, sid, sessionID,gameId,0), timeout=20)
-            reply = await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+            reply = await BF1_PLSS.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except asyncio.TimeoutError:
-            await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + '连接超时')
+            await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_PLSS.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -1162,7 +1159,7 @@ async def bf_plss(event:GroupMessageEvent, state:T_State):
             logger.warning(traceback.format_exc())
             await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
     else:
-        await BF1_PLSS.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
+        await BF1_PLSS.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
 
 @BF1_UPD.handle()
 async def bf_upd(event:GroupMessageEvent, state:T_State):
@@ -1286,9 +1283,9 @@ async def bf_upd(event:GroupMessageEvent, state:T_State):
                     await upd_updateServer(remid,sid,sessionID,rspInfo,maps,name,description,settings)
             except RSPException as rsp_exc:
                 if int(rsp_exc.code) == -32603:
-                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '已成功发送服务器修改请求，请换图后验证是否生效\n' + success_msg)
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '已成功发送服务器修改请求，请换图后验证是否生效\n' + success_msg)
                 else:
-                    await BF1_UPD.finish(MessageSegment.reply(event.message_id) + '配置失败\n' + rsp_exc.echo())
+                    await BF1_UPD.send(MessageSegment.reply(event.message_id) + '配置失败\n' + rsp_exc.echo())
                 return
             except Exception as e:
                 logger.warning(traceback.format_exc())
@@ -1366,4 +1363,4 @@ async def bf1_ins(event:GroupMessageEvent, state:T_State):
             await BF1_INSPECT.finish(MessageSegment.reply(event.message_id) + ins_msg)
             
     else:
-        await BF1_INSPECT.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 
+        await BF1_INSPECT.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员') 

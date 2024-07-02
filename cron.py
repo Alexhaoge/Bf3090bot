@@ -495,11 +495,11 @@ async def upd_vbanPlayer():
     
     for vban_row in vban_rows:
         serverid = vban_row[0]
-        try:
-            vbans[serverid]['pid'].append(vban_row[1])
-        except:
-            vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
-            vbans[serverid]['pid'].append(vban_row[1])
+        vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
+
+    for vban_row in vban_rows:
+        serverid = vban_row[0]
+        vbans[serverid]['pid'].append(vban_row[1])
         vbans[serverid]['groupqq'].append(vban_row[3])
         vbans[serverid]['reason'].append(vban_row[2])
     try:

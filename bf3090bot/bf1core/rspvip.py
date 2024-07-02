@@ -155,7 +155,7 @@ async def bf1_vip(event:GroupMessageEvent, state:T_State):
         admin_logging_helper('vip', event.user_id, event.group_id, main_groupqq=groupqq,
                              server_ind=server_ind, server_id=server_id, pid=personaId, day=days, permanent=permanent, priority=priority)
     else:
-        await BF1_VIP.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_VIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_VIPLIST.handle()
 async def bf1_viplist(event:GroupMessageEvent, state:T_State):
@@ -187,9 +187,9 @@ async def bf1_viplist(event:GroupMessageEvent, state:T_State):
                 viplist.append(vip_str)
             msg = '只展示通过本bot添加的vip:\n' + '\n'.join(viplist) 
         
-        await BF1_VIPLIST.finish(MessageSegment.reply(event.message_id) + msg)
+        await BF1_VIPLIST.send(MessageSegment.reply(event.message_id) + msg)
     else:
-        await BF1_VIPLIST.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_VIPLIST.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_CHECKVIP.handle()
 async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
@@ -268,9 +268,9 @@ async def bf1_checkvip(event:GroupMessageEvent, state:T_State):
             f"{len(pending_enable)-n_expected_to_enable}个vip尚在等待生效，{len(err_names)}个vip处理失败"
         if len(err_names):
             msg = msg + ':\n' + '\n'.join(err_names)
-        await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + msg)
+        await BF1_CHECKVIP.send(MessageSegment.reply(event.message_id) + msg)
     else:
-        await BF1_CHECKVIP.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_CHECKVIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_UNVIP.handle()
 async def bf1_unvip(event:GroupMessageEvent, state:T_State):
@@ -339,7 +339,7 @@ async def bf1_unvip(event:GroupMessageEvent, state:T_State):
         admin_logging_helper('unvip', event.user_id, event.group_id, main_groupqq=groupqq,
                              server_ind=server_ind, server_id=server_id, pid=personaId, operation_server=is_operation)
     else:
-        await BF1_UNVIP.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_UNVIP.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_VIPALL.handle()
 async def bf1_vipall(event:GroupMessageEvent, state:T_State):
@@ -369,9 +369,9 @@ async def bf1_vipall(event:GroupMessageEvent, state:T_State):
             await session.commit()
         admin_logging_helper('vipall', event.user_id, event.group_id, main_groupqq=groupqq,
                              server_ind=server_ind, server_id=server_id, day=days)
-        await BF1_VIPALL.finish(MessageSegment.reply(event.message_id) + f'为{arg[0]}服所有限时VIP延长{days}天')
+        await BF1_VIPALL.send(MessageSegment.reply(event.message_id) + f'为{arg[0]}服所有限时VIP延长{days}天')
     else:
-        await BF1_VIPALL.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_VIPALL.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
 @BF1_VIPGM.handle()
 async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
@@ -445,10 +445,10 @@ async def bf1_vip_groupmember(event: GroupMessageEvent, state: T_State):
             if not len(vip_members):
                 await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + '该玩家列表中没有群友')
             else:
-                await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + f'为以下玩家添加{server_ind}服VIP{days}天:\n'\
+                await BF1_VIPGM.send(MessageSegment.reply(event.message_id) + f'为以下玩家添加{server_ind}服VIP{days}天:\n'\
                             + ', '.join(v[1] if v[1] else f'pid:{v[0]}' for v in vip_members)\
                             + '\n请注意新添加VIP均未生效，不论是否为行动服，请及时checkvip')
         else:
             await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + '请回复某个玩家列表消息以使用此功能')
     else:
-        await BF1_VIPGM.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
+        await BF1_VIPGM.send(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')

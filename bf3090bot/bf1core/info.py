@@ -99,7 +99,7 @@ async def bf1_admin_add_code(event: GroupMessageEvent, state: T_State):
     async with code_file_lock:
         with open(CURRENT_FOLDER/'code.txt', 'a') as f:
             f.write('\n' + code)
-    await BF1_ADMIN_ADD_CODE.finish(MessageSegment.reply(event.message_id) + f'已添加背景图片码{code}')
+    await BF1_ADMIN_ADD_CODE.send(MessageSegment.reply(event.message_id) + f'已添加背景图片码{code}')
 
 @BF1_ADMIN_DEL_CODE.handle()
 async def bf1_admin_del_code(event: GroupMessageEvent, state: T_State):
@@ -365,7 +365,7 @@ async def bf1_init_botqq(event:GroupMessageEvent, state:T_State):
         if int(admins) < 20:
             msg = msg + f'{bf1admins[i].id}. {names[i]}: {admins}/20 \n'
     msg.rstrip()
-    await BF1_BOT.finish(MessageSegment.reply(event.message_id) + f'请选择未满的eaid添加服管：\n{msg}') 
+    await BF1_BOT.send(MessageSegment.reply(event.message_id) + f'请选择未满的eaid添加服管：\n{msg}') 
 
 @BF1_PLA.handle()
 async def bf_pla(event:GroupMessageEvent, state:T_State):
@@ -375,7 +375,7 @@ async def bf_pla(event:GroupMessageEvent, state:T_State):
     try:
         remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
         file_dir = await asyncio.wait_for(draw_searchplatoons(remid, sid, sessionID,platoon), timeout=20)
-        await BF1_PLA.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_PLA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
         await BF1_PLAA.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -391,7 +391,7 @@ async def bf_plaa(event:GroupMessageEvent, state:T_State):
     try:
         remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
         file_dir = await asyncio.wait_for(draw_detailplatoon(remid, sid, sessionID,platoon), timeout=20)
-        await BF1_PLAA.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_PLAA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
         await BF1_PLAA.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -410,7 +410,7 @@ async def bf_status(event:GroupMessageEvent, state:T_State):
         tasks.append(asyncio.create_task(request_GT_API('bf1','status',{"platform":"pc"})))
         tasks.append(asyncio.create_task(request_GT_API('bfv','status',{"platform":"pc"})))
         tasks.append(asyncio.create_task(request_GT_API('bf2042','status')))
-        bf1942_json, bf2_json, bf3_json, bf4_json, bf1_json, bf5_json, bf2042_json = await asyncio.gather(*tasks,return_exceptions=True)
+        bf1942_json, bf2_json, bf3_json, bf4_json, bf1_json, bf5_json, bf2042_json = await asyncio.gather(*tasks)
 
         try:
             bf1942 = bf1942_json['regions'][0]['soldierAmount']
@@ -453,9 +453,9 @@ async def bf_status(event:GroupMessageEvent, state:T_State):
             bf2042_s = bf2042_json['regions']['ALL']['amounts']['serverAmount']
         except:
             bf2042 = bf2042_s = "接口错误"
-        await BF_STATUS.finish(MessageSegment.reply(event.message_id) + f'战地pc游戏人数统计：\n格式：<服数> | <人数>\nbf1942：{bf1942_s} | {bf1942}\nbf2：{bf2_s} | {bf2}\nbf3：{bf3_s} | {bf3}\nbf4：{bf4_s} | {bf4}\nbf1：{bf1_s} | {bf1}\nbfv：{bf5_s} | {bf5}\nbf2042：{bf2042_s} | {bf2042}')
+        await BF_STATUS.send(MessageSegment.reply(event.message_id) + f'战地pc游戏人数统计：\n格式：<服数> | <人数>\nbf1942：{bf1942_s} | {bf1942}\nbf2：{bf2_s} | {bf2}\nbf3：{bf3_s} | {bf3}\nbf4：{bf4_s} | {bf4}\nbf1：{bf1_s} | {bf1}\nbfv：{bf5_s} | {bf5}\nbf2042：{bf2042_s} | {bf2042}')
     except: 
-        await BF_STATUS.finish(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
+        await BF_STATUS.send(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
 
 @BF1_STATUS.handle()
 async def bf1_status(event:GroupMessageEvent, state:T_State):
@@ -471,9 +471,9 @@ async def bf1_status(event:GroupMessageEvent, state:T_State):
         amount_asia_dice = result['regions']['Asia']['amounts']['diceSoldierAmount']
         amount_eu = result['regions']['EU']['amounts']['soldierAmount']
         amount_eu_dice = result['regions']['EU']['amounts']['diceSoldierAmount']
-        await BF1_STATUS.finish(MessageSegment.reply(event.message_id) + f'开启服务器：{server_amount_all}({server_amount_dice})\n游戏中人数：{amount_all}({amount_all_dice})\n排队/观战中：{amount_all_queue}/{amount_all_spe}\n亚服：{amount_asia}({amount_asia_dice})\n欧服：{amount_eu}({amount_eu_dice})')
+        await BF1_STATUS.send(MessageSegment.reply(event.message_id) + f'开启服务器：{server_amount_all}({server_amount_dice})\n游戏中人数：{amount_all}({amount_all_dice})\n排队/观战中：{amount_all_queue}/{amount_all_spe}\n亚服：{amount_asia}({amount_asia_dice})\n欧服：{amount_eu}({amount_eu_dice})')
     except: 
-        await BF1_STATUS.finish(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
+        await BF1_STATUS.send(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
 
 @BF1_MODE.handle()
 async def bf1_mode(event:GroupMessageEvent, state:T_State):
@@ -490,9 +490,9 @@ async def bf1_mode(event:GroupMessageEvent, state:T_State):
         TeamDeathMatch = result['TeamDeathMatch']
         TugOfWar = result['TugOfWar']
         ZoneControl = result['ZoneControl']
-        await BF1_MODE.finish(MessageSegment.reply(event.message_id) + f'模式人数统计：\n征服：{Conquest}\n行动：{BreakthroughLarge}\n小模式：{TeamDeathMatch+AirAssault+Breakthrough+Domination+Possession+Rush+TugOfWar+ZoneControl}')
+        await BF1_MODE.send(MessageSegment.reply(event.message_id) + f'模式人数统计：\n征服：{Conquest}\n行动：{BreakthroughLarge}\n小模式：{TeamDeathMatch+AirAssault+Breakthrough+Domination+Possession+Rush+TugOfWar+ZoneControl}')
     except: 
-        await BF1_MODE.finish(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
+        await BF1_MODE.send(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
 
 @BF1_MAP.handle()
 async def bf1_map(event:GroupMessageEvent, state:T_State):
@@ -506,9 +506,9 @@ async def bf1_map(event:GroupMessageEvent, state:T_State):
         for i in range(10):
             result[i] = list(result[i])
             result[i][0] = zh_cn[f'{result[i][0]}']
-        await BF1_MAP.finish(MessageSegment.reply(event.message_id) + f'地图游玩情况：\n1.{result[0][0]}：{result[0][1]}\n2.{result[1][0]}：{result[1][1]}\n3.{result[2][0]}：{result[2][1]}\n4.{result[3][0]}：{result[3][1]}\n5.{result[4][0]}：{result[4][1]}\n6.{result[5][0]}：{result[5][1]}\n7.{result[6][0]}：{result[6][1]}\n8.{result[7][0]}：{result[7][1]}\n9.{result[8][0]}：{result[8][1]}\n10.{result[9][0]}：{result[9][1]}')
+        await BF1_MAP.send(MessageSegment.reply(event.message_id) + f'地图游玩情况：\n1.{result[0][0]}：{result[0][1]}\n2.{result[1][0]}：{result[1][1]}\n3.{result[2][0]}：{result[2][1]}\n4.{result[3][0]}：{result[3][1]}\n5.{result[4][0]}：{result[4][1]}\n6.{result[5][0]}：{result[5][1]}\n7.{result[6][0]}：{result[6][1]}\n8.{result[7][0]}：{result[7][1]}\n9.{result[8][0]}：{result[8][1]}\n10.{result[9][0]}：{result[9][1]}')
     except: 
-        await BF1_MAP.finish(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
+        await BF1_MAP.send(MessageSegment.reply(event.message_id) + '无法获取到服务器数据。')
 
 @BF1_INFO.handle()
 async def bf1_info(event:GroupMessageEvent, state:T_State):
@@ -562,7 +562,7 @@ async def bf1_info(event:GroupMessageEvent, state:T_State):
         status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
         status3 = f'★{serverstar}'
         msg = f'{servername}\n人数: {status2} {status3}\n地图: {status1}\nGameId: {gameId}\nGuid: {guid}\nServerId: {serverid}\n创建时间: {createdDate}\n续费时间: {updatedDate}\n到期时间: {expirationDate}\n服主EAID: {userName}'
-        await BF1_INFO.finish(MessageSegment.reply(event.message_id) + msg)
+        await BF1_INFO.send(MessageSegment.reply(event.message_id) + msg)
 
 @BF1_GAMEID_INFO.handle()
 async def bf1_gameid_info(event:GroupMessageEvent, state:T_State):
@@ -612,14 +612,14 @@ async def bf1_gameid_info(event:GroupMessageEvent, state:T_State):
         status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
         status3 = f'★{serverstar}'
         msg = f'{servername}\n人数: {status2} {status3}\n地图: {status1}\nGameId: {gameId}\nGuid: {guid}\nServerId: {serverid}\n创建时间: {createdDate}\n续费时间: {updatedDate}\n到期时间: {expirationDate}\n服主EAID: {userName}'
-        await BF1_INFO.finish(MessageSegment.reply(event.message_id) + msg)
+        await BF1_INFO.send(MessageSegment.reply(event.message_id) + msg)
 
 @BF1_EX.handle()
 async def bf1_ex(event:GroupMessageEvent, state:T_State):
     try:
         remid, sid, sessionID = (await get_one_random_bf1admin())[0:3]
         file_dir = await asyncio.wait_for(draw_exchange(remid, sid, sessionID), timeout=35)
-        await BF1_EX.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_EX.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except RSPException as rsp_exc:
         await BF1_EX.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -640,7 +640,7 @@ async def bf1_draw_server_array(event:GroupMessageEvent, state:T_State):
         # server_array = await request_GT_API(GAME,'serverarray', {'gameid': GameId, 'days': days})
     try:
         img = draw_server_array2(str(gameId))
-        await BF1_DRAW.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
+        await BF1_DRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
     except RSPException as rsp_exc:
         await BF1_DRAW.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -661,7 +661,7 @@ async def bf1_admindraw_server_array(event:GroupMessageEvent, state:T_State):
             result = await upd_servers(remid, sid, sessionID, server)
             gameId = result['result']['gameservers'][0]['gameId']
             img = draw_server_array2(str(gameId))
-            await BF1_ADMINDRAW.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
+            await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + MessageSegment.image(img))
         except RSPException as rsp_exc:
             await BF1_ADMINDRAW.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -687,10 +687,10 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
         try:
             res = await upd_servers(remid, sid, sessionID, serverName)
             if len(res['result']['gameservers']) == 0:
-                await BF1_F.finish(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
+                await BF1_F.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
             else:
                 file_dir = await asyncio.wait_for(draw_server(remid, sid, sessionID, serverName,res), timeout=15)
-                await BF1_F.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+                await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except RSPException as rsp_exc:
             await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -712,7 +712,7 @@ async def bf1_fuwuqi(event:GroupMessageEvent, state:T_State):
                 gameids.append(gameid)
         try:
             file_dir = await asyncio.wait_for(draw_f(server_inds,gameids,groupqq,remid, sid, sessionID), timeout=15)
-            await BF1_F.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+            await BF1_F.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
         except RSPException as rsp_exc:
             await BF1_F.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
@@ -744,7 +744,7 @@ async def bf1_fadmin(event:GroupMessageEvent, state:T_State):
         await BF1_FADMIN.finish(MessageSegment.reply(event.message_id) + "未查询到数据\n" \
                                 + traceback.format_exception_only(e))
     else:
-        await BF1_FADMIN.finish(MessageSegment.reply(event.message_id) + server_fullname + '\n' + '\n'.join(adminlist))
+        await BF1_FADMIN.send(MessageSegment.reply(event.message_id) + server_fullname + '\n' + '\n'.join(adminlist))
 
 @BF1_F_RET_TXT.handle()
 async def bf1_findserver_return_text(event:GroupMessageEvent, state:T_State):
@@ -756,10 +756,10 @@ async def bf1_findserver_return_text(event:GroupMessageEvent, state:T_State):
     try:
         res_search = await upd_servers(remid, sid, sessionID, serverName)
         if len(res_search['result']['gameservers']) == 0:
-            await BF1_F_RET_TXT.finish(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
+            await BF1_F_RET_TXT.send(MessageSegment.reply(event.message_id) + f'未查询到包含{serverName}关键字的服务器')
         else:
             msg = '\n=================\n'.join([server['name'] for server in res_search['result']['gameservers']])
-            await BF1_F_RET_TXT.finish(MessageSegment.reply(event.message_id) + msg)
+            await BF1_F_RET_TXT.send(MessageSegment.reply(event.message_id) + msg)
     except RSPException as rsp_exc:
         await BF1_F_RET_TXT.finish(MessageSegment.reply(event.message_id) + rsp_exc.echo())
     except Exception as e:
