@@ -1,6 +1,7 @@
 import uvicorn
 import httpx
 import traceback
+import logging
 import aiohttp
 import bs4
 import asyncio
@@ -171,7 +172,7 @@ async def ea_token_proxy(remid: str, sid: str, response: Response):
             }
         )
     except Exception as e:
-        print(traceback.format_exc(limit=1))
+        logging.error(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
     for k,v in res.cookies.items():
@@ -194,7 +195,7 @@ async def ea_authcode_proxy(remid: str, sid: str, response: Response):
             follow_redirects=False
         )
     except Exception as e:
-        print(traceback.format_exc(limit=1))
+        logging.warning(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
     for k,v in res.cookies.items():
@@ -222,11 +223,11 @@ async def ea_gateway_proxy(player: str, token: str, response: Response):
         pidid = res2['personas']['persona'][0]['pidId']
         return {'pid': id, 'name': name, 'pidid': pidid}
     except httpx.HTTPError as e:
-        print(traceback.format_exc(limit=1))
+        logging.warning(traceback.format_exc(limit=1))
         response.status_code = 504
-        return traceback.format_exc(limit=1)   
+        return traceback.format_exc(limit=1)
     except Exception as e:
-        print(traceback.format_exc(limit=1))
+        logging.error(traceback.format_exc(limit=1))
         response.status_code = 404
         return traceback.format_exc(limit=1)    
         
@@ -243,12 +244,17 @@ async def battlelog_gateway_proxy(request: Request, response: Response):
             headers = headers
         )
     except Exception as e:
-        print(traceback.format_exc())
+        logging.warning(traceback.format_exc(limit=1))
         response.status_code = 504
         return traceback.format_exc(limit=1)
     for k,v in res.cookies.items():
         response.set_cookie(key=k, value=v)
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        logging.error(res.content)
+        response.status_code = 500
+        return str(e)
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -256,7 +262,8 @@ async def shutdown_event():
     await httpx_client_ea.aclose()
     await httpx_client_ea_gt.aclose()
     await httpx_client_btr.aclose()
-    print('Client closed!')
+    logging.info('Client closed!')
 
 if __name__ == '__main__':
+    logging.info('bf3090bot API proxy started!')
     uvicorn.run(app)
