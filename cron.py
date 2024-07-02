@@ -495,11 +495,11 @@ async def upd_vbanPlayer():
     
     for vban_row in vban_rows:
         serverid = vban_row[0]
-        vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
-
-    for vban_row in vban_rows:
-        serverid = vban_row[0]
-        vbans[serverid]['pid'].append(vban_row[1])
+        try:
+            vbans[serverid]['pid'].append(vban_row[1])
+        except:
+            vbans[serverid] = {'pid':[], 'groupqq': [], 'reason': []}
+            vbans[serverid]['pid'].append(vban_row[1])
         vbans[serverid]['groupqq'].append(vban_row[3])
         vbans[serverid]['reason'].append(vban_row[2])
     try:
@@ -628,7 +628,7 @@ def start_job2():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         scheduler = AsyncIOScheduler(event_loop=loop)
-        scheduler.add_job(upd_vbanPlayer, 'interval', seconds=10, misfire_grace_time=10)
+        scheduler.add_job(upd_vbanPlayer, 'interval', seconds=15, misfire_grace_time=10)
         scheduler.start()
         loop.run_forever()
     except (KeyboardInterrupt, SystemExit):

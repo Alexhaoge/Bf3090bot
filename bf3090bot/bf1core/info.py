@@ -92,6 +92,23 @@ async def cmd_receive(event: GroupMessageEvent, state: T_State, pic: Message = C
         else:
             await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '请先绑定eaid。')
 
+@BF1_CODE.got("Message_pic", prompt="请发送你的背景图片，最好为正方形jpg格式。如果发现发送一切违反相关法律规定的图片的行为，将永久停止你的bot使用权限！")
+async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message_pic")):
+    for segment in msgpic:
+        if segment.type == "image":
+            pic_url: str = segment.data["url"]  # 图片链接
+            logger.success(f"获取到图片: {pic_url}")
+            response = await httpx_client.get(pic_url,timeout=20)
+            image_data = response.content
+            image = Image.open(BytesIO(image_data))
+            
+            image.convert("RGB").save(BF1_PLAYERS_DATA/'Caches'/f'{state["personaId"]}.jpg')
+
+            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '绑定code完成。')
+
+        else:
+            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + "你发送的不是图片，请以“图片”形式发送！")
+
 @BF1_ADMIN_ADD_CODE.handle()
 async def bf1_admin_add_code(event: GroupMessageEvent, state: T_State):
     message = _command_arg(state) or event.get_message()
@@ -119,23 +136,6 @@ async def bf1_admin_del_code(event: GroupMessageEvent, state: T_State):
             code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
             msg = f'背景图片码{code}已被使用' if code_r else f'背景图片码{code}从未被添加'
         await BF1_ADMIN_DEL_CODE.send(MessageSegment.reply(event.message_id) + msg)
-
-@BF1_CODE.got("Message_pic", prompt="请发送你的背景图片，最好为正方形jpg格式。如果发现发送一切违反相关法律规定的图片的行为，将永久停止你的bot使用权限！")
-async def get_pic(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message_pic")):
-    for segment in msgpic:
-        if segment.type == "image":
-            pic_url: str = segment.data["url"]  # 图片链接
-            logger.success(f"获取到图片: {pic_url}")
-            response = await httpx_client.get(pic_url,timeout=20)
-            image_data = response.content
-            image = Image.open(BytesIO(image_data))
-            
-            image.convert("RGB").save(BF1_PLAYERS_DATA/'Caches'/f'{state["personaId"]}.jpg')
-
-            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + '绑定code完成。')
-
-        else:
-            await BF1_CODE.finish(MessageSegment.reply(event.message_id) + "你发送的不是图片，请以“图片”形式发送！")
 
 @BF1_REPORT.handle()
 async def cmd_receive_report(event: GroupMessageEvent, state: T_State, pic: Message = CommandArg()):
