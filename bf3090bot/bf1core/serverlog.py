@@ -82,7 +82,7 @@ async def search_adminlog_byplayer(event:GroupMessageEvent, state:T_State):
             await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '暂无有效log记录')
         
         file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
-        await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_SLF.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     else:
         await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -107,7 +107,7 @@ async def search_adminlog_byserver(event:GroupMessageEvent, state:T_State):
             await BF1_SLF.finish(MessageSegment.reply(event.message_id) + '暂无有效log记录')
         
         file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
-        await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_SLF.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     else:
         await BF1_SLF.finish(MessageSegment.reply(event.message_id) + '你不是本群组的管理员')
 
@@ -124,4 +124,4 @@ async def search_adminlog_bykeyword(event:GroupMessageEvent, state:T_State):
             await BF1_SLP.finish(MessageSegment.reply(event.message_id) + '暂无有效log记录')
         
         file_dir = await asyncio.wait_for(draw_log(logs,remid,sid,sessionID),timeout=20)
-        await BF1_SLF.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_SLF.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))

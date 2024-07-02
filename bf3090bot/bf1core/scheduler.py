@@ -45,14 +45,14 @@ async def bf1_server_alarm(event:GroupMessageEvent, state:T_State):
         async with async_db_session() as session:
             group_r = (await session.execute(select(ChatGroups).filter_by(groupqq=groupqq))).first()
             if group_r[0].alarm:
-                await BF1_SERVER_ALARM.send(f'请不要重复打开')
+                await BF1_SERVER_ALARM.finish(f'请不要重复打开')
             else:
                 group_r[0].alarm = True
                 session.add(group_r[0])
                 await session.commit()
-                await BF1_SERVER_ALARM.send(f'已打开预警，请注意接收消息')
+                await BF1_SERVER_ALARM.finish(f'已打开预警，请注意接收消息')
     else:
-        await BF1_SERVER_ALARM.send('你不是本群组的管理员')
+        await BF1_SERVER_ALARM.finish('你不是本群组的管理员')
 
 @BF1_SERVER_ALARMOFF.handle()
 async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
@@ -74,11 +74,11 @@ async def bf1_server_alarmoff(event:GroupMessageEvent, state:T_State):
                 group_r[0].alarm = False
                 session.add(group_r[0])
                 await session.commit()
-                await BF1_SERVER_ALARMOFF.send('已关闭预警')
+                await BF1_SERVER_ALARMOFF.finish('已关闭预警')
             else:
-                await BF1_SERVER_ALARMOFF.send('本群组未打开预警')
+                await BF1_SERVER_ALARMOFF.finish('本群组未打开预警')
     else:
-        await BF1_SERVER_ALARMOFF.send('你不是本群组的管理员')
+        await BF1_SERVER_ALARMOFF.finish('你不是本群组的管理员')
 
 @BF1_SERVER_BFEAC.handle()
 async def bf1_server_bfeac(event:GroupMessageEvent, state:T_State):
@@ -108,10 +108,10 @@ async def bf1_server_bfeac(event:GroupMessageEvent, state:T_State):
                     group_r[0].bfeac = True
                     session.add(group_r[0])
             
-            await BF1_SERVER_BFEAC.send(f'已打开BFEAC自动踢实锤功能')
             await session.commit()
+            await BF1_SERVER_BFEAC.finish(f'已打开BFEAC自动踢实锤功能')
     else:
-        await BF1_SERVER_BFEAC.send('你不是本群组的管理员')
+        await BF1_SERVER_BFEAC.finish('你不是本群组的管理员')
 
 
 @BF1_SERVER_BFEACOFF.handle()
@@ -142,10 +142,10 @@ async def bf1_server_bfeacoff(event:GroupMessageEvent, state:T_State):
                     group_r[0].bfeac = False
                     session.add(group_r[0])
             
-            await BF1_SERVER_BFEACOFF.send(f'已关闭BFEAC自动踢实锤功能')
             await session.commit()
+            await BF1_SERVER_BFEACOFF.finish(f'已关闭BFEAC自动踢实锤功能')
     else:
-        await BF1_SERVER_BFEACOFF.send('你不是本群组的管理员')
+        await BF1_SERVER_BFEACOFF.finish('你不是本群组的管理员')
 
 @BF1_SERVER_BFBAN.handle()
 async def bf1_server_bfban(event:GroupMessageEvent, state:T_State):
@@ -174,11 +174,11 @@ async def bf1_server_bfban(event:GroupMessageEvent, state:T_State):
                 else:
                     group_r[0].bfban = True
                     session.add(group_r[0])
-                    
-            await BF1_SERVER_BFBAN.send(f'已打开BFBAN自动踢实锤功能')
-            await session.commit()
+            
+            await session.commit()        
+            await BF1_SERVER_BFBAN.finish(f'已打开BFBAN自动踢实锤功能')
     else:
-        await BF1_SERVER_BFBAN.send('你不是本群组的管理员')
+        await BF1_SERVER_BFBAN.finish('你不是本群组的管理员')
 
 
 @BF1_SERVER_BFBANOFF.handle()
@@ -209,10 +209,10 @@ async def bf1_server_bfbanoff(event:GroupMessageEvent, state:T_State):
                     group_r[0].bfban = False
                     session.add(group_r[0])
             
-            await BF1_SERVER_BFBANOFF.send(f'已关闭BFBAN自动踢实锤功能')
             await session.commit()
+            await BF1_SERVER_BFBANOFF.finish(f'已关闭BFBAN自动踢实锤功能')
     else:
-        await BF1_SERVER_BFBANOFF.send('你不是本群组的管理员')
+        await BF1_SERVER_BFBANOFF.finish('你不是本群组的管理员')
 ######################################## Schedule jobs #########################################
 
 @scheduler.scheduled_job("interval", minutes=1, id=f"job_alarm", misfire_grace_time=120)

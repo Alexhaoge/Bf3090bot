@@ -44,7 +44,7 @@ async def bf1_init(event:GroupMessageEvent, state:T_State):
             session.add(ChatGroups(groupqq=groupqq, bind_to_group=main_groupqq))
         await session.commit()
     
-    await BF1_INIT.send(MessageSegment.reply(event.message_id) + f'初始化完成：{main_groupqq}')
+    await BF1_INIT.finish(MessageSegment.reply(event.message_id) + f'初始化完成：{main_groupqq}')
 
 @BF1_INIT2.handle()
 async def bf1_init2(event:GroupMessageEvent, state:T_State):
@@ -69,7 +69,7 @@ async def bf1_init2(event:GroupMessageEvent, state:T_State):
         else:
             session.add(ChatGroups(groupqq=groupqq, bind_to_group=main_groupqq))
         await session.commit()
-    await BF1_INIT2.send(MessageSegment.reply(event.message_id) + f'初始化完成：{main_groupqq}')
+    await BF1_INIT2.finish(MessageSegment.reply(event.message_id) + f'初始化完成：{main_groupqq}')
 
 
 @BF1_BIND.handle()
@@ -255,7 +255,7 @@ async def bf1_admin(event:GroupMessageEvent, state:T_State):
     msg = (f"本群组已添加管理: {','.join(success_qqs)}" if len(success_qqs) else '') +\
         ('\n' if len(success_qqs) and len(failed_qqs) else '') +\
         (f"请不要重复添加：{','.join(failed_qqs)}" if len(failed_qqs) else '')
-    await BF1_ADDADMIN.send(MessageSegment.reply(event.message_id) + msg)
+    await BF1_ADDADMIN.finish(MessageSegment.reply(event.message_id) + msg)
 
 @BF1_DELADMIN.handle()
 async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
@@ -275,7 +275,7 @@ async def bf1_deladmin(event:GroupMessageEvent, state:T_State):
                     await session.delete(admin_del[0])
                     deleted_qqs.append(admin_str)
                 await session.commit()
-    await BF1_DELADMIN.send(MessageSegment.reply(event.message_id) + f"本群组已删除管理：{','.join(deleted_qqs)}")
+    await BF1_DELADMIN.finish(MessageSegment.reply(event.message_id) + f"本群组已删除管理：{','.join(deleted_qqs)}")
 
 @BF1_ADMINLIST.handle()
 async def bf1_adminlist(event:GroupMessageEvent, state:T_State):
@@ -286,7 +286,7 @@ async def bf1_adminlist(event:GroupMessageEvent, state:T_State):
     async with async_db_session() as session:
         stmt = select(GroupAdmins).filter(GroupAdmins.groupqq==groupqq)
         adminlist = [str(row[0].qq) for row in (await session.execute(stmt)).all()]
-    await BF1_DELADMIN.send(MessageSegment.reply(event.message_id) + "本群组管理列表：\n" + '\n'.join(adminlist))
+    await BF1_DELADMIN.finish(MessageSegment.reply(event.message_id) + "本群组管理列表：\n" + '\n'.join(adminlist))
 
 
 @BF1_UNBIND.handle()
@@ -412,7 +412,7 @@ async def bf1_rmserver_confirm(event: GroupMessageEvent, state: T_State, msg: Me
                 await session.commit()
                 await BF1_RMSERVER.finish(MessageSegment.reply(event.message_id) + f'删除服务器{server_id}成功，请注意服务器实际VIP需要使用插件手动清除')
     else:
-        await BF1_RMSERVER.send(MessageSegment.reply(event.message_id) + '操作取消')
+        await BF1_RMSERVER.finish(MessageSegment.reply(event.message_id) + '操作取消')
 
 @BF1_RMGROUP.handle()
 async def bf1_remove_group_invoke(event: GroupMessageEvent, state: T_State):
@@ -469,5 +469,5 @@ async def bf1_rmgroup_confirm(event: GroupMessageEvent, state: T_State, msg: Mes
                 await session.commit()
                 await BF1_RMGROUP.finish(MessageSegment.reply(event.message_id) + f'删除群组{groupqq}成功')  
     else:
-        await BF1_RMGROUP.send(MessageSegment.reply(event.message_id) + '操作取消')
+        await BF1_RMGROUP.finish(MessageSegment.reply(event.message_id) + '操作取消')
  

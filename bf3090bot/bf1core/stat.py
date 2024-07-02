@@ -61,7 +61,7 @@ async def bf1_bindplayer(event:GroupMessageEvent, state:T_State):
             session.add(Players(pid=personaId, originid=userName, qq=user_id))
         await session.commit()                          
     
-    await BF1_BIND_PID.send(MessageSegment.reply(event.message_id) + f'已绑定: {userName}')
+    await BF1_BIND_PID.finish(MessageSegment.reply(event.message_id) + f'已绑定: {userName}')
 
 @BF1_PID_INFO.handle()
 async def bf1_pid_info(event:GroupMessageEvent, state:T_State):
@@ -75,7 +75,7 @@ async def bf1_pid_info(event:GroupMessageEvent, state:T_State):
         res1 = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
         userName = res1['result'][f'{personaId}']['displayName']
         pidid = res1['result'][f'{personaId}']['platformId']
-        await BF1_PID_INFO.send(MessageSegment.reply(event.message_id) + f'玩家ID: {userName}\nPid: {personaId}\nUid: {pidid}')
+        await BF1_PID_INFO.finish(MessageSegment.reply(event.message_id) + f'玩家ID: {userName}\nPid: {personaId}\nUid: {pidid}')
     except RSPException as rsp_exc:
         await BF1_PID_INFO.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -126,7 +126,7 @@ async def bf1_sa(event:GroupMessageEvent, state:T_State):
         await BF1_SA.send(msg_title)
         if num:
             file_dir = await draw_a(num,name,reason,personaId)
-            await BF1_SA.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+            await BF1_SA.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
 
 @BF1_TYC.handle()
 async def bf1_tyc(event:GroupMessageEvent, state:T_State):
@@ -172,7 +172,7 @@ async def bf1_tyc(event:GroupMessageEvent, state:T_State):
             await BF1_TYC.finish(MessageSegment.reply(event.message_id) + '获取玩家id失败\n' + traceback.format_exception_only(e))
             
     msg = await tyc(remid,sid,sessionID,personaId,userName,pidid)
-    await BF1_TYC.send(MessageSegment.reply(event.message_id) + msg)
+    await BF1_TYC.finish(MessageSegment.reply(event.message_id) + msg)
 
 @BF1_S.handle()
 async def bf1_statimage(event:GroupMessageEvent, state:T_State):
@@ -221,9 +221,9 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
             await BF1_S.finish(MessageSegment.reply(event.message_id)+'请选择正确的玩家序号')
     try:
         file_dir = await asyncio.wait_for(draw_stat(remid, sid, sessionID, personaId, userName), timeout=15)
-        await BF1_S.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_S.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except asyncio.TimeoutError:
-        await BF1_S.send(MessageSegment.reply(event.message_id) + '连接超时')
+        await BF1_S.finish(MessageSegment.reply(event.message_id) + '连接超时')
     except RSPException as rsp_exc:
         await BF1_S.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -300,9 +300,9 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
         res1 = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
         userName = res1['result'][f'{personaId}']['displayName']
         file_dir = await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, userName, wpmode, col, row), timeout=15)
-        await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
+        await BF1_WP.finish(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except asyncio.TimeoutError:
-        await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
+        await BF1_WP.finish(MessageSegment.reply(event.message_id) + '连接超时')
     except RSPException as rsp_exc:
         await BF1_WP.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -379,9 +379,9 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
     try:
         file_dir = await asyncio.wait_for(draw_re(remid, sid, sessionID, personaId, userName), timeout=35)
         if str(file_dir) != '0':
-            await BF1_RE.send(MessageSegment.reply(event.message_id) + "对局功能暂时关闭，暂时调整为最近战绩\n" + MessageSegment.image(file_dir))
+            await BF1_RE.finish(MessageSegment.reply(event.message_id) + "对局功能暂时关闭，暂时调整为最近战绩\n" + MessageSegment.image(file_dir))
         else:
-            await BF1_RE.send(MessageSegment.reply(event.message_id) + "暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效")
+            await BF1_RE.finish(MessageSegment.reply(event.message_id) + "暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效")
     except RSPException as rsp_exc:
         await BF1_RE.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
@@ -408,6 +408,6 @@ async def bf1_rank(event:GroupMessageEvent, state:T_State):
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     file_dir = await asyncio.wait_for(draw_rank(remid, sid, sessionID, arg, stats, personaId), timeout=35)
     if str(file_dir) != '0':
-        await BF1_RANK.send(MessageSegment.reply(event.message_id) + f'群组{arg[0]}排名(场次>10)：\n战绩记录存在延迟，仅供参考\n' + MessageSegment.image(file_dir))
+        await BF1_RANK.finish(MessageSegment.reply(event.message_id) + f'群组{arg[0]}排名(场次>10)：\n战绩记录存在延迟，仅供参考\n' + MessageSegment.image(file_dir))
     else:
-        await BF1_RANK.send(MessageSegment.reply(event.message_id) + "查询参数错误。可用参数：kd kpm 击杀 死亡 场次 胜率 acc 爆头率")
+        await BF1_RANK.finish(MessageSegment.reply(event.message_id) + "查询参数错误。可用参数：kd kpm 击杀 死亡 场次 胜率 acc 爆头率")
