@@ -620,6 +620,12 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                     personaName = res['result'][f'{personaId}']['displayName']
                 else:
                     personaId,personaName,_ = await getPersonasByName(access_token, personaName)
+                serverBL = await upd_detailedServer(remid, sid, sessionID, gameId)
+                owneradminlist = [int(i['personaId']) for i in serverBL['result']['rspInfo']['adminList']]
+                owneradminlist.append(int(serverBL['result']['rspInfo']['owner']['personaId']))
+                if personaId in owneradminlist:
+                    await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'无法封禁服主/管理员!')
+                    return
                 await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
             except RSPException as rsp_exc:
                 await BF1_VBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
