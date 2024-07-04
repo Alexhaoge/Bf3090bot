@@ -96,6 +96,8 @@ async def get_bf1admin_by_serverid(serverid: int, gameid : int = 0) -> Tuple[str
                         return None, None, None, None
             else:
                 return None, None, None, None
+
+
 def reply_message_id(event: GroupMessageEvent) -> int:
     message_id = None
     for seg in event.original_message:
@@ -103,7 +105,6 @@ def reply_message_id(event: GroupMessageEvent) -> int:
             message_id = int(seg.data["id"])
             break
     return message_id
-
 
 
 admin_logger = logging.getLogger('adminlog')

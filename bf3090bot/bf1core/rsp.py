@@ -658,6 +658,12 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                 res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
                 gameId = await get_gameid_from_serverid(server_id)
+                serverBL = await upd_detailedServer(remid, sid, sessionID, gameId)
+                owneradminlist = [int(i['personaId']) for i in serverBL['result']['rspInfo']['adminList']]
+                owneradminlist.append(int(serverBL['result']['rspInfo']['owner']['personaId']))
+                if personaId in owneradminlist:
+                    await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'无法封禁服主/管理员!')
+                    return
                 await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
             except RSPException as rsp_exc:
                 await BF1_VBAN.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
@@ -711,8 +717,14 @@ async def bf1_vbanall(event:GroupMessageEvent, state:T_State):
                 gameId = await get_gameid_from_serverid(server_id)
                 remid,sid,sessionID = (await get_bf1admin_by_serverid(server_id, gameId))[0:3]
                 if remid:
-                    await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
-                    await add_vban(personaId, groupqq, server_id, reason, user_id)
+                    serverBL = await upd_detailedServer(remid, sid, sessionID, gameId)
+                    owneradminlist = [int(i['personaId']) for i in serverBL['result']['rspInfo']['adminList']]
+                    owneradminlist.append(int(serverBL['result']['rspInfo']['owner']['personaId']))
+                    if personaId not in owneradminlist:
+                        await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
+                        await add_vban(personaId, groupqq, server_id, reason, user_id)
+                    else:
+                        err_message += f'\n服务器#{server_ind}:无法封禁服主/管理员'
                 else:
                     err_message += f'\nbot没有服务器#{server_ind}管理权限'
             except RSPException as rsp_exc:
