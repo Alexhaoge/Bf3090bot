@@ -657,17 +657,17 @@ async def bf1_vban(event:GroupMessageEvent, state:T_State):
                     break
             if not personaId:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + '请输入正确的玩家序号')
+            gameId = await get_gameid_from_serverid(server_id)
             remid,sid,sessionID,access_token = await get_bf1admin_by_serverid(server_id, gameId)
             if not remid:
                 await BF1_VBAN.finish(MessageSegment.reply(event.message_id) + 'bot没有权限，输入.bot查询服管情况。')
             try:
                 res = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
                 personaName = res['result'][f'{personaId}']['displayName']
-                gameId = await get_gameid_from_serverid(server_id)
                 serverBL = await upd_detailedServer(remid, sid, sessionID, gameId)
                 owneradminlist = [int(i['personaId']) for i in serverBL['result']['rspInfo']['adminList']]
                 owneradminlist.append(int(serverBL['result']['rspInfo']['owner']['personaId']))
-                if personaId in owneradminlist:
+                if int(personaId) in owneradminlist:
                     await BF1_VBAN.send(MessageSegment.reply(event.message_id) + f'无法封禁服主/管理员!')
                     return
                 await upd_kickPlayer(remid, sid, sessionID, gameId, personaId, reason)
@@ -1046,13 +1046,15 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
             file_dir, pl_cache = await asyncio.wait_for(draw_pl2(groupqq, server_ind, server_id, gameId, remid, sid, sessionID), timeout=20)
             reply = await BF1_PL.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
             await redis_client.set(f"pl:{groupqq}:{reply['message_id']}", pl_cache, ex=1800)
+            return
         except asyncio.TimeoutError:
             await BF1_PL.send(MessageSegment.reply(event.message_id) + '连接超时')
+            return
         except RSPException as rsp_exc:
             await BF1_PL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
         except Exception as e:
-            logger.warning(traceback.format_exc())
+            logger.error(traceback.format_exc())
             await BF1_PL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
 
     else:
