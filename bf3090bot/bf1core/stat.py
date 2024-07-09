@@ -1,6 +1,6 @@
 from nonebot.log import logger
 from nonebot.params import _command_arg
-from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent, ActionFailed
 from nonebot.typing import T_State
 
 import traceback
@@ -227,9 +227,12 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
     except RSPException as rsp_exc:
         await BF1_S.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
+    except ActionFailed as nb_e:
+        await BF1_S.send(MessageSegment.reply(event.message_id) + 'Nonebot前端出错，可能导致图片发送失败')
+        return
     except Exception as e:
         logger.warning(traceback.format_exc())
-        #await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
+        await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
 @BF1_WP.handle()
 async def bf1_wp(event:GroupMessageEvent, state:T_State):
@@ -306,9 +309,12 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
     except RSPException as rsp_exc:
         await BF1_WP.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
+    except ActionFailed as nb_e:
+        await BF1_WP.send(MessageSegment.reply(event.message_id) + 'Nonebot前端出错，可能导致图片发送失败')
+        return
     except Exception as e:
-        logger.warning(traceback.format_exc())
-        #await BF1_WP.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
+        logger.error(traceback.format_exc())
+        await BF1_WP.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
 @BF1_R.handle()
 async def bf1_recent(event:GroupMessageEvent, state:T_State):
@@ -385,9 +391,12 @@ async def bf1_recent1(event:GroupMessageEvent, state:T_State):
     except RSPException as rsp_exc:
         await BF1_RE.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
         return
+    except ActionFailed as nb_e:
+        await BF1_RE.send(MessageSegment.reply(event.message_id) + 'Nonebot前端出错，可能导致图片发送失败')
+        return
     except Exception as e:
-        logger.warning(traceback.format_exc())
-        #await BF1_RE.finish(MessageSegment.reply(event.message_id) + '暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效\n' + traceback.format_exception_only(e))
+        logger.error(traceback.format_exc())
+        await BF1_RE.finish(MessageSegment.reply(event.message_id) + '暂无有效对局信息\n已记录本次战绩\n请等待下次查询生效\n' + traceback.format_exception_only(e))
 
 @BF1_RANK.handle()
 async def bf1_rank(event:GroupMessageEvent, state:T_State):

@@ -1,6 +1,6 @@
 from nonebot.log import logger
 from nonebot.params import _command_arg, ArgStr
-from nonebot.adapters.onebot.v11 import Message, MessageSegment, GroupMessageEvent, Bot
+from nonebot.adapters.onebot.v11 import Message, MessageSegment, GroupMessageEvent, Bot, ActionFailed
 from nonebot.typing import T_State
 
 import html
@@ -1053,6 +1053,9 @@ async def bf_pl(event:GroupMessageEvent, state:T_State):
         except RSPException as rsp_exc:
             await BF1_PL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
             return
+        except ActionFailed as nb_e:
+            await BF1_PL.send(MessageSegment.reply(event.message_id) + 'Nonebot前端出错，此次玩家列表无法回复进行联动操作')
+            return
         except Exception as e:
             logger.error(traceback.format_exc())
             await BF1_PL.finish(MessageSegment.reply(event.message_id) + '获取服务器玩家列表失败，可能是服务器未开启')
@@ -1083,6 +1086,9 @@ async def bf_inner_pl(event:GroupMessageEvent, state:T_State):
             await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + '连接超时')
         except RSPException as rsp_exc:
             await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + rsp_exc.echo())
+            return
+        except ActionFailed as nb_e:
+            await BF1_INNERPL.send(MessageSegment.reply(event.message_id) + 'Nonebot前端出错，此次玩家列表无法回复进行联动操作')
             return
         except Exception as e:
             logger.warning(traceback.format_exc())
