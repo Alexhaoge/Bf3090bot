@@ -194,7 +194,9 @@ rsp_subservice = plugin_service.create_subservice('rsp')
 rsp_subservice.patch_matcher(BF1_CHOOSELEVEL)
 rsp_subservice.patch_matcher(BF1_MOVE)
 rsp_subservice.patch_matcher(BF1_KICK)
-rsp_subservice.patch_matcher(BF1_KICKALL)
+
+kickall_subservice = rsp_subservice.create_subservice('kickall')
+kickall_subservice.patch_matcher(BF1_KICKALL)
 
 ban_subservice = rsp_subservice.create_subservice('ban')
 ban_subservice.patch_matcher(BF1_BAN)
