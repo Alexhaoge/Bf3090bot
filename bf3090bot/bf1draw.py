@@ -112,7 +112,7 @@ async def draw_f(server_inds: list, server_gameids: list, groupqq: int, remid: s
            un += 1
            continue
 
-        status1 = servermode + '-' +servermap
+        status1 = servermode + '-' + ('图池异常' if servermap == '' else servermap)
         status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
         status3 = f'★{serverstar}'
 
@@ -158,8 +158,13 @@ async def draw_f(server_inds: list, server_gameids: list, groupqq: int, remid: s
         img.paste(textbox0, position0, textbox0)
         img.paste(textbox, position, textbox)
 
-        background = Image.open(serverimg).resize((480,300))
-        img.paste(background, position)
+        try:
+            background = Image.open(serverimg).resize((480,300))
+            img.paste(background, position)
+        except:
+            empty_background_box = Image.new('RGBA', (480, 300), (0, 0, 0, 255))
+            img.paste(empty_background_box, position)
+    
     server_num -= un
     img = img.crop((0,0,1506,400*server_num+100))
 
@@ -204,7 +209,7 @@ async def draw_server(remid, sid, sessionID, serverName, res):
         res_0 = ress[ij]
         serverstar = None if isinstance(res_0, Exception) else res_0['result']['serverInfo']['serverBookmarkCount']
 
-        status1 = servermode + '-' +servermap
+        status1 = servermode + '-' + ('图池异常' if servermap == '' else servermap)
         status2 = f'{serveramount}/{servermaxamount}[{serverque}]({serverspect})'
         status3 = f'★{serverstar}'
 
@@ -250,8 +255,12 @@ async def draw_server(remid, sid, sessionID, serverName, res):
         img.paste(textbox0, position0, textbox0)
         img.paste(textbox, position, textbox)
 
-        background = Image.open(serverimg).resize((480,300))
-        img.paste(background, position)
+        try:
+            background = Image.open(serverimg).resize((480,300))
+            img.paste(background, position)
+        except:
+            empty_background_box = Image.new('RGBA', (480, 300), (0, 0, 0, 255))
+            img.paste(empty_background_box, position)
 
         if ij == 4:
             break
