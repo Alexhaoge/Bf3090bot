@@ -174,7 +174,7 @@ async def ea_token_proxy(remid: str, sid: str, response: Response):
     except Exception as e:
         logging.error(traceback.format_exc(limit=1))
         response.status_code = 504
-        return traceback.format_exc(limit=1)
+        return {'error': {'message': traceback.format_exc(limit=1), 'code': 504}}
     for k,v in res.cookies.items():
         response.set_cookie(key=k, value=v)
     return res.json()
@@ -197,7 +197,7 @@ async def ea_authcode_proxy(remid: str, sid: str, response: Response):
     except Exception as e:
         logging.warning(traceback.format_exc(limit=1))
         response.status_code = 504
-        return traceback.format_exc(limit=1)
+        return {'error': traceback.format_exc(limit=1)}
     for k,v in res.cookies.items():
         response.set_cookie(key=k, value=v)
     return {'authcode': str.split(res.headers.get("location"), "=")[1]}
@@ -218,6 +218,12 @@ async def ea_gateway_proxy(player: str, token: str, response: Response):
             timeout=10
         )
         res2 =  res.json()
+        if 'error' in res2:
+            response.status_code = res.status_code
+            return res2
+        if len(res2['personas']) == 0:
+            response.status_code = 404
+            return {'error': 'Player not found.'}
         id = res2['personas']['persona'][0]['personaId']
         name = res2['personas']['persona'][0]['displayName']
         pidid = res2['personas']['persona'][0]['pidId']
@@ -225,11 +231,11 @@ async def ea_gateway_proxy(player: str, token: str, response: Response):
     except httpx.HTTPError as e:
         logging.warning(traceback.format_exc(limit=1))
         response.status_code = 504
-        return traceback.format_exc(limit=1)
+        return {'error': traceback.format_exc(limit=1)}
     except Exception as e:
         logging.error(traceback.format_exc(limit=1))
-        response.status_code = 404
-        return traceback.format_exc(limit=1)    
+        response.status_code = 500
+        return {'error': traceback.format_exc(limit=1)}   
         
 
 @app.post('/proxy/gateway/', status_code=200)
@@ -246,7 +252,7 @@ async def battlelog_gateway_proxy(request: Request, response: Response):
     except Exception as e:
         logging.warning(traceback.format_exc(limit=1))
         response.status_code = 504
-        return traceback.format_exc(limit=1)
+        return {'error': traceback.format_exc(limit=1)}
     for k,v in res.cookies.items():
         response.set_cookie(key=k, value=v)
     try:
@@ -254,7 +260,7 @@ async def battlelog_gateway_proxy(request: Request, response: Response):
     except Exception as e:
         logging.error(res.content)
         response.status_code = 500
-        return str(e)
+        return {'error': str(e)}
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -262,7 +268,7 @@ async def shutdown_event():
     await httpx_client_ea.aclose()
     await httpx_client_ea_gt.aclose()
     await httpx_client_btr.aclose()
-    logging.info('Client closed!')
+    logging.info('HTTPX clients closed!')
 
 if __name__ == '__main__':
     logging.info('bf3090bot API proxy started!')

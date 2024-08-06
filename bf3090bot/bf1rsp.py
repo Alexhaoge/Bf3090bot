@@ -26,7 +26,7 @@ httpx_client_btr_proxy = httpx.AsyncClient(
 )
 
 async def getPersonasByName(access_token, player_name) -> tuple | Exception:
-        """
+        """ 
         根据名字获取Personas
         :param player_name:
         :return:
@@ -38,8 +38,13 @@ async def getPersonasByName(access_token, player_name) -> tuple | Exception:
                 timeout=10
             )
             res =  response.json()
+            if 'error' in res:
+                if response.status_code == 404:
+                    raise RSPException(error_code=-32856)
+                else:
+                    raise RSPException(msg=res['error'], error_code=response.status_code, request_error=True)
             return res['pid'], res['name'], res['pidid']
-        except httpx.HTTPStatusError as e:
+        except httpx.HTTPError as e:
             if e.response.status_code == 404:
                 raise RSPException(error_code=-32856)
             else:
@@ -309,7 +314,7 @@ async def upd_gateway(method_name, remid, sid, sessionID, **kwargs):
             return res_json
     except httpx.RequestError as exc:
         raise RSPException(msg=f"{exc.request.url!r}".replace(PROXY_HOST, 'PROXY_HOST'), request_error=True)
-    except httpx.HTTPStatusError as exc:
+    except httpx.HTTPError as exc:
         raise RSPException(msg=f"{exc.request.url!r}".replace(PROXY_HOST, 'PROXY_HOST'), error_code=exc.response.status_code, request_error=True)
 
 async def upd_welcome(remid, sid, sessionID):
