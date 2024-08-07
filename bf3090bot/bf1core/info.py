@@ -249,7 +249,8 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                         image_data = response.content
                         image = Image.open(BytesIO(image_data))
                         
-                        imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
+                        filename_ts = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S')
+                        imageurl = upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
                         state['case_num'] += 1
                         state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
                         state['txturl'].append(imageurl)
@@ -329,7 +330,8 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                             image_data = response.content
                             image = Image.open(BytesIO(image_data))
                             
-                            imageurl = upload_img(image,f"report{random.randint(1, 100000000000)}.png")
+                            filename_ts = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S')
+                            imageurl = upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
                             state['case_num'] += 1
                             state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
                             state['txturl'].append(imageurl)
