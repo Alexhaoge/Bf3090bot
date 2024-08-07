@@ -1,7 +1,8 @@
 from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.permission import SUPERUSER
-from nonebot import on_command,on_notice, on_request, require
-from nonebot.rule import Rule,to_me
+from nonebot import on_command, on_notice, on_request, require, on_shell_command
+from nonebot.rule import Rule, to_me, ArgumentParser
+from argparse import RawTextHelpFormatter
 
 require("nonebot_plugin_access_control_api")
 from nonebot_plugin_access_control_api.service import create_plugin_service
@@ -41,7 +42,15 @@ BF1_BIND_PID = on_command(f'{PREFIX}bind', aliases={f'{PREFIX}绑定', f'{PREFIX
 BF1_PID_INFO= on_command(f'{PREFIX}pid', block=True, priority=1)
 BF1_SA= on_command(f'{PREFIX}查', block=True, priority=1)
 BF1_TYC= on_command(f'{PREFIX}tyc', aliases={f'{PREFIX}天眼查'}, block=True, priority=1)
-BF1_WP= on_command(f'{PREFIX}武器', aliases={f'{PREFIX}w', f'{PREFIX}wp', f'{PREFIX}weapon'}, block=True, priority=1)
+
+bf1_wp_parser = ArgumentParser('BF1_WP', formatter_class=RawTextHelpFormatter)
+bf1_wp_parser.add_argument('raw_args', metavar='[类型] [EAID] [?行?列]', nargs='*')
+bf1_wp_parser.add_argument('-n', '--name', dest='search', default=None, required=False)
+BF1_WP= on_shell_command(cmd=f'{PREFIX}武器', 
+                         parser=bf1_wp_parser,
+                         aliases={f'{PREFIX}w', f'{PREFIX}wp', f'{PREFIX}weapon'}, 
+                         block=True, priority=1)
+
 BF1_S= on_command(f'{PREFIX}s', aliases={f'{PREFIX}stat', f'{PREFIX}战绩', f'{PREFIX}查询',f'{PREFIX}生涯'}, block=True, priority=1)
 # BF1_R= on_command(f'{PREFIX}r', aliases={f'{PREFIX}对局'}, block=True, priority=1)
 # BF1_RE= on_command(f'{PREFIX}最近', block=True, priority=1)

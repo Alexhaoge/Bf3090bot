@@ -203,8 +203,8 @@ async def refresh_serverInfo():
     db_op_many(conn, 'DELETE FROM serverbf1admins WHERE serverid=%s AND pid=%s;', server_bf1admins_del)
     db_op_many(conn, 'INSERT INTO serverbf1admins (serverid, pid) VALUES(%s, %s) ON CONFLICT (serverid, pid) DO NOTHING;', server_bf1admins_add)
 
-    for serverid in server_dict.keys():
-        redis_client.set(f'gameid:{int(serverid)}', int(server_dict[serverid]["server_game_id"]))
+    for i, serverid in enumerate(server_dict.keys()):
+        redis_client.set(f'gameid:{int(serverid)}', int(server_dict[serverid]["server_game_id"]), ex=86400 + i)
 
     conn.close()
     redis_client.close()

@@ -616,7 +616,7 @@ async def draw_stat(remid, sid, sessionID,personaId:int,playerName:str):
 
 #draw_f(4,248966716,remid, sid, sessionID)
 
-async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, col, row):
+async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, col, row, search_keyword: str = None):
     tasks = []
 
     tasks.append(asyncio.create_task(upd_blazestat(personaId,'s3')))
@@ -872,6 +872,8 @@ async def draw_wp(remid, sid, sessionID, personaId, playerName:str, mode:int, co
         vehicles.append(fight)
         
         weapons = sorted(vehicles, key=lambda x: x['stats']['values']['kills'],reverse=True)
+
+    weapons = list(filter(lambda x: search_keyword in zhconv.convert(x["name"],"zh-cn"), weapons)) if search_keyword else weapons
 
     for i in range(min(row*col,len(weapons))):
         textbox4 = Image.new("RGBA", (645,190), (255, 255, 255, 255))

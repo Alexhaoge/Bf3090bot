@@ -1,7 +1,10 @@
 from nonebot.log import logger
-from nonebot.params import _command_arg
+from nonebot.params import _command_arg, ShellCommandArgs
 from nonebot.adapters.onebot.v11 import MessageSegment, GroupMessageEvent, ActionFailed
 from nonebot.typing import T_State
+from nonebot.exception import ParserExit
+from nonebot.rule import Namespace
+from typing import Annotated
 
 import traceback
 import json
@@ -235,44 +238,61 @@ async def bf1_statimage(event:GroupMessageEvent, state:T_State):
         await BF1_S.finish(MessageSegment.reply(event.message_id) + '获取玩家信息失败\n' + traceback.format_exception_only(e))
 
 @BF1_WP.handle()
-async def bf1_wp(event:GroupMessageEvent, state:T_State):
-    message = _command_arg(state) or event.get_message() 
-    message = message.extract_plain_text()
+async def bf1_wp_wrongargs(event:GroupMessageEvent,
+                           args: Annotated[ParserExit, ShellCommandArgs()]):
+    if args.status == 0:
+        if reply_message_id(event) == None:
+            help_msg = '.w [类型] [EAID] [?行?列] [-n 武器名称搜索]\n' +\
+            '类型，支持精英兵/配备/半自动/佩枪/手枪/机枪/轻机枪/近战/刀' +\
+            '/霰弹枪/霰弹/步枪/狙击枪/手榴弹/驾驶员/制式步枪/冲锋枪/突击兵/侦察兵/支援兵/医疗兵/载具\n' +\
+            'EAID不填则查询自己\n' +\
+            '行列数选填，需为2-7的整数'
+        else:
+            help_msg = '回复pl武器查询模式：\n' +\
+            '.w [类型] pl中玩家序号 [?行?列] [-n 武器名称搜索]\n' +\
+            '类型，支持精英兵/配备/半自动/佩枪/手枪/机枪/轻机枪/近战/刀' +\
+            '/霰弹枪/霰弹/步枪/狙击枪/手榴弹/驾驶员/制式步枪/冲锋枪/突击兵/侦察兵/支援兵/医疗兵/载具\n' +\
+            '行列数选填，需为2-7的整数'
+        await BF1_WP.finish(MessageSegment.reply(event.message_id) + help_msg)
+    else:
+        await BF1_WP.finish(MessageSegment.reply(event.message_id) + '参数格式错误，请使用.w -h查看帮助')
+
+@BF1_WP.handle()
+async def bf1_wp(event:GroupMessageEvent, state:T_State,
+                 args: Annotated[Namespace, ShellCommandArgs()]):
     groupqq = await check_session(event.group_id)
     usercard = event.sender.card
     user_id = event.user_id
+    raw_args = args.raw_args
+    search_keyword = args.search
 
-    if message.endswith("行") or message.endswith("列"):
-        row_arg = re.findall(r'(\d+)行', message)
+    if len(args.raw_args) and (raw_args[-1].endswith("行") or raw_args[-1].endswith("列")):
+        row_arg = re.findall(r'(\d+)行', raw_args[-1])
         row = int(row_arg[0]) if len(row_arg) else 4
-        col_arg = re.findall(r'(\d+)列', message)
+        col_arg = re.findall(r'(\d+)列', raw_args[-1])
         col = int(col_arg[0]) if len(col_arg) else 4
         if row > 7 or col < 2 or col > 7:
             await BF1_WP.finish(MessageSegment.reply(event.message_id) + '行列数设置不合法，允许1-7行和2-7列')
-        index = message.rfind(" ")
-        if index != -1:
-            message = message[:index]
-        else:
-            message = ".w"
+        arg = raw_args[:-1]
     else:
         row = 5
         col = 2
-    arg = message.split() 
+        arg = raw_args
 
     remid, sid, sessionID, access_token = await get_one_random_bf1admin()
     if reply_message_id(event) == None:
         mode = 0
         playerName = None
-        if message.startswith(f'{PREFIX}'):
+        if len(arg) == 0:
             wpmode = 0
             mode = 2
         else:
-            if len(message.split()) == 1:
-                [playerName,wpmode,mode] = get_wp_info(message,user_id)
+            if len(arg) == 1:
+                [playerName,wpmode,mode] = get_wp_info(arg[0],user_id)
             else:
-                playerName = message.split()[1]
+                playerName = arg[1]
                 mode = 1
-                wpmode = get_wp_info(message.split()[0],user_id)[1]
+                wpmode = get_wp_info(arg[0],user_id)[1]
         logger.debug(f'mode={mode},wpmode={wpmode}')
 
         ret_dict = await update_or_bind_player_name(
@@ -285,6 +305,8 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
         personaId, userName = ret_dict['pid'], ret_dict['userName']
         
     else:
+        if len(arg) == 0:
+            await BF1_WP.finish(MessageSegment.reply(event.message_id) + '回复pl时玩家序号必填')
         redis_pl = await redis_client.get(f"pl:{groupqq}:{reply_message_id(event)}")
         if not redis_pl:
             await BF1_WP.finish(MessageSegment.reply(event.message_id) + '回复消息错误或已过期')
@@ -297,12 +319,12 @@ async def bf1_wp(event:GroupMessageEvent, state:T_State):
         if not personaId:
             await BF1_WP.finish(MessageSegment.reply(event.message_id)+'请选择正确的玩家序号')
         
-        wpmode = get_wp_info(message.split()[0],user_id)[1]
+        wpmode = get_wp_info(arg[0],user_id)[1]
     
     try:
         res1 = await upd_getPersonasByIds(remid, sid, sessionID, [personaId])
         userName = res1['result'][f'{personaId}']['displayName']
-        file_dir = await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, userName, wpmode, col, row), timeout=15)
+        file_dir = await asyncio.wait_for(draw_wp(remid, sid, sessionID, personaId, userName, wpmode, col, row, search_keyword), timeout=15)
         await BF1_WP.send(MessageSegment.reply(event.message_id) + MessageSegment.image(file_dir))
     except asyncio.TimeoutError:
         await BF1_WP.send(MessageSegment.reply(event.message_id) + '连接超时')
