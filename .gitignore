@@ -181,7 +181,6 @@ cython_debug/
 secret.py
 cron_secret.py
 btr.py
-image.py
 
 .env.prod
 
