@@ -16,7 +16,8 @@ dependencies = [
     "aiohttp",
     "beautifulsoup4",
     "asyncpg",
-    "psycopg"
+    "psycopg",
+    "oss2"
 ]
 
 [project.optional-dependencies]
