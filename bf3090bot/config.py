@@ -9,5 +9,10 @@ class Config(BaseSettings):
     redis_url: str = 'redis://localhost'
     gametool_url: str = 'https://api.gametools.network/'
     port: int = 16000
+    oss_access_key_id: str
+    oss_access_key_secret: str
+    oss_bucket_name: str
+    oss_endpoint: str
+
     class Config:
         extra = "ignore"

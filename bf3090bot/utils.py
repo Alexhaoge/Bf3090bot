@@ -1,7 +1,7 @@
 import json
 import httpx
 from pathlib import Path
-import os
+import asyncio
 from .config import Config
 from nonebot import get_driver, logger
 from typing import TYPE_CHECKING
@@ -136,6 +136,10 @@ LOGGING_FOLDER.mkdir(exist_ok=True)
 SUPERUSERS = [int(su) for su in global_config.superusers]
 SUDOGROUPS = [int(g) for g in global_config.sudogroups]
 
+OSS_ACESS_KEY_ID = config.oss_access_key_id
+OSS_ACESS_KEY_SECRET = config.oss_access_key_secret
+OSS_BUCKET_NAME = config.oss_bucket_name
+OSS_ENDPOINT = config.oss_endpoint
 
 with open(CURRENT_FOLDER/"wp_guid.json","r",encoding="utf-8")as f:
     wp_guid = json.load(f)
@@ -665,3 +669,15 @@ def main_log_filter(record: "Record"):
     if record['name'] == 'nonebot_plugin_picstatus':
         return record["level"].no > 30
     return record["level"].no >= levelno
+
+class AsyncSingletonMeta(type):
+    _instances = {}
+    _lock = asyncio.Lock()
+
+    async def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            async with cls._lock:
+                if cls not in cls._instances:  # Double-checked locking
+                    instance = super().__call__(*args, **kwargs)
+                    cls._instances[cls] = instance
+        return cls._instances[cls]

@@ -28,7 +28,7 @@ from ..rdb import *
 from ..bf1helper import *
 from .matcher import (
     BF1_CODE, BF1_ADMIN_ADD_CODE, BF1_ADMIN_DEL_CODE,
-    BF1_REPORT,
+    BF1_REPORT, BF1_OSS_TEST,
     BF1_BOT,
     BF1_PLA,BF1_PLAA,
     BF_STATUS,BF1_STATUS,BF1_MODE,BF1_MAP,
@@ -136,6 +136,32 @@ async def bf1_admin_del_code(event: GroupMessageEvent, state: T_State):
             code_r = (await session.execute(select(BotVipCodes).filter_by(code=code))).first()
             msg = f'背景图片码{code}已被使用' if code_r else f'背景图片码{code}从未被添加'
         await BF1_ADMIN_DEL_CODE.send(MessageSegment.reply(event.message_id) + msg)
+
+@BF1_OSS_TEST.handle()
+async def cmd_receive_oss_test(event: GroupMessageEvent, state: T_State, pic: Message = CommandArg()):
+    if check_admin(event.group_id, event.user_id):
+        await BF1_OSS_TEST.send(MessageSegment.reply(event.message_id) + '请发送图片')
+        state['case_num'] = 0
+
+@BF1_OSS_TEST.got("Message")
+async def get_oss_test(bot: Bot, event: GroupMessageEvent, state: T_State, msgpic: Message = Arg("Message")):
+    for segment in msgpic:
+        if segment.type == "image":
+            if state['case_num'] <= 5:    
+                pic_url: str = segment.data["url"]  # 图片链接
+                logger.success(f"获取到图片: {pic_url}")
+                response = await httpx_client.get(pic_url,timeout=20)
+                image_data = response.content
+                image = Image.open(BytesIO(image_data))
+                        
+                filename_ts = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S')
+                imageurl = await upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
+                state['case_num'] += 1
+                await BF1_OSS_TEST.reject(MessageSegment.reply(event.message_id) + f'图片上传完成:{imageurl}\n发送非图片消息结束\n你还可以测试{5-state["case_num"]}条图片')
+            else:
+                await BF1_OSS_TEST.finish(MessageSegment.reply(event.message_id) + f'能够发送的证据数量已满。')
+        else:
+            await BF1_OSS_TEST.finish(MessageSegment.reply(event.message_id) + f'非图片消息，结束测试')
 
 @BF1_REPORT.handle()
 async def cmd_receive_report(event: GroupMessageEvent, state: T_State, pic: Message = CommandArg()):
@@ -250,7 +276,7 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                         image = Image.open(BytesIO(image_data))
                         
                         filename_ts = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S')
-                        imageurl = upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
+                        imageurl = await upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
                         state['case_num'] += 1
                         state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
                         state['txturl'].append(imageurl)
@@ -331,7 +357,7 @@ async def get_bfban_or_bfeac(bot: Bot, event: GroupMessageEvent, state: T_State,
                             image = Image.open(BytesIO(image_data))
                             
                             filename_ts = datetime.datetime.now().strftime('%Y%m%d_%H_%M_%S')
-                            imageurl = upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
+                            imageurl = await upload_img(image,f"report_{filename_ts}_{random.randint(1, 100000000000)}.png")
                             state['case_num'] += 1
                             state['case_body'] += "<p><img class=\"img-fluid\" src=\"" + imageurl + "\"/></p>"
                             state['txturl'].append(imageurl)
